@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mesureur Réseaux - V2.0.0 (Plan minute)</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root{
+      --bg-color:#1a1a1a;
+      --panel-bg:rgba(30,30,30,.85);
+      --accent-color:#3498db;
+      --text-color:#fff;
+
+      /* Cadre (V1) */
+      --frame-color: rgba(255,255,255,0.16);
+      --frame-inner: rgba(0,0,0,0.55);
+      --frame-glow: rgba(52,152,219,0.10);
+
+      /* Zone intérieure du cadre */
+      --frame-top: 72px;
+      --frame-left: 12px;
+      --frame-right: 12px;
+      --frame-bottom: 18px;
+      --frame-radius: 16px;
+    }
+
+    body{
+      font-family:'Inter','Segoe UI',sans-serif;
+      background:var(--bg-color);
+      margin:0; padding:0;
+      height:100vh; width:100vw;
+      overflow:hidden;
+      touch-action:none;
+      color:var(--text-color);
+    }
+
+    .top-bar{
+      position:absolute; top:0; left:0; right:0;
+      height:60px;
+      background:linear-gradient(180deg,rgba(0,0,0,.8) 0%,rgba(0,0,0,0) 100%);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 14px; z-index:60; pointer-events:none;
+      gap:12px;
+    }
+    .app-title{
+      font-weight:700; font-size:1.05rem; letter-spacing:1px;
+      text-shadow:0 2px 4px rgba(0,0,0,.5);
+      opacity:.9;
+      pointer-events:auto;
+      white-space:nowrap;
+    }
+
+    .top-actions{
+      display:flex; gap:10px; align-items:center;
+      pointer-events:auto;
+    }
+    .file-btn{
+      background:rgba(255,255,255,.1); color:#fff;
+      padding:8px 12px; border-radius:8px;
+      font-weight:600; font-size:.9rem;
+      cursor:pointer;
+      transition:background .2s;
+      text-decoration:none; border:none;
+      display:flex; align-items:center; gap:8px;
+    }
+    .file-btn:hover{ background:rgba(255,255,255,.25); }
+    .file-btn:disabled{ opacity:.35; cursor:not-allowed; }
+
+    .pager{
+      display:flex; align-items:center; gap:8px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      padding:6px 10px;
+      border-radius:12px;
+      pointer-events:auto;
+    }
+    .pager .page-label{
+      font-size:.85rem;
+      opacity:.9;
+      min-width:88px;
+      text-align:center;
+      font-variant-numeric: tabular-nums;
+    }
+    .pager button{
+      width:38px; height:38px;
+      border-radius:10px;
+      border:none;
+      background:rgba(255,255,255,.1);
+      color:#fff;
+      cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition:transform .15s, background .2s;
+    }
+    .pager button:hover:not(:disabled){ transform:scale(1.05); background:rgba(255,255,255,.2); }
+    .pager button:disabled{ opacity:.25; cursor:not-allowed; }
+    .pager input{
+      width:56px;
+      background:rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.15);
+      color:#fff;
+      border-radius:10px;
+      padding:8px 10px;
+      outline:none;
+      font-size:.9rem;
+      text-align:center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bottom-dock{
+      position:absolute; bottom:26px; left:50%; transform:translateX(-50%);
+      background:var(--panel-bg);
+      backdrop-filter:blur(10px);
+      padding:10px 16px;
+      border-radius:50px;
+      border:1px solid rgba(255,255,255,.1);
+      display:flex; gap:12px; align-items:center;
+      box-shadow:0 10px 30px rgba(0,0,0,.5);
+      z-index:60;
+    }
+    .btn-icon{
+      width:48px; height:48px;
+      border-radius:50%;
+      border:none;
+      background:rgba(255,255,255,.1);
+      color:#fff;
+      font-size:1.1rem;
+      cursor:pointer;
+      transition:all .2s cubic-bezier(.175,.885,.32,1.275);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .btn-icon:hover:not(:disabled){ transform:scale(1.12); background:rgba(255,255,255,.2); }
+    .btn-icon:active{ transform:scale(.95); }
+    .btn-icon:disabled{ opacity:.3; cursor:not-allowed; }
+    .btn-icon.active{
+      background:var(--accent-color);
+      box-shadow:0 0 15px var(--accent-color);
+      transform:scale(1.06);
+    }
+    .btn-delete{ color:#e74c3c; }
+    .btn-delete:hover{ background:rgba(231,76,60,.2); }
+    .btn-undo{ color:#f1c40f; }
+    .divider{ width:1px; height:26px; background:rgba(255,255,255,.2); }
+
+    #statusBubble{
+      position:absolute; top:78px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,.82); color:#fff;
+      padding:10px 22px; border-radius:30px;
+      font-size:.95rem; font-weight:600;
+      pointer-events:none; z-index:100;
+      border:1px solid rgba(255,255,255,.15);
+      box-shadow:0 5px 15px rgba(0,0,0,.3);
+      opacity:0; transition:opacity .25s ease, transform .25s ease;
+    }
+    #statusBubble.visible{ opacity:1; transform:translateX(-50%) translateY(0); }
+    .status-success{ border-color:#27ae60 !important; color:#2ecc71 !important; }
+    .status-warning{ border-color:#f39c12 !important; color:#f1c40f !important; }
+    .status-error{ border-color:#c0392b !important; color:#e74c3c !important; }
+
+    .total-display{
+      position:absolute; bottom:100px; right:18px;
+      background:var(--panel-bg); backdrop-filter:blur(5px);
+      padding:10px 18px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.1);
+      text-align:right; pointer-events:none; z-index:55;
+      box-shadow:0 5px 15px rgba(0,0,0,.3);
+      display:none;
+    }
+    .total-label{ font-size:.75rem; text-transform:uppercase; color:#aaa; letter-spacing:1px; }
+    .total-value{ font-size:1.5rem; font-weight:800; color:var(--accent-color); font-variant-numeric: tabular-nums; }
+
+    .color-palette{
+      position:absolute; bottom:92px; left:50%; transform:translateX(-50%);
+      display:flex; gap:10px;
+      background:rgba(0,0,0,.6);
+      padding:8px; border-radius:20px;
+      z-index:58;
+      transition:opacity .2s;
+      opacity:0; pointer-events:none;
+    }
+    .color-palette.show{ opacity:1; pointer-events:auto; }
+    .color-dot{
+      width:28px; height:28px; border-radius:50%;
+      cursor:pointer;
+      border:2px solid rgba(255,255,255,.2);
+      transition:transform .15s;
+    }
+    .color-dot:hover{ transform:scale(1.18); }
+    .color-dot.selected{ border:2px solid #fff; transform:scale(1.08); box-shadow:0 0 10px currentColor; }
+
+    #appFrame{
+      position:absolute;
+      top:var(--frame-top);
+      left:var(--frame-left);
+      right:var(--frame-right);
+      bottom:var(--frame-bottom);
+      border-radius:var(--frame-radius);
+      pointer-events:none;
+      z-index:20;
+
+      border:3px solid var(--frame-color);
+      box-shadow:
+        0 0 0 1px var(--frame-inner) inset,
+        0 0 22px var(--frame-glow),
+        0 10px 35px rgba(0,0,0,0.55);
+    }
+
+    #canvas-wrapper{
+      position:absolute;
+      top:var(--frame-top);
+      left:var(--frame-left);
+      right:var(--frame-right);
+      bottom:var(--frame-bottom);
+      border-radius:var(--frame-radius);
+      overflow:hidden;
+      background:#252525;
+      z-index:1;
+      overscroll-behavior:none;
+    }
+
+    /* ===== MINI PANEL PLAN MINUTE ===== */
+    #minutePanel{
+      position:absolute;
+      left: calc(var(--frame-left) + 14px);
+      top:  calc(var(--frame-top) + 14px);
+      z-index:59;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 14px;
+      padding: 10px;
+      display:none;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 25px rgba(0,0,0,.35);
+      min-width: 240px;
+    }
+    #minutePanel.show{ display:block; }
+    .mp-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .mp-title span{
+      font-weight:800;
+      letter-spacing:0.5px;
+      font-size:0.95rem;
+      opacity:0.95;
+    }
+    .mp-grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:8px;
+    }
+    .mp-item{
+      height:44px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(255,255,255,0.08);
+      color:#fff;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition: transform .15s, background .2s;
+      user-select:none;
+    }
+    .mp-item:hover{ transform: scale(1.05); background: rgba(255,255,255,0.15); }
+    .mp-item.active{
+      background: var(--accent-color);
+      border-color: rgba(255,255,255,0.25);
+      box-shadow: 0 0 16px rgba(52,152,219,0.35);
+    }
+    .mp-hint{
+      margin-top:8px;
+      font-size:0.82rem;
+      opacity:0.85;
+      line-height:1.25rem;
+    }
+
+    #versionLabel{
+      position:fixed; bottom:6px; right:10px;
+      opacity:.28; font-size:.72rem;
+      z-index:80;
+    }
+
+    @media (max-width: 900px){
+      :root{
+        --frame-top: 70px;
+        --frame-left: 10px;
+        --frame-right: 10px;
+        --frame-bottom: 16px;
+      }
+      .btn-icon{ width:54px; height:54px; font-size:1.2rem; }
+      .pager button{ width:44px; height:44px; }
+      .pager input{ width:64px; padding:10px; }
+      .file-btn{ padding:10px 12px; }
+      #minutePanel{ min-width: 260px; }
+    }
+    @media (max-width: 600px){
+      :root{
+        --frame-top: 68px;
+        --frame-left: 10px;
+        --frame-right: 10px;
+        --frame-bottom: 14px;
+        --frame-radius: 14px;
+      }
+      .app-title{ display:none; }
+      .pager .page-label{ min-width:78px; }
+      .top-bar{ padding:0 10px; }
+      .bottom-dock{ width:92%; justify-content:space-between; gap:10px; padding:10px 14px; }
+      #minutePanel{
+        left: calc(var(--frame-left) + 10px);
+        top:  calc(var(--frame-top) + 10px);
+        min-width: 240px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="top-bar">
+    <div class="app-title"><i class="fa-solid fa-ruler-combined"></i> Mesureur</div>
+
+    <div class="pager" title="Navigation PDF">
+      <button id="btnPrevPage" disabled><i class="fa-solid fa-chevron-left"></i></button>
+      <div class="page-label" id="pageLabel">Page - / -</div>
+      <button id="btnNextPage" disabled><i class="fa-solid fa-chevron-right"></i></button>
+
+      <input id="pageJump" type="number" min="1" step="1" placeholder="N°" disabled />
+      <button id="btnGoPage" disabled title="Aller"><i class="fa-solid fa-arrow-right-to-bracket"></i></button>
+    </div>
+
+    <div class="top-actions">
+      <label for="fileInput" class="file-btn"><i class="fa-solid fa-folder-open"></i> Ouvrir</label>
+      <input type="file" id="fileInput" accept=".pdf" style="display:none;">
+
+      <button id="btnSave" class="file-btn" disabled title="Exporter PNG"><i class="fa-solid fa-floppy-disk"></i></button>
+      <button id="btnClear" class="file-btn" title="Tout effacer"
+              style="background:rgba(231, 76, 60, 0.2); color:#e74c3c;">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
+  </div>
+
+  <div id="statusBubble">Bienvenue</div>
+
+  <div class="total-display" id="totalCounter">
+    <div class="total-label">Linéaire Total (page)</div>
+    <div class="total-value" id="totalValue">0.00 m</div>
+  </div>
+
+  <div class="color-palette" id="colorPicker">
+    <div class="color-dot selected" style="background:#e74c3c;" data-color="#e74c3c" title="Élec (Rouge)"></div>
+    <div class="color-dot" style="background:#f1c40f;" data-color="#f1c40f" title="Gaz (Jaune)"></div>
+    <div class="color-dot" style="background:#3498db;" data-color="#3498db" title="Eau (Bleu)"></div>
+    <div class="color-dot" style="background:#2ecc71;" data-color="#2ecc71" title="Telecom (Vert)"></div>
+    <div class="color-dot" style="background:#9b59b6;" data-color="#9b59b6" title="Fibre (Violet)"></div>
+  </div>
+
+  <!-- Panel Plan minute -->
+  <div id="minutePanel">
+    <div class="mp-title">
+      <span><i class="fa-solid fa-pen-ruler"></i> Plan minute</span>
+      <span style="opacity:.75; font-size:.82rem" id="minuteToolLabel">Outil : Cote</span>
+    </div>
+
+    <div class="mp-grid">
+      <div class="mp-item active" data-tool="pm_cote" title="Tracer une cote">Cote</div>
+      <div class="mp-item" data-tool="pm_pb" title="Prise de branchement">PB</div>
+      <div class="mp-item" data-tool="pm_bouchon" title="Bouchon">B</div>
+      <div class="mp-item" data-tool="pm_vanne" title="Vanne">V</div>
+      <div class="mp-item" data-tool="pm_regard" title="Regard / Chambre">R</div>
+    </div>
+
+    <div class="mp-hint">
+      • <b>Cote</b> : trace une ligne → saisis la valeur terrain (m).<br>
+      • <b>PB/B/V/R</b> : clique pour poser le symbole.
+    </div>
+  </div>
+
+  <div class="bottom-dock">
+    <button id="btnPan" class="btn-icon active" title="Déplacer"><i class="fa-solid fa-hand"></i></button>
+    <button id="btnHome" class="btn-icon" title="Recentrer"><i class="fa-solid fa-house"></i></button>
+
+    <div class="divider"></div>
+
+    <button id="btnZoomOut" class="btn-icon" disabled title="Zoom -"><i class="fa-solid fa-minus"></i></button>
+    <button id="btnZoomIn" class="btn-icon" disabled title="Zoom +"><i class="fa-solid fa-plus"></i></button>
+
+    <div class="divider"></div>
+
+    <button id="btnScale" class="btn-icon" disabled title="Étalonnage"><i class="fa-solid fa-ruler-horizontal"></i></button>
+    <button id="btnMeasure" class="btn-icon" disabled title="Mesurer"><i class="fa-solid fa-pen-nib"></i></button>
+
+    <!-- NEW: Plan minute -->
+    <button id="btnMinute" class="btn-icon" disabled title="Plan minute"><i class="fa-solid fa-pen-ruler"></i></button>
+
+    <div class="divider"></div>
+
+    <button id="btnUndo" class="btn-icon btn-undo" disabled title="Annuler"><i class="fa-solid fa-rotate-left"></i></button>
+    <button id="btnDelete" class="btn-icon btn-delete" disabled title="Supprimer"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <div id="versionLabel">V2.0.0 (Plan minute)</div>
+
+  <div id="appFrame"></div>
+  <div id="canvas-wrapper"><canvas id="c"></canvas></div>
+
+  <script>
+    /* ============================================================
+       Mesureur Réseaux - V2.0.0
+       - Mode Mesure (échelle)
+       - Mode Plan minute : cotes libres + placement symboles (Fabric, offline)
+       ============================================================ */
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    const CONFIG = Object.freeze({
+      PDF_RENDER_SCALE: 3.0,
+      EXPORT_MULTIPLIER: 3,
+      MAX_ZOOM: 20,
+      MIN_DRAW_PX_AT_ZOOM1: 5,
+      MEASURE_STROKE: 3,
+      SCALE_STROKE: 3,
+      SCALE_DASH: [10, 5],
+      PM_STROKE: 3,
+      STATUS_MS: 3500,
+      OCR: { cropWidthRatio: 0.35, lang: "eng" },
+      SCALE_REGEX: /1\s*[:\/.,]\s*(50|100|200|500|1000)\b/
+    });
+
+    const MODES = Object.freeze({
+      PAN: "pan",
+      SCALE: "scale",
+      MEASURE: "measure",
+      MINUTE: "minute"
+    });
+
+    const PM_TOOLS = Object.freeze({
+      COTE: "pm_cote",
+      PB: "pm_pb",
+      BOUCHON: "pm_bouchon",
+      VANNE: "pm_vanne",
+      REGARD: "pm_regard"
+    });
+
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+    const ui = {
+      wrapper: $("#canvas-wrapper"),
+      fileInput: $("#fileInput"),
+      statusBubble: $("#statusBubble"),
+      totalCounter: $("#totalCounter"),
+      totalValue: $("#totalValue"),
+      colorPicker: $("#colorPicker"),
+
+      minutePanel: $("#minutePanel"),
+      minuteToolLabel: $("#minuteToolLabel"),
+
+      pager: {
+        prev: $("#btnPrevPage"),
+        next: $("#btnNextPage"),
+        label: $("#pageLabel"),
+        jump: $("#pageJump"),
+        go: $("#btnGoPage"),
+      },
+
+      btn: {
+        pan: $("#btnPan"),
+        home: $("#btnHome"),
+        scale: $("#btnScale"),
+        measure: $("#btnMeasure"),
+        minute: $("#btnMinute"),
+        zoomIn: $("#btnZoomIn"),
+        zoomOut: $("#btnZoomOut"),
+        undo: $("#btnUndo"),
+        del: $("#btnDelete"),
+        clear: $("#btnClear"),
+        save: $("#btnSave"),
+      }
+    };
+
+    function setDisabledAll(disabled) {
+      Object.values(ui.btn).forEach(b => b.disabled = disabled);
+      ui.btn.clear.disabled = false;
+    }
+
+    const Status = (() => {
+      let timer;
+      function show(message, type = "normal") {
+        ui.statusBubble.innerText = message;
+        ui.statusBubble.className = "";
+        ui.statusBubble.classList.add("visible");
+        if (type === "success") ui.statusBubble.classList.add("status-success");
+        if (type === "warning") ui.statusBubble.classList.add("status-warning");
+        if (type === "error") ui.statusBubble.classList.add("status-error");
+        clearTimeout(timer);
+        timer = setTimeout(() => ui.statusBubble.classList.remove("visible"), CONFIG.STATUS_MS);
+      }
+      return { show };
+    })();
+
+    const state = {
+      mode: MODES.PAN,
+      pmTool: PM_TOOLS.COTE,
+
+      pixelsPerMeter: 0,
+      initialZoom: 0.05,
+      currentColor: "#e74c3c",
+
+      isDragging: false,
+      isDrawing: false,
+      lastClientX: 0,
+      lastClientY: 0,
+
+      line: null,
+      startPoint: null,
+
+      pdfDoc: null,
+      pageCount: 0,
+      currentPage: 1,
+
+      perPage: new Map(),
+    };
+
+    const canvas = new fabric.Canvas("c", { selection: true, preserveObjectStacking: true });
+
+    function getClientPos(evt) {
+      if (evt.touches && evt.touches.length > 0) return { x: evt.touches[0].clientX, y: evt.touches[0].clientY };
+      return { x: evt.clientX, y: evt.clientY };
+    }
+
+    function clampViewportToBackground() {
+      const bg = canvas.backgroundImage;
+      if (!bg) return;
+
+      const zoom = canvas.getZoom();
+      const contentW = bg.width * zoom;
+      const contentH = bg.height * zoom;
+
+      const vpt = canvas.viewportTransform;
+
+      if (contentW <= canvas.width) {
+        vpt[4] = (canvas.width - contentW) / 2;
+      } else {
+        const minX = canvas.width - contentW;
+        const maxX = 0;
+        vpt[4] = Math.min(maxX, Math.max(minX, vpt[4]));
+      }
+
+      if (contentH <= canvas.height) {
+        vpt[5] = (canvas.height - contentH) / 2;
+      } else {
+        const minY = canvas.height - contentH;
+        const maxY = 0;
+        vpt[5] = Math.min(maxY, Math.max(minY, vpt[5]));
+      }
+    }
+
+    function resizeCanvas() {
+      canvas.setWidth(ui.wrapper.clientWidth);
+      canvas.setHeight(ui.wrapper.clientHeight);
+      clampViewportToBackground();
+      canvas.requestRenderAll();
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    function syncMeasureButton() {
+      ui.btn.measure.disabled = !state.pixelsPerMeter;
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+
+      Object.values(ui.btn).forEach(b => b.classList.remove("active"));
+      if (ui.btn[mode]) ui.btn[mode].classList.add("active");
+
+      // palette uniquement en mesure
+      ui.colorPicker.classList.toggle("show", mode === MODES.MEASURE);
+
+      // panel minute uniquement en plan minute
+      ui.minutePanel.classList.toggle("show", mode === MODES.MINUTE);
+
+      if (mode === MODES.PAN) {
+        canvas.selection = true;
+        canvas.forEachObject(o => o.selectable = true);
+        canvas.defaultCursor = "grab";
+        if (state.pdfDoc) Status.show("Mode Déplacement");
+      } else {
+        canvas.selection = false;
+        canvas.forEachObject(o => o.selectable = false);
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
+        canvas.defaultCursor = "crosshair";
+
+        if (mode === MODES.SCALE) Status.show("⚠️ Étalonnage : Tracez une cote connue", "warning");
+        if (mode === MODES.MEASURE) Status.show("✅ Mode Mesure (échelle)", "success");
+        if (mode === MODES.MINUTE) Status.show("📝 Mode Plan minute", "success");
+      }
+      syncMeasureButton();
+    }
+
+    /* Buttons modes */
+    ui.btn.pan.addEventListener("click", () => setMode(MODES.PAN));
+    ui.btn.scale.addEventListener("click", () => setMode(MODES.SCALE));
+    ui.btn.measure.addEventListener("click", () => {
+      if (!state.pixelsPerMeter) {
+        alert("Aucune échelle définie pour cette page !");
+        setMode(MODES.SCALE);
+        return;
+      }
+      setMode(MODES.MEASURE);
+    });
+    ui.btn.minute.addEventListener("click", () => {
+      setMode(MODES.MINUTE);
+    });
+
+    /* Home */
+    ui.btn.home.addEventListener("click", () => resetViewToCenter());
+
+    /* Color picker (mesure) */
+    $$(".color-dot").forEach(dot => {
+      dot.addEventListener("click", () => {
+        $$(".color-dot").forEach(d => d.classList.remove("selected"));
+        dot.classList.add("selected");
+        state.currentColor = dot.getAttribute("data-color");
+
+        const active = canvas.getActiveObject();
+        if (active && active.type === "group") {
+          const lineObj = active.getObjects().find(o => o.type === "line");
+          if (lineObj) {
+            lineObj.set("stroke", state.currentColor);
+            canvas.requestRenderAll();
+          }
+        }
+      });
+    });
+
+    /* Plan minute tool selection */
+    function setPmTool(tool) {
+      state.pmTool = tool;
+      $$("#minutePanel .mp-item").forEach(el => el.classList.remove("active"));
+      const btn = $(`#minutePanel .mp-item[data-tool="${tool}"]`);
+      if (btn) btn.classList.add("active");
+
+      const labels = {
+        [PM_TOOLS.COTE]: "Outil : Cote",
+        [PM_TOOLS.PB]: "Outil : Prise branchement",
+        [PM_TOOLS.BOUCHON]: "Outil : Bouchon",
+        [PM_TOOLS.VANNE]: "Outil : Vanne",
+        [PM_TOOLS.REGARD]: "Outil : Regard",
+      };
+      ui.minuteToolLabel.textContent = labels[tool] || "Outil : -";
+    }
+
+    $$("#minutePanel .mp-item").forEach(el => {
+      el.addEventListener("click", () => setPmTool(el.getAttribute("data-tool")));
+    });
+
+    /* Total */
+    function updateTotal() {
+      let total = 0;
+      canvas.getObjects().forEach(obj => {
+        if (obj.type === "group" && obj.isMeasure) total += Number(obj.measureValue || 0);
+      });
+      ui.totalValue.innerText = `${total.toFixed(2)} m`;
+      ui.totalCounter.style.display = total > 0 ? "block" : "none";
+    }
+
+    /* Zoom */
+    function clampZoom(z) {
+      return Math.max(state.initialZoom, Math.min(CONFIG.MAX_ZOOM, z));
+    }
+
+    function resetViewToCenter() {
+      canvas.setZoom(state.initialZoom);
+      const vpt = canvas.viewportTransform;
+      vpt[0] = state.initialZoom; vpt[3] = state.initialZoom;
+      vpt[4] = (canvas.width - (canvas.backgroundImage?.width || 0) * state.initialZoom) / 2;
+      vpt[5] = (canvas.height - (canvas.backgroundImage?.height || 0) * state.initialZoom) / 2;
+      clampViewportToBackground();
+      canvas.requestRenderAll();
+    }
+
+    function applyZoom(factor) {
+      const zoom = clampZoom(canvas.getZoom() * factor);
+      canvas.zoomToPoint({ x: canvas.width / 2, y: canvas.height / 2 }, zoom);
+      clampViewportToBackground();
+      canvas.requestRenderAll();
+    }
+
+    canvas.on("mouse:wheel", (opt) => {
+      let zoom = canvas.getZoom();
+      zoom *= 0.999 ** opt.e.deltaY;
+      zoom = clampZoom(zoom);
+
+      canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
+      clampViewportToBackground();
+      canvas.requestRenderAll();
+
+      opt.e.preventDefault();
+      opt.e.stopPropagation();
+    });
+
+    ui.btn.zoomIn.addEventListener("click", () => applyZoom(1.2));
+    ui.btn.zoomOut.addEventListener("click", () => applyZoom(0.8));
+
+    /* Tablet pinch */
+    (() => {
+      let isPinching = false;
+      let startDist = 0;
+      let startZoom = 1;
+      let lastMid = null;
+
+      function dist(t1, t2) {
+        const dx = t2.clientX - t1.clientX;
+        const dy = t2.clientY - t1.clientY;
+        return Math.hypot(dx, dy);
+      }
+      function midpoint(t1, t2) {
+        return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+      }
+      function toCanvasPoint(clientX, clientY) {
+        const rect = ui.wrapper.getBoundingClientRect();
+        return { x: clientX - rect.left, y: clientY - rect.top };
+      }
+
+      function onTouchStart(e) {
+        if (e.touches.length === 2) {
+          isPinching = true;
+          startDist = dist(e.touches[0], e.touches[1]);
+          startZoom = canvas.getZoom();
+          lastMid = midpoint(e.touches[0], e.touches[1]);
+          e.preventDefault();
+        }
+      }
+
+      function onTouchMove(e) {
+        if (!isPinching) return;
+        if (e.touches.length !== 2) return;
+
+        const d = dist(e.touches[0], e.touches[1]);
+        const ratio = d / (startDist || 1);
+        let newZoom = clampZoom(startZoom * ratio);
+
+        const mid = midpoint(e.touches[0], e.touches[1]);
+        const canvasMid = toCanvasPoint(mid.x, mid.y);
+
+        canvas.zoomToPoint(canvasMid, newZoom);
+
+        if (lastMid) {
+          const dx = mid.x - lastMid.x;
+          const dy = mid.y - lastMid.y;
+          const vpt = canvas.viewportTransform;
+          vpt[4] += dx;
+          vpt[5] += dy;
+        }
+
+        clampViewportToBackground();
+        lastMid = mid;
+        canvas.requestRenderAll();
+        e.preventDefault();
+      }
+
+      function onTouchEnd(e) {
+        if (e.touches.length < 2) {
+          isPinching = false;
+          startDist = 0;
+          lastMid = null;
+        }
+      }
+
+      ui.wrapper.addEventListener("touchstart", onTouchStart, { passive: false });
+      ui.wrapper.addEventListener("touchmove", onTouchMove, { passive: false });
+      ui.wrapper.addEventListener("touchend", onTouchEnd, { passive: false });
+      ui.wrapper.addEventListener("touchcancel", onTouchEnd, { passive: false });
+    })();
+
+    /* PDF */
+    async function loadPdfFile(file) {
+      Status.show("⏳ Chargement PDF...", "normal");
+
+      const buffer = await file.arrayBuffer();
+      const typed = new Uint8Array(buffer);
+      state.pdfDoc = await pdfjsLib.getDocument(typed).promise;
+
+      state.pageCount = state.pdfDoc.numPages;
+      state.currentPage = 1;
+      state.perPage.clear();
+
+      Status.show(`✅ PDF chargé (${state.pageCount} pages)`, "success");
+      updatePagerUI();
+      await renderPage(1, { restoreMeasures: true });
+    }
+
+    async function renderPage(pageNumber, { restoreMeasures = true } = {}) {
+      if (!state.pdfDoc) return;
+
+      if (state.currentPage && state.currentPage !== pageNumber) saveMeasuresForPage(state.currentPage);
+      const firstTimeOnPage = !state.perPage.has(pageNumber);
+
+      state.currentPage = pageNumber;
+      updatePagerUI();
+      Status.show(`⏳ Rendu page ${pageNumber}...`, "normal");
+
+      const page = await state.pdfDoc.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: CONFIG.PDF_RENDER_SCALE });
+
+      const tempCanvas = document.createElement("canvas");
+      const ctx = tempCanvas.getContext("2d");
+      tempCanvas.width = viewport.width;
+      tempCanvas.height = viewport.height;
+
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      const dataUrl = tempCanvas.toDataURL("image/png");
+
+      await new Promise((resolve) => {
+        fabric.Image.fromURL(dataUrl, (img) => {
+          setupBackground(img);
+          if (restoreMeasures) restoreMeasuresForPage(pageNumber);
+          updateTotal();
+          resolve();
+        }, { crossOrigin: "anonymous" });
+      });
+
+      if (firstTimeOnPage) performVisualOCR(tempCanvas).catch(() => {});
+      Status.show(`✅ Page ${pageNumber} prête`, "success");
+    }
+
+    function updatePagerUI() {
+      const hasPdf = !!state.pdfDoc;
+      ui.pager.prev.disabled = !hasPdf || state.currentPage <= 1;
+      ui.pager.next.disabled = !hasPdf || state.currentPage >= state.pageCount;
+      ui.pager.jump.disabled = !hasPdf;
+      ui.pager.go.disabled = !hasPdf;
+
+      ui.pager.label.textContent = hasPdf ? `Page ${state.currentPage} / ${state.pageCount}` : "Page - / -";
+      ui.pager.jump.min = 1;
+      ui.pager.jump.max = state.pageCount || 1;
+      ui.pager.jump.value = hasPdf ? state.currentPage : "";
+    }
+
+    ui.pager.prev.addEventListener("click", () => {
+      if (state.currentPage > 1) renderPage(state.currentPage - 1, { restoreMeasures: true });
+    });
+    ui.pager.next.addEventListener("click", () => {
+      if (state.currentPage < state.pageCount) renderPage(state.currentPage + 1, { restoreMeasures: true });
+    });
+    ui.pager.go.addEventListener("click", () => {
+      const n = parseInt(ui.pager.jump.value, 10);
+      if (!Number.isFinite(n)) return;
+      const target = Math.max(1, Math.min(state.pageCount, n));
+      renderPage(target, { restoreMeasures: true });
+    });
+    ui.pager.jump.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") ui.pager.go.click();
+    });
+
+    function setupBackground(img) {
+      canvas.clear();
+      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+
+      const ratio = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.98;
+      state.initialZoom = ratio;
+
+      canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+        originX: "left",
+        originY: "top",
+        left: 0,
+        top: 0,
+        selectable: false,
+        evented: false
+      });
+
+      resetViewToCenter();
+      setDisabledAll(false);
+
+      // Activer Plan minute dès qu'un PDF est chargé
+      ui.btn.minute.disabled = false;
+
+      setMode(MODES.PAN);
+    }
+
+    function saveMeasuresForPage(pageNumber) {
+      const json = canvas.toDatalessJSON(["isMeasure", "measureValue", "isPm", "pmKind"]);
+      state.perPage.set(pageNumber, {
+        json,
+        pixelsPerMeter: state.pixelsPerMeter || 0
+      });
+    }
+
+    function restoreMeasuresForPage(pageNumber) {
+      const saved = state.perPage.get(pageNumber);
+      state.pixelsPerMeter = (saved?.pixelsPerMeter && saved.pixelsPerMeter > 0) ? saved.pixelsPerMeter : 0;
+      syncMeasureButton();
+
+      if (!saved?.json) { updateTotal(); return; }
+
+      canvas.getObjects().forEach(o => { if (o !== canvas.backgroundImage) canvas.remove(o); });
+
+      canvas.loadFromJSON(saved.json, () => {
+        if (state.mode !== MODES.PAN) canvas.forEachObject(o => o.selectable = false);
+        canvas.requestRenderAll();
+        updateTotal();
+      });
+    }
+
+    function parseScaleString(text) {
+      const clean = String(text || "").replace(/O/g, "0").replace(/o/g, "0");
+      const match = clean.match(CONFIG.SCALE_REGEX);
+      if (!match?.[1]) return false;
+
+      const scaleVal = parseInt(match[1], 10);
+      state.pixelsPerMeter = (72 * CONFIG.PDF_RENDER_SCALE * 39.3701) / scaleVal;
+
+      Status.show(`✅ Échelle 1/${scaleVal} détectée ! (page ${state.currentPage})`, "success");
+      syncMeasureButton();
+      setMode(MODES.MEASURE);
+      saveMeasuresForPage(state.currentPage);
+      return true;
+    }
+
+    async function performVisualOCR(canvasEl) {
+      Status.show("👁️ OCR échelle...", "normal");
+
+      const crop = document.createElement("canvas");
+      const ctx = crop.getContext("2d");
+
+      const w = Math.floor(canvasEl.width * CONFIG.OCR.cropWidthRatio);
+      const h = canvasEl.height;
+
+      crop.width = w;
+      crop.height = h;
+
+      ctx.drawImage(canvasEl, 0, 0, w, h, 0, 0, w, h);
+
+      try {
+        const result = await Tesseract.recognize(crop, CONFIG.OCR.lang);
+        if (!parseScaleString(result?.data?.text)) {
+          Status.show("⚠️ Échelle non trouvée. Étalonnage manuel (page).", "warning");
+        }
+      } catch (err) {
+        console.error(err);
+        Status.show("Erreur OCR.", "error");
+      }
+    }
+
+    /* ====== SHAPES ====== */
+    function makeLine(x1, y1, x2, y2, mode) {
+      const zoom = canvas.getZoom();
+      const stroke = (mode === MODES.SCALE ? CONFIG.SCALE_STROKE : (mode === MODES.MEASURE ? CONFIG.MEASURE_STROKE : CONFIG.PM_STROKE)) / zoom;
+
+      const isScale = mode === MODES.SCALE;
+      const color = (mode === MODES.MEASURE) ? state.currentColor : "#ffffff";
+
+      return new fabric.Line([x1, y1, x2, y2], {
+        strokeWidth: stroke,
+        stroke: isScale ? "#2c3e50" : color,
+        strokeDashArray: isScale ? CONFIG.SCALE_DASH : null,
+        originX: "center",
+        originY: "center",
+        selectable: true,
+        evented: true
+      });
+    }
+
+    function makeLabel(textValue, x, y) {
+      const zoom = canvas.getZoom();
+      return new fabric.Text(textValue, {
+        fontSize: 14 / zoom,
+        fill: "white",
+        backgroundColor: "rgba(0,0,0,0.7)",
+        left: x,
+        top: y,
+        originX: "center",
+        originY: "bottom",
+        fontFamily: "Segoe UI"
+      });
+    }
+
+    function isTooSmall(distPx) {
+      const zoom = canvas.getZoom();
+      return distPx < (CONFIG.MIN_DRAW_PX_AT_ZOOM1 / zoom);
+    }
+
+    /* ====== PLAN MINUTE SYMBOLS (offline Fabric) ====== */
+    function pmSymbol(pbKind, x, y) {
+      const z = canvas.getZoom();
+      const s = 18 / z;
+
+      if (pbKind === PM_TOOLS.PB) {
+        const stem = new fabric.Line([0, -s, 0, s], { stroke: "#00e5ff", strokeWidth: 3 / z });
+        const arm  = new fabric.Line([-s, 0, s, 0], { stroke: "#00e5ff", strokeWidth: 3 / z });
+        const circ = new fabric.Circle({ radius: 4 / z, fill: "#00e5ff", left: -4 / z, top: -4 / z });
+        const g = new fabric.Group([stem, arm, circ], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "PB";
+        return g;
+      }
+
+      if (pbKind === PM_TOOLS.BOUCHON) {
+        const c = new fabric.Circle({ radius: 7 / z, fill: "#ffcc00", stroke: "rgba(0,0,0,0.35)", strokeWidth: 1 / z });
+        const g = new fabric.Group([c], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "BOUCHON";
+        return g;
+      }
+
+      if (pbKind === PM_TOOLS.VANNE) {
+        const tri1 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke: "#2ecc71", strokeWidth: 2 / z, originX:"center", originY:"center", angle: 90 });
+        const tri2 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke: "#2ecc71", strokeWidth: 2 / z, originX:"center", originY:"center", angle: -90 });
+        const bar  = new fabric.Line([-16 / z, 0, 16 / z, 0], { stroke: "#2ecc71", strokeWidth: 2 / z });
+        tri1.set({ left: -6 / z, top: 0 });
+        tri2.set({ left:  6 / z, top: 0 });
+        const g = new fabric.Group([bar, tri1, tri2], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "VANNE";
+        return g;
+      }
+
+      if (pbKind === PM_TOOLS.REGARD) {
+        const r = new fabric.Rect({ width: 18 / z, height: 14 / z, fill: "rgba(255,255,255,0.08)", stroke: "#ffffff", strokeWidth: 2 / z, rx: 3 / z, ry: 3 / z });
+        const g = new fabric.Group([r], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "REGARD";
+        return g;
+      }
+
+      return null;
+    }
+
+    /* ====== INTERACTIONS ====== */
+    canvas.on("mouse:down", (o) => {
+      const evt = o.e;
+      const client = getClientPos(evt);
+
+      if (o.target && state.mode === MODES.PAN) return;
+
+      // PAN
+      if (state.mode === MODES.PAN) {
+        state.isDragging = true;
+        state.lastClientX = client.x;
+        state.lastClientY = client.y;
+        canvas.setCursor("grabbing");
+        return;
+      }
+
+      // Plan minute : placement symbole au clic
+      if (state.mode === MODES.MINUTE && state.pmTool !== PM_TOOLS.COTE) {
+        const p = canvas.getPointer(evt);
+        const sym = pmSymbol(state.pmTool, p.x, p.y);
+        if (sym) {
+          canvas.add(sym);
+          canvas.setActiveObject(sym);
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
+          Status.show("Symbole ajouté", "success");
+        }
+        return;
+      }
+
+      // DRAW line (scale / measure / plan minute cote)
+      if (evt.touches && evt.touches.length >= 2) return;
+
+      state.isDrawing = true;
+      const p = canvas.getPointer(evt);
+      state.startPoint = { x: p.x, y: p.y };
+      state.line = makeLine(p.x, p.y, p.x, p.y, state.mode);
+      canvas.add(state.line);
+    });
+
+    canvas.on("mouse:move", (o) => {
+      const evt = o.e;
+      const client = getClientPos(evt);
+
+      if (state.isDragging) {
+        const vpt = canvas.viewportTransform;
+        vpt[4] += client.x - state.lastClientX;
+        vpt[5] += client.y - state.lastClientY;
+        state.lastClientX = client.x;
+        state.lastClientY = client.y;
+
+        clampViewportToBackground();
+        canvas.requestRenderAll();
+        return;
+      }
+
+      if (state.isDrawing && state.line) {
+        const p = canvas.getPointer(evt);
+        state.line.set({ x2: p.x, y2: p.y });
+        canvas.requestRenderAll();
+      }
+    });
+
+    canvas.on("mouse:up", (o) => {
+      if (state.isDragging) {
+        state.isDragging = false;
+        canvas.setCursor("grab");
+        clampViewportToBackground();
+        canvas.requestRenderAll();
+        return;
+      }
+
+      if (!state.isDrawing || !state.line || !state.startPoint) return;
+      state.isDrawing = false;
+
+      const p = canvas.getPointer(o.e);
+      const distPx = Math.hypot(p.x - state.startPoint.x, p.y - state.startPoint.y);
+
+      if (isTooSmall(distPx)) {
+        canvas.remove(state.line);
+        state.line = null;
+        return;
+      }
+
+      // SCALE (échelle)
+      if (state.mode === MODES.SCALE) {
+        setTimeout(() => {
+          const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
+          const meters = parseFloat((input || "").replace(",", "."));
+          if (!(meters > 0)) {
+            canvas.remove(state.line);
+            state.line = null;
+            return;
+          }
+
+          state.pixelsPerMeter = distPx / meters;
+          Status.show(`✅ Étalonné (page ${state.currentPage}) : 1m = ${state.pixelsPerMeter.toFixed(2)} px`, "success");
+          syncMeasureButton();
+
+          canvas.remove(state.line);
+          state.line = null;
+          setMode(MODES.MEASURE);
+          saveMeasuresForPage(state.currentPage);
+        }, 50);
+        return;
+      }
+
+      // MEASURE (calcul)
+      if (state.mode === MODES.MEASURE) {
+        if (!state.pixelsPerMeter) {
+          Status.show("⚠️ Pas d'échelle pour cette page. Étalonnez.", "warning");
+          canvas.remove(state.line);
+          state.line = null;
+          setMode(MODES.SCALE);
+          return;
+        }
+
+        const meters = distPx / state.pixelsPerMeter;
+        const metersStr = `${meters.toFixed(2)} m`;
+
+        const midX = (state.startPoint.x + p.x) / 2;
+        const midY = (state.startPoint.y + p.y) / 2 - 15 / canvas.getZoom();
+
+        const label = makeLabel(metersStr, midX, midY);
+        const group = new fabric.Group([state.line, label], { selectable: true });
+        group.isMeasure = true;
+        group.measureValue = meters.toFixed(2);
+
+        canvas.remove(state.line);
+        canvas.add(group);
+        canvas.setActiveObject(group);
+
+        state.line = null;
+        updateTotal();
+        canvas.requestRenderAll();
+        saveMeasuresForPage(state.currentPage);
+        return;
+      }
+
+      // PLAN MINUTE - COTE LIBRE (saisie)
+      if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) {
+        setTimeout(() => {
+          const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
+          const meters = parseFloat((input || "").replace(",", "."));
+          if (!(meters > 0)) {
+            canvas.remove(state.line);
+            state.line = null;
+            return;
+          }
+
+          const metersStr = `${meters.toFixed(2)} m`;
+          const midX = (state.startPoint.x + p.x) / 2;
+          const midY = (state.startPoint.y + p.y) / 2 - 15 / canvas.getZoom();
+
+          // Ligne blanche + label
+          state.line.set({ stroke: "#ffffff", strokeDashArray: null });
+          const label = makeLabel(metersStr, midX, midY);
+
+          const group = new fabric.Group([state.line, label], { selectable: true });
+          group.isPm = true;
+          group.pmKind = "COTE";
+          group.pmValue = meters.toFixed(2);
+
+          canvas.remove(state.line);
+          canvas.add(group);
+          canvas.setActiveObject(group);
+
+          state.line = null;
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
+          Status.show("Cote plan minute ajoutée", "success");
+        }, 50);
+      }
+    });
+
+    /* Delete / undo / clear / save */
+    ui.btn.del.addEventListener("click", () => {
+      const actives = canvas.getActiveObjects();
+      if (!actives.length) return;
+      actives.forEach(obj => canvas.remove(obj));
+      canvas.discardActiveObject();
+      updateTotal();
+      canvas.requestRenderAll();
+      Status.show("Supprimé");
+      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
+    });
+
+    ui.btn.undo.addEventListener("click", () => {
+      const objs = canvas.getObjects().filter(o => o !== canvas.backgroundImage);
+      if (!objs.length) return;
+      canvas.remove(objs[objs.length - 1]);
+      updateTotal();
+      canvas.requestRenderAll();
+      Status.show("Annulé");
+      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
+    });
+
+    ui.btn.clear.addEventListener("click", () => {
+      if (!confirm("Tout effacer (page courante) ?")) return;
+      canvas.getObjects().forEach(o => { if (o !== canvas.backgroundImage) canvas.remove(o); });
+      canvas.discardActiveObject();
+      updateTotal();
+      canvas.requestRenderAll();
+      Status.show("Page nettoyée");
+      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
+    });
+
+    ui.btn.save.addEventListener("click", () => {
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      const dataURL = canvas.toDataURL({ format: "png", quality: 1, multiplier: CONFIG.EXPORT_MULTIPLIER });
+      const a = document.createElement("a");
+      a.download = `plan_page_${state.currentPage}.png`;
+      a.href = dataURL;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+
+    /* File */
+    ui.fileInput.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try { await loadPdfFile(file); }
+      catch (err) { console.error(err); Status.show("Erreur chargement PDF.", "error"); }
+      finally { ui.fileInput.value = ""; }
+    });
+
+    /* Boot */
+    setDisabledAll(true);
+    function updatePagerUI() {
+      const hasPdf = !!state.pdfDoc;
+      ui.pager.prev.disabled = !hasPdf || state.currentPage <= 1;
+      ui.pager.next.disabled = !hasPdf || state.currentPage >= state.pageCount;
+      ui.pager.jump.disabled = !hasPdf;
+      ui.pager.go.disabled = !hasPdf;
+
+      ui.pager.label.textContent = hasPdf ? `Page ${state.currentPage} / ${state.pageCount}` : "Page - / -";
+      ui.pager.jump.min = 1;
+      ui.pager.jump.max = state.pageCount || 1;
+      ui.pager.jump.value = hasPdf ? state.currentPage : "";
+    }
+    updatePagerUI();
+    Status.show("Bienvenue");
+    setMode(MODES.PAN);
+    setPmTool(PM_TOOLS.COTE);
+  </script>
+</body>
+</html>
