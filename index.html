@@ -325,20 +325,6 @@
 </head>
 
 <body>
-  
-<button id="btnFullscreen" style="
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  z-index: 9999;
-  padding: 10px 14px;
-  font-size: 16px;
-">
-⛶ Plein écran
-</button>
-
-<div class="top-bar">
-
   <div class="top-bar">
     <div class="app-title"><i class="fa-solid fa-ruler-combined"></i> Mesureur</div>
 
@@ -1296,18 +1282,5 @@
     setMode(MODES.PAN);
     setPmTool(PM_TOOLS.COTE);
   </script>
-document.getElementById("btnFullscreen").addEventListener("click", () => {
-  const elem = document.documentElement;
-
-  if (elem.requestFullscreen) {
-    elem.requestFullscreen();
-  } else if (elem.webkitRequestFullscreen) {
-    elem.webkitRequestFullscreen();
-  }
-});
-</script>
-
 </body>
 </html>
-
-
