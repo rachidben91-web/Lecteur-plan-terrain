@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Mesureur Réseaux - V2.0.0 (Plan minute)</title>
+  <title>Mesureur Réseaux - V2.1.2 (Curseur tactile)</title>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
@@ -54,7 +52,6 @@
       pointer-events:auto;
       white-space:nowrap;
     }
-
     .top-actions{
       display:flex; gap:10px; align-items:center;
       pointer-events:auto;
@@ -70,18 +67,6 @@
     }
     .file-btn:hover{ background:rgba(255,255,255,.25); }
     .file-btn:disabled{ opacity:.35; cursor:not-allowed; }
-
-    .fs-btn{
-      background:rgba(255,255,255,.1); color:#fff;
-      padding:8px 12px; border-radius:8px;
-      font-weight:700; font-size:.9rem;
-      cursor:pointer;
-      transition:background .2s, transform .15s;
-      border:none;
-      display:flex; align-items:center; gap:8px;
-    }
-    .fs-btn:hover{ background:rgba(255,255,255,.25); transform:scale(1.03); }
-    .fs-btn:active{ transform:scale(.98); }
 
     .pager{
       display:flex; align-items:center; gap:8px;
@@ -300,51 +285,80 @@
       z-index:80;
     }
 
-    /* ===== Aide au pointage (doigt) ===== */
-    .aim-assist{
-      position:absolute;
-      left:0; top:0;
-      width:0; height:0;
-      display:none;
-      pointer-events:none;
-      z-index:120;
-    }
-    .aim-line{
-      position:absolute;
-      left:0;
-      top:-56px;
-      width:2px;
-      height:56px;
-      background:rgba(255,255,255,0.55);
-      transform:translateX(-50%);
-      border-radius:2px;
-    }
-    .aim-float{
-      position:absolute;
-      left:0;
-      top:-56px;
-      transform:translate(-50%,-50%);
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .aim-dot{
-      width:16px; height:16px;
+    /* ===== Curseur tactile flottant ===== */
+    #touchCursor{
+      position:fixed;
+      width:22px; height:22px;
       border-radius:50%;
       border:2px solid rgba(255,255,255,0.95);
-      background:rgba(0,0,0,0.35);
-      box-shadow:0 6px 14px rgba(0,0,0,0.35);
+      background:rgba(0,0,0,0.28);
+      box-shadow:0 8px 18px rgba(0,0,0,0.35);
+      z-index:200;
+      pointer-events:none;
+      display:none;
+      transform:translate(-50%, -50%);
     }
-    .aim-tag{
-      font-size:0.78rem;
-      font-weight:800;
-      padding:4px 8px;
-      border-radius:10px;
+    #touchCursor::after{
+      content:"";
+      position:absolute;
+      left:50%; top:50%;
+      width:2px; height:14px;
+      background:rgba(255,255,255,0.85);
+      transform:translate(-50%,-50%);
+      border-radius:2px;
+    }
+    #touchCursor::before{
+      content:"";
+      position:absolute;
+      left:50%; top:50%;
+      width:14px; height:2px;
+      background:rgba(255,255,255,0.85);
+      transform:translate(-50%,-50%);
+      border-radius:2px;
+    }
+    #cursorTag{
+      position:fixed;
+      z-index:201;
+      pointer-events:none;
+      display:none;
+      transform:translate(-50%, calc(-50% - 22px));
       background:rgba(0,0,0,0.55);
       border:1px solid rgba(255,255,255,0.18);
-      white-space:nowrap;
+      padding:4px 8px;
+      border-radius:10px;
+      font-size:0.78rem;
+      font-weight:900;
       color:#fff;
+      white-space:nowrap;
     }
+
+    /* Barre de validation tactile */
+    #tapConfirmBar{
+      position:fixed;
+      left:50%;
+      bottom:92px;
+      transform:translateX(-50%);
+      display:none;
+      gap:10px;
+      z-index:220;
+      background:rgba(0,0,0,.65);
+      border:1px solid rgba(255,255,255,.15);
+      padding:10px 12px;
+      border-radius:18px;
+      backdrop-filter: blur(8px);
+      align-items:center;
+    }
+    .tbtn{
+      border:none;
+      border-radius:14px;
+      padding:10px 14px;
+      font-weight:900;
+      cursor:pointer;
+      min-width:120px;
+    }
+    #btnTapCancel{ background:rgba(231,76,60,.18); color:#e74c3c; }
+    #btnTapStep{ background:rgba(52,152,219,.18); color:#6bbcff; }
+    #btnTapOK{ background:rgba(46,204,113,.18); color:#2ecc71; display:none; }
 
     @media (max-width: 900px){
       :root{
@@ -376,6 +390,7 @@
         top:  calc(var(--frame-top) + 10px);
         min-width: 240px;
       }
+      .tbtn{ min-width:110px; }
     }
   </style>
 </head>
@@ -401,10 +416,6 @@
       <button id="btnClear" class="file-btn" title="Tout effacer"
               style="background:rgba(231, 76, 60, 0.2); color:#e74c3c;">
         <i class="fa-solid fa-trash"></i>
-      </button>
-
-      <button id="btnFullscreen" class="fs-btn" type="button" title="Plein écran">
-        <i class="fa-solid fa-expand"></i> Plein écran
       </button>
     </div>
   </div>
@@ -440,8 +451,8 @@
     </div>
 
     <div class="mp-hint">
-      • <b>Cote</b> : tablette = 2 taps (départ/arrivée) → saisis la valeur terrain (m).<br>
-      • <b>PB/B/V/R</b> : clique pour poser le symbole.
+      • <b>Cote</b> : curseur → Valider départ → Valider arrivée → OK.<br>
+      • <b>PB/B/V/R</b> : clique pour poser le symbole (couleur = palette).
     </div>
   </div>
 
@@ -466,35 +477,44 @@
     <button id="btnDelete" class="btn-icon btn-delete" disabled title="Supprimer"><i class="fa-solid fa-xmark"></i></button>
   </div>
 
-  <div id="versionLabel">V2.0.0 (Plan minute)</div>
+  <div id="versionLabel">V2.1.0 (Curseur tactile)</div>
 
-  <!-- Aide au pointage (tablette / doigt) -->
-  <div id="aimStart" class="aim-assist">
-    <div class="aim-line"></div>
-    <div class="aim-float">
-      <div class="aim-dot"></div>
-      <div class="aim-tag">Départ</div>
-    </div>
-  </div>
+  <!-- Curseur tactile -->
+  <div id="touchCursor"></div>
+  <div id="cursorTag">Curseur</div>
 
-  <div id="aimEnd" class="aim-assist">
-    <div class="aim-line"></div>
-    <div class="aim-float">
-      <div class="aim-dot"></div>
-      <div class="aim-tag">Arrivée</div>
-    </div>
+  <!-- Barre validation tactile -->
+  <div id="tapConfirmBar">
+    <button id="btnTapCancel" class="tbtn">Annuler</button>
+    <button id="btnTapStep" class="tbtn">Valider départ</button>
+    <button id="btnTapOK" class="tbtn">OK</button>
   </div>
 
   <div id="appFrame"></div>
   <div id="canvas-wrapper"><canvas id="c"></canvas></div>
 
   <script>
+    /* ============================================================
+       Mesureur Réseaux - V2.1.0
+       ✅ Curseur tactile "comme une souris"
+       - Déplacer curseur avec doigt
+       - Valider départ / arrivée / OK
+       - Flèches outward sur cotes
+       - PDF rendu "safe" mobile (blob + scale réduit)
+       ============================================================ */
+
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
+    const IS_TOUCH = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
+    const IS_MOBILE = IS_TOUCH || /Android|iPhone|iPad/i.test(navigator.userAgent);
+
     const CONFIG = Object.freeze({
-      PDF_RENDER_SCALE: 3.0,
-      EXPORT_MULTIPLIER: 3,
+      PDF_RENDER_SCALE_DESKTOP: 3.0,
+      PDF_RENDER_SCALE_MOBILE: 1.4,
+      EXPORT_MULTIPLIER_DESKTOP: 3,
+      EXPORT_MULTIPLIER_MOBILE: 2,
+
       MAX_ZOOM: 20,
       MIN_DRAW_PX_AT_ZOOM1: 5,
 
@@ -504,12 +524,14 @@
       PM_STROKE: 3,
 
       STATUS_MS: 3500,
-      OCR: { cropWidthRatio: 0.35, lang: "eng" },
-      SCALE_REGEX: /1\s*[:\/.,]\s*(50|100|200|500|1000)\b/,
 
       // Flèches
       ARROW_W: 14,
-      ARROW_H: 12
+      ARROW_H: 12,
+
+      // Curseur tactile
+      CURSOR_OFFSET_Y: 60,     // ✅ le curseur est au-dessus du doigt (visible)
+      CURSOR_SNAP: 0.0,        // 0 = libre ; tu peux mettre 0.5 pour "stabiliser" (optionnel)
     });
 
     const MODES = Object.freeze({
@@ -541,8 +563,12 @@
       minutePanel: $("#minutePanel"),
       minuteToolLabel: $("#minuteToolLabel"),
 
-      aimStart: $("#aimStart"),
-      aimEnd: $("#aimEnd"),
+      touchCursor: $("#touchCursor"),
+      cursorTag: $("#cursorTag"),
+      tapBar: $("#tapConfirmBar"),
+      btnTapCancel: $("#btnTapCancel"),
+      btnTapStep: $("#btnTapStep"),
+      btnTapOK: $("#btnTapOK"),
 
       pager: {
         prev: $("#btnPrevPage"),
@@ -564,14 +590,12 @@
         del: $("#btnDelete"),
         clear: $("#btnClear"),
         save: $("#btnSave"),
-        fullscreen: $("#btnFullscreen")
       }
     };
 
     function setDisabledAll(disabled) {
       Object.values(ui.btn).forEach(b => b.disabled = disabled);
       ui.btn.clear.disabled = false;
-      if (ui.btn.fullscreen) ui.btn.fullscreen.disabled = false;
     }
 
     const Status = (() => {
@@ -589,12 +613,6 @@
       return { show };
     })();
 
-    const IS_TOUCH = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
-
-    function isTouchEvent(evt){
-      return !!(evt && (evt.touches || evt.pointerType === "touch"));
-    }
-
     const state = {
       mode: MODES.PAN,
       pmTool: PM_TOOLS.COTE,
@@ -604,32 +622,32 @@
       currentColor: "#e74c3c",
 
       isDragging: false,
-      isDrawing: false,      // souris (drag)
       lastClientX: 0,
       lastClientY: 0,
 
-      // temporaire ligne/flèches
       line: null,
       arrows: null,
       startPoint: null,
 
-      // ✅ 2 taps (tablette)
-      tapPending: false,
-      tapStart: null,
+      // Touch cursor workflow
+      touchSession: false,
+      cursorClient: { x: 0, y: 0 },
+      cursorCanvas: { x: 0, y: 0 },
+      step: 0, // 0=idle, 1=ready(dep), 2=dep validated (aim arrival), 3=arrival validated (ready OK)
+      dep: null,
+      arr: null,
 
+      // PDF
       pdfDoc: null,
       pageCount: 0,
       currentPage: 1,
+      renderScaleUsed: CONFIG.PDF_RENDER_SCALE_DESKTOP,
 
+      // per page state
       perPage: new Map(),
     };
 
     const canvas = new fabric.Canvas("c", { selection: true, preserveObjectStacking: true });
-
-    function getClientPos(evt) {
-      if (evt.touches && evt.touches.length > 0) return { x: evt.touches[0].clientX, y: evt.touches[0].clientY };
-      return { x: evt.clientX, y: evt.clientY };
-    }
 
     function clampViewportToBackground() {
       const bg = canvas.backgroundImage;
@@ -665,206 +683,83 @@
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
-    // ===== Plein écran =====
-    (function setupFullscreen(){
-      const btn = ui.btn.fullscreen;
-      if (!btn) return;
-
-      const doc = document;
-      const icon = btn.querySelector("i");
-
-      function isFullscreen(){
-        return !!(doc.fullscreenElement || doc.webkitFullscreenElement);
-      }
-
-      async function enterFullscreen(){
-        const el = doc.documentElement;
-        try{
-          if (el.requestFullscreen) await el.requestFullscreen();
-          else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-          else throw new Error("Fullscreen API indisponible");
-        } catch (e) {
-          console.warn("Fullscreen refusé/bloqué :", e);
-          Status.show("Plein écran non autorisé sur cette tablette", "warning");
-        }
-      }
-
-      async function exitFullscreen(){
-        try{
-          if (doc.exitFullscreen) await doc.exitFullscreen();
-          else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
-        } catch (e) {
-          console.warn("Exit fullscreen erreur :", e);
-        }
-      }
-
-      function syncBtn(){
-        if (isFullscreen()){
-          btn.title = "Quitter le plein écran";
-          if (icon) icon.className = "fa-solid fa-compress";
-          btn.lastChild.nodeValue = " Quitter";
-        } else {
-          btn.title = "Plein écran";
-          if (icon) icon.className = "fa-solid fa-expand";
-          btn.lastChild.nodeValue = " Plein écran";
-        }
-      }
-
-      btn.addEventListener("click", async () => {
-        if (isFullscreen()) await exitFullscreen();
-        else await enterFullscreen();
-      });
-
-      doc.addEventListener("fullscreenchange", syncBtn);
-      doc.addEventListener("webkitfullscreenchange", syncBtn);
-      syncBtn();
-    })();
-
-    // ===== Aide au pointage (doigt) =====
-    function setAim(el, clientX, clientY, labelText) {
-      if (!el) return;
+    // ===== Helpers coords =====
+    function clientToWrapper(clientX, clientY) {
       const rect = ui.wrapper.getBoundingClientRect();
-      el.style.left = (clientX - rect.left) + "px";
-      el.style.top  = (clientY - rect.top) + "px";
-      const tag = el.querySelector(".aim-tag");
-      if (tag && labelText) tag.textContent = labelText;
+      return { x: clientX - rect.left, y: clientY - rect.top };
     }
 
-    function showAimStart(evt) {
-      if (!IS_TOUCH) return;
-      const c = getClientPos(evt);
-      ui.aimStart.style.display = "block";
-      setAim(ui.aimStart, c.x, c.y, "Départ");
+    function snap(v) {
+      const s = CONFIG.CURSOR_SNAP;
+      if (!s || s <= 0) return v;
+      return Math.round(v / s) * s;
     }
 
-    function showAimEnd(evt) {
-      if (!IS_TOUCH) return;
-      const c = getClientPos(evt);
-      ui.aimEnd.style.display = "block";
-      setAim(ui.aimEnd, c.x, c.y, "Arrivée");
+    function setCursorUI(clientX, clientY, label) {
+      ui.touchCursor.style.display = "block";
+      ui.cursorTag.style.display = "block";
+
+      ui.touchCursor.style.left = clientX + "px";
+      ui.touchCursor.style.top  = clientY + "px";
+
+      ui.cursorTag.style.left = clientX + "px";
+      ui.cursorTag.style.top  = clientY + "px";
+      ui.cursorTag.textContent = label || "Curseur";
     }
 
-    function hideAim() {
-      ui.aimStart.style.display = "none";
-      ui.aimEnd.style.display = "none";
+    function hideCursorUI() {
+      ui.touchCursor.style.display = "none";
+      ui.cursorTag.style.display = "none";
     }
 
-    // ===== Helpers mode 2 taps =====
-    function cancelTapDrawing(reasonText=null){
-      if (state.tapPending) {
-        state.tapPending = false;
-        state.tapStart = null;
-        if (state.line) canvas.remove(state.line);
-        if (state.arrows) { canvas.remove(state.arrows.a1); canvas.remove(state.arrows.a2); }
-        state.line = null;
-        state.arrows = null;
-        hideAim();
-        canvas.requestRenderAll();
-        if (reasonText) Status.show(reasonText, "warning");
+    function showTapBar(show) {
+      ui.tapBar.style.display = show ? "flex" : "none";
+    }
+
+    function setTapBarState(step) {
+      // step: 1 => valider départ, 2 => valider arrivée, 3 => OK
+      if (step === 1) {
+        ui.btnTapStep.textContent = "Valider départ";
+        ui.btnTapStep.style.display = "inline-block";
+        ui.btnTapOK.style.display = "none";
+      } else if (step === 2) {
+        ui.btnTapStep.textContent = "Valider arrivée";
+        ui.btnTapStep.style.display = "inline-block";
+        ui.btnTapOK.style.display = "none";
+      } else if (step === 3) {
+        ui.btnTapStep.style.display = "none";
+        ui.btnTapOK.style.display = "inline-block";
       }
     }
 
-    function isLineModeForTap(){
+    function cancelTouchMeasure(msg) {
+      state.step = 0;
+      state.dep = null;
+      state.arr = null;
+
+      if (state.line) canvas.remove(state.line);
+      if (state.arrows) { canvas.remove(state.arrows.a1); canvas.remove(state.arrows.a2); }
+      state.line = null;
+      state.arrows = null;
+      state.startPoint = null;
+
+      hideCursorUI();
+      showTapBar(false);
+      canvas.requestRenderAll();
+
+      if (msg) Status.show(msg, "warning");
+    }
+
+    function isTouchMeasureMode() {
+      // Curseur tactile activé uniquement sur tablette + modes de tracé
+      if (!IS_TOUCH) return false;
       if (state.mode === MODES.SCALE) return true;
       if (state.mode === MODES.MEASURE) return true;
       if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) return true;
       return false;
     }
 
-    function syncMeasureButton() {
-      ui.btn.measure.disabled = !state.pixelsPerMeter;
-    }
-
-    function setMode(mode) {
-      cancelTapDrawing(); // ✅ si on change de mode en cours de 2 taps
-
-      state.mode = mode;
-
-      Object.values(ui.btn).forEach(b => b.classList.remove("active"));
-      if (ui.btn[mode]) ui.btn[mode].classList.add("active");
-
-      // palette en Mesure + Plan minute
-      ui.colorPicker.classList.toggle("show", mode === MODES.MEASURE || mode === MODES.MINUTE);
-      ui.minutePanel.classList.toggle("show", mode === MODES.MINUTE);
-
-      if (mode === MODES.PAN) {
-        canvas.selection = true;
-        canvas.forEachObject(o => o.selectable = true);
-        canvas.defaultCursor = "grab";
-        if (state.pdfDoc) Status.show("Mode Déplacement");
-      } else {
-        canvas.selection = false;
-        canvas.forEachObject(o => o.selectable = false);
-        canvas.discardActiveObject();
-        canvas.requestRenderAll();
-        canvas.defaultCursor = "crosshair";
-
-        if (mode === MODES.SCALE) Status.show("⚠️ Étalonnage : tablette = 2 taps (départ/arrivée)", "warning");
-        if (mode === MODES.MEASURE) Status.show("✅ Mesure : tablette = 2 taps (départ/arrivée)", "success");
-        if (mode === MODES.MINUTE) Status.show("📝 Plan minute : tablette = 2 taps pour les cotes", "success");
-      }
-      syncMeasureButton();
-    }
-
-    ui.btn.pan.addEventListener("click", () => setMode(MODES.PAN));
-    ui.btn.scale.addEventListener("click", () => setMode(MODES.SCALE));
-    ui.btn.measure.addEventListener("click", () => {
-      if (!state.pixelsPerMeter) {
-        alert("Aucune échelle définie pour cette page !");
-        setMode(MODES.SCALE);
-        return;
-      }
-      setMode(MODES.MEASURE);
-    });
-    ui.btn.minute.addEventListener("click", () => setMode(MODES.MINUTE));
-
-    // Home
-    ui.btn.home.addEventListener("click", () => resetViewToCenter());
-
-    // Couleurs (Mesure + Plan minute)
-    $$(".color-dot").forEach(dot => {
-      dot.addEventListener("click", () => {
-        $$(".color-dot").forEach(d => d.classList.remove("selected"));
-        dot.classList.add("selected");
-        state.currentColor = dot.getAttribute("data-color");
-
-        const active = canvas.getActiveObject();
-        if (active && active.type === "group") {
-          active.getObjects().forEach(obj => {
-            if (obj.type === "line") obj.set("stroke", state.currentColor);
-            if (obj.type === "triangle") obj.set({ fill: state.currentColor, stroke: state.currentColor });
-            if (obj.type === "circle") obj.set({ fill: state.currentColor, stroke: state.currentColor });
-            if (obj.type === "rect") obj.set({ stroke: state.currentColor });
-          });
-          canvas.requestRenderAll();
-          if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
-        }
-      });
-    });
-
-    // Plan minute tool selection
-    function setPmTool(tool) {
-      cancelTapDrawing(); // ✅ si on change d'outil en cours de 2 taps
-      state.pmTool = tool;
-
-      $$("#minutePanel .mp-item").forEach(el => el.classList.remove("active"));
-      const btn = $(`#minutePanel .mp-item[data-tool="${tool}"]`);
-      if (btn) btn.classList.add("active");
-
-      const labels = {
-        [PM_TOOLS.COTE]: "Outil : Cote",
-        [PM_TOOLS.PB]: "Outil : Prise branchement",
-        [PM_TOOLS.BOUCHON]: "Outil : Bouchon",
-        [PM_TOOLS.VANNE]: "Outil : Vanne",
-        [PM_TOOLS.REGARD]: "Outil : Regard",
-      };
-      ui.minuteToolLabel.textContent = labels[tool] || "Outil : -";
-    }
-    $$("#minutePanel .mp-item").forEach(el => {
-      el.addEventListener("click", () => setPmTool(el.getAttribute("data-tool")));
-    });
-
-    // Total
+    // ===== Total =====
     function updateTotal() {
       let total = 0;
       canvas.getObjects().forEach(obj => {
@@ -874,8 +769,10 @@
       ui.totalCounter.style.display = total > 0 ? "block" : "none";
     }
 
-    // Zoom
-    function clampZoom(z) { return Math.max(state.initialZoom, Math.min(CONFIG.MAX_ZOOM, z)); }
+    // ===== Zoom =====
+    function clampZoom(z) {
+      return Math.max(state.initialZoom, Math.min(CONFIG.MAX_ZOOM, z));
+    }
 
     function resetViewToCenter() {
       canvas.setZoom(state.initialZoom);
@@ -910,7 +807,7 @@
     ui.btn.zoomIn.addEventListener("click", () => applyZoom(1.2));
     ui.btn.zoomOut.addEventListener("click", () => applyZoom(0.8));
 
-    // Tablet pinch
+    // Pinch zoom tablette
     (() => {
       let isPinching = false;
       let startDist = 0;
@@ -981,6 +878,101 @@
       ui.wrapper.addEventListener("touchcancel", onTouchEnd, { passive: false });
     })();
 
+    // ===== MODE / UI =====
+    function syncMeasureButton() {
+      ui.btn.measure.disabled = !state.pixelsPerMeter;
+    }
+
+    function setMode(mode) {
+      // si on change de mode pendant une mesure tactile : on annule
+      if (state.step !== 0) cancelTouchMeasure();
+
+      state.mode = mode;
+
+      Object.values(ui.btn).forEach(b => b.classList.remove("active"));
+      if (ui.btn[mode]) ui.btn[mode].classList.add("active");
+
+      // palette en mesure + minute
+      ui.colorPicker.classList.toggle("show", mode === MODES.MEASURE || mode === MODES.MINUTE);
+
+      ui.minutePanel.classList.toggle("show", mode === MODES.MINUTE);
+
+      if (mode === MODES.PAN) {
+        canvas.selection = true;
+        canvas.forEachObject(o => o.selectable = true);
+        canvas.defaultCursor = "grab";
+        if (state.pdfDoc) Status.show("Mode Déplacement");
+      } else {
+        canvas.selection = false;
+        canvas.forEachObject(o => o.selectable = false);
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
+        canvas.defaultCursor = "crosshair";
+
+        if (mode === MODES.SCALE) Status.show("⚠️ Étalonnage : utilise le curseur + valider", "warning");
+        if (mode === MODES.MEASURE) Status.show("✅ Mesure : curseur + valider", "success");
+        if (mode === MODES.MINUTE) Status.show("📝 Plan minute : curseur + valider (cotes)", "success");
+      }
+      syncMeasureButton();
+    }
+
+    ui.btn.pan.addEventListener("click", () => setMode(MODES.PAN));
+    ui.btn.scale.addEventListener("click", () => setMode(MODES.SCALE));
+    ui.btn.measure.addEventListener("click", () => {
+      if (!state.pixelsPerMeter) {
+        alert("Aucune échelle définie pour cette page !");
+        setMode(MODES.SCALE);
+        return;
+      }
+      setMode(MODES.MEASURE);
+    });
+    ui.btn.minute.addEventListener("click", () => setMode(MODES.MINUTE));
+
+    ui.btn.home.addEventListener("click", () => resetViewToCenter());
+
+    // Color picker : change la couleur des prochains tracés + recolore l’objet actif
+    $$(".color-dot").forEach(dot => {
+      dot.addEventListener("click", () => {
+        $$(".color-dot").forEach(d => d.classList.remove("selected"));
+        dot.classList.add("selected");
+        state.currentColor = dot.getAttribute("data-color");
+
+        const active = canvas.getActiveObject();
+        if (active && active.type === "group") {
+          active.getObjects().forEach(obj => {
+            if (obj.type === "line") obj.set("stroke", state.currentColor);
+            if (obj.type === "triangle") obj.set({ fill: state.currentColor, stroke: state.currentColor });
+            if (obj.type === "circle") obj.set({ fill: state.currentColor, stroke: state.currentColor });
+            if (obj.type === "rect") obj.set({ stroke: state.currentColor });
+          });
+          canvas.requestRenderAll();
+          if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
+        }
+      });
+    });
+
+    // Plan minute tool selection
+    function setPmTool(tool) {
+      if (state.step !== 0) cancelTouchMeasure("Mesure annulée (changement d’outil)");
+      state.pmTool = tool;
+      $$("#minutePanel .mp-item").forEach(el => el.classList.remove("active"));
+      const btn = $(`#minutePanel .mp-item[data-tool="${tool}"]`);
+      if (btn) btn.classList.add("active");
+
+      const labels = {
+        [PM_TOOLS.COTE]: "Outil : Cote",
+        [PM_TOOLS.PB]: "Outil : Prise branchement",
+        [PM_TOOLS.BOUCHON]: "Outil : Bouchon",
+        [PM_TOOLS.VANNE]: "Outil : Vanne",
+        [PM_TOOLS.REGARD]: "Outil : Regard",
+      };
+      ui.minuteToolLabel.textContent = labels[tool] || "Outil : -";
+    }
+
+    $$("#minutePanel .mp-item").forEach(el => {
+      el.addEventListener("click", () => setPmTool(el.getAttribute("data-tool")));
+    });
+
     // ===== PDF =====
     async function loadPdfFile(file) {
       Status.show("⏳ Chargement PDF...", "normal");
@@ -1002,33 +994,43 @@
       if (!state.pdfDoc) return;
 
       if (state.currentPage && state.currentPage !== pageNumber) saveMeasuresForPage(state.currentPage);
-      const firstTimeOnPage = !state.perPage.has(pageNumber);
-
       state.currentPage = pageNumber;
       updatePagerUI();
+
       Status.show(`⏳ Rendu page ${pageNumber}...`, "normal");
 
       const page = await state.pdfDoc.getPage(pageNumber);
-      const viewport = page.getViewport({ scale: CONFIG.PDF_RENDER_SCALE });
+      const renderScale = IS_MOBILE ? CONFIG.PDF_RENDER_SCALE_MOBILE : CONFIG.PDF_RENDER_SCALE_DESKTOP;
+      state.renderScaleUsed = renderScale;
 
+      const viewport = page.getViewport({ scale: renderScale });
       const tempCanvas = document.createElement("canvas");
-      const ctx = tempCanvas.getContext("2d");
-      tempCanvas.width = viewport.width;
-      tempCanvas.height = viewport.height;
+      const ctx = tempCanvas.getContext("2d", { alpha: false });
+
+      tempCanvas.width = Math.floor(viewport.width);
+      tempCanvas.height = Math.floor(viewport.height);
 
       await page.render({ canvasContext: ctx, viewport }).promise;
-      const dataUrl = tempCanvas.toDataURL("image/png");
+
+      const blob = await new Promise((resolve) => tempCanvas.toBlob(resolve, "image/png", 0.92));
+      if (!blob) { Status.show("Erreur rendu image (blob).", "error"); return; }
+
+      const blobUrl = URL.createObjectURL(blob);
 
       await new Promise((resolve) => {
-        fabric.Image.fromURL(dataUrl, (img) => {
+        fabric.Image.fromURL(blobUrl, (img) => {
+          URL.revokeObjectURL(blobUrl);
           setupBackground(img);
           if (restoreMeasures) restoreMeasuresForPage(pageNumber);
           updateTotal();
           resolve();
-        }, { crossOrigin: "anonymous" });
+        });
       });
 
-      if (firstTimeOnPage) performVisualOCR(tempCanvas).catch(() => {});
+      // libère RAM
+      tempCanvas.width = 1;
+      tempCanvas.height = 1;
+
       Status.show(`✅ Page ${pageNumber} prête`, "success");
     }
 
@@ -1079,7 +1081,9 @@
 
       resetViewToCenter();
       setDisabledAll(false);
+
       ui.btn.minute.disabled = false;
+
       setMode(MODES.PAN);
     }
 
@@ -1105,46 +1109,6 @@
         canvas.requestRenderAll();
         updateTotal();
       });
-    }
-
-    function parseScaleString(text) {
-      const clean = String(text || "").replace(/O/g, "0").replace(/o/g, "0");
-      const match = clean.match(CONFIG.SCALE_REGEX);
-      if (!match?.[1]) return false;
-
-      const scaleVal = parseInt(match[1], 10);
-      state.pixelsPerMeter = (72 * CONFIG.PDF_RENDER_SCALE * 39.3701) / scaleVal;
-
-      Status.show(`✅ Échelle 1/${scaleVal} détectée ! (page ${state.currentPage})`, "success");
-      syncMeasureButton();
-      setMode(MODES.MEASURE);
-      saveMeasuresForPage(state.currentPage);
-      return true;
-    }
-
-    async function performVisualOCR(canvasEl) {
-      Status.show("👁️ OCR échelle...", "normal");
-
-      const crop = document.createElement("canvas");
-      const ctx = crop.getContext("2d");
-
-      const w = Math.floor(canvasEl.width * CONFIG.OCR.cropWidthRatio);
-      const h = canvasEl.height;
-
-      crop.width = w;
-      crop.height = h;
-
-      ctx.drawImage(canvasEl, 0, 0, w, h, 0, 0, w, h);
-
-      try {
-        const result = await Tesseract.recognize(crop, CONFIG.OCR.lang);
-        if (!parseScaleString(result?.data?.text)) {
-          Status.show("⚠️ Échelle non trouvée. Étalonnage manuel (page).", "warning");
-        }
-      } catch (err) {
-        console.error(err);
-        Status.show("Erreur OCR.", "error");
-      }
     }
 
     // ===== SHAPES =====
@@ -1187,8 +1151,8 @@
       return distPx < (CONFIG.MIN_DRAW_PX_AT_ZOOM1 / zoom);
     }
 
-    // ✅ Flèches (pointes vers l'extérieur)
-    function createArrowHead(color){
+    // ===== Flèches outward =====
+    function createArrowHead(color) {
       const z = canvas.getZoom();
       return new fabric.Triangle({
         width: CONFIG.ARROW_W / z,
@@ -1198,25 +1162,29 @@
         strokeWidth: 0,
         originX: "center",
         originY: "center",
-        left: 0,
-        top: 0,
         selectable: false,
         evented: false
       });
     }
 
-    // outward: start = opposé à la ligne, end = même direction
-    function updateArrowsOutward(x1, y1, x2, y2){
+    function updateArrowsOutward(x1, y1, x2, y2) {
       if (!state.arrows) return;
       const angleDeg = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-
-      state.arrows.a1.set({ left: x1, top: y1, angle: angleDeg + 270 }); // start outward
-      state.arrows.a2.set({ left: x2, top: y2, angle: angleDeg + 90  }); // end outward
+      // outward : départ vers l'extérieur, arrivée vers l'extérieur
+      state.arrows.a1.set({ left: x1, top: y1, angle: angleDeg + 270 });
+      state.arrows.a2.set({ left: x2, top: y2, angle: angleDeg + 90  });
     }
 
-    function wantArrowsNow(){
-      // flèches uniquement pour "cotes" : Mesure + Plan minute (Cote)
+    function wantArrowsNow() {
       return (state.mode === MODES.MEASURE) || (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE);
+    }
+
+    function clearTempLine() {
+      if (state.line) canvas.remove(state.line);
+      if (state.arrows) { canvas.remove(state.arrows.a1); canvas.remove(state.arrows.a2); }
+      state.line = null;
+      state.arrows = null;
+      state.startPoint = null;
     }
 
     // ===== PLAN MINUTE SYMBOLS =====
@@ -1262,146 +1230,247 @@
       return null;
     }
 
-    // ===== FINALIZE LINE (utilisé par souris et 2 taps) =====
-    function cleanupTempLine(){
-      if (state.line) canvas.remove(state.line);
-      if (state.arrows) { canvas.remove(state.arrows.a1); canvas.remove(state.arrows.a2); }
-      state.line = null;
-      state.arrows = null;
+    // ===== FINALIZE ACTIONS =====
+    function finalizeScale(dep, arr) {
+      const distPx = Math.hypot(arr.x - dep.x, arr.y - dep.y);
+      if (isTooSmall(distPx)) { cancelTouchMeasure("Trop court"); return; }
+
+      setTimeout(() => {
+        const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
+        const meters = parseFloat((input || "").replace(",", "."));
+        if (!(meters > 0)) { cancelTouchMeasure("Étalonnage annulé"); return; }
+
+        state.pixelsPerMeter = distPx / meters;
+        Status.show(`✅ Étalonné (page ${state.currentPage}) : 1m = ${state.pixelsPerMeter.toFixed(2)} px`, "success");
+        syncMeasureButton();
+
+        saveMeasuresForPage(state.currentPage);
+        cancelTouchMeasure();
+        setMode(MODES.MEASURE);
+      }, 50);
     }
 
-    function finalizeLine(endPoint, evtForPrompts=null) {
-      const p = endPoint;
-      const distPx = Math.hypot(p.x - state.startPoint.x, p.y - state.startPoint.y);
-
-      if (isTooSmall(distPx)) {
-        cleanupTempLine();
-        hideAim();
-        canvas.requestRenderAll();
+    function finalizeMeasure(dep, arr) {
+      if (!state.pixelsPerMeter) {
+        cancelTouchMeasure("Pas d'échelle : étalonne d'abord");
+        setMode(MODES.SCALE);
         return;
       }
 
-      // SCALE (étalonnage)
-      if (state.mode === MODES.SCALE) {
-        // pas de flèches ici (volontaire), mais compatible 2 taps
-        setTimeout(() => {
-          const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
-          const meters = parseFloat((input || "").replace(",", "."));
-          if (!(meters > 0)) {
-            cleanupTempLine();
-            hideAim();
-            canvas.requestRenderAll();
-            return;
-          }
+      const distPx = Math.hypot(arr.x - dep.x, arr.y - dep.y);
+      if (isTooSmall(distPx)) { cancelTouchMeasure("Trop court"); return; }
 
-          state.pixelsPerMeter = distPx / meters;
-          Status.show(`✅ Étalonné (page ${state.currentPage}) : 1m = ${state.pixelsPerMeter.toFixed(2)} px`, "success");
-          syncMeasureButton();
+      const meters = distPx / state.pixelsPerMeter;
+      const metersStr = `${meters.toFixed(2)} m`;
 
-          cleanupTempLine();
-          hideAim();
-          setMode(MODES.MEASURE);
-          saveMeasuresForPage(state.currentPage);
-        }, 50);
-        return;
-      }
+      const midX = (dep.x + arr.x) / 2;
+      const midY = (dep.y + arr.y) / 2 - 15 / canvas.getZoom();
+      const label = makeLabel(metersStr, midX, midY);
 
-      // MEASURE
-      if (state.mode === MODES.MEASURE) {
-        if (!state.pixelsPerMeter) {
-          Status.show("⚠️ Pas d'échelle pour cette page. Étalonnez.", "warning");
-          cleanupTempLine();
-          hideAim();
-          setMode(MODES.SCALE);
-          return;
-        }
+      // Transform temp objects into a group
+      const parts = [state.line];
+      if (state.arrows) parts.push(state.arrows.a1, state.arrows.a2);
 
-        const meters = distPx / state.pixelsPerMeter;
+      parts.forEach(obj => canvas.remove(obj));
+
+      const group = new fabric.Group([...parts, label], { selectable: true });
+      group.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
+      group.isMeasure = true;
+      group.measureValue = meters.toFixed(2);
+
+      canvas.add(group);
+      canvas.setActiveObject(group);
+
+      updateTotal();
+      canvas.requestRenderAll();
+      saveMeasuresForPage(state.currentPage);
+
+      cancelTouchMeasure();
+      Status.show("Mesure ajoutée", "success");
+    }
+
+    function finalizeMinuteCote(dep, arr) {
+      const distPx = Math.hypot(arr.x - dep.x, arr.y - dep.y);
+      if (isTooSmall(distPx)) { cancelTouchMeasure("Trop court"); return; }
+
+      setTimeout(() => {
+        const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
+        const meters = parseFloat((input || "").replace(",", "."));
+        if (!(meters > 0)) { cancelTouchMeasure("Cote annulée"); return; }
+
         const metersStr = `${meters.toFixed(2)} m`;
-
-        const midX = (state.startPoint.x + p.x) / 2;
-        const midY = (state.startPoint.y + p.y) / 2 - 15 / canvas.getZoom();
-
+        const midX = (dep.x + arr.x) / 2;
+        const midY = (dep.y + arr.y) / 2 - 15 / canvas.getZoom();
         const label = makeLabel(metersStr, midX, midY);
 
-        // groupe final (ligne + flèches + texte)
         const parts = [state.line];
         if (state.arrows) parts.push(state.arrows.a1, state.arrows.a2);
 
-        // retirer des objets "temp" pour les regrouper
         parts.forEach(obj => canvas.remove(obj));
+
         const group = new fabric.Group([...parts, label], { selectable: true });
         group.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
-
-        group.isMeasure = true;
-        group.measureValue = meters.toFixed(2);
+        group.isPm = true;
+        group.pmKind = "COTE";
+        group.pmValue = meters.toFixed(2);
 
         canvas.add(group);
         canvas.setActiveObject(group);
 
-        state.line = null;
-        state.arrows = null;
-        hideAim();
-
-        updateTotal();
         canvas.requestRenderAll();
         saveMeasuresForPage(state.currentPage);
-        return;
-      }
 
-      // PLAN MINUTE - COTE
-      if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) {
-        setTimeout(() => {
-          const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
-          const meters = parseFloat((input || "").replace(",", "."));
-          if (!(meters > 0)) {
-            cleanupTempLine();
-            hideAim();
-            canvas.requestRenderAll();
-            return;
-          }
+        cancelTouchMeasure();
+        Status.show("Cote plan minute ajoutée", "success");
+      }, 50);
+    }
 
-          const metersStr = `${meters.toFixed(2)} m`;
-          const midX = (state.startPoint.x + p.x) / 2;
-          const midY = (state.startPoint.y + p.y) / 2 - 15 / canvas.getZoom();
+    function finalizeTouchAction() {
+      if (!state.dep || !state.arr) return;
 
-          const label = makeLabel(metersStr, midX, midY);
+      if (state.mode === MODES.SCALE) return finalizeScale(state.dep, state.arr);
+      if (state.mode === MODES.MEASURE) return finalizeMeasure(state.dep, state.arr);
+      if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) return finalizeMinuteCote(state.dep, state.arr);
+    }
 
-          const parts = [state.line];
-          if (state.arrows) parts.push(state.arrows.a1, state.arrows.a2);
+    // ===== Touch Cursor Engine =====
+    function beginTouchCursorFromEvent(e) {
+      // start only in touch measure modes
+      if (!isTouchMeasureMode()) return;
 
-          parts.forEach(obj => canvas.remove(obj));
-          const group = new fabric.Group([...parts, label], { selectable: true });
-          group.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
+      const t = e.touches?.[0];
+      if (!t) return;
 
-          group.isPm = true;
-          group.pmKind = "COTE";
-          group.pmValue = meters.toFixed(2);
+      // place cursor above finger
+      const cx = t.clientX;
+      const cy = t.clientY - CONFIG.CURSOR_OFFSET_Y;
 
-          canvas.add(group);
-          canvas.setActiveObject(group);
+      state.cursorClient = { x: cx, y: cy };
+      setCursorUI(cx, cy, (state.step <= 1 ? "Départ" : "Arrivée"));
 
-          state.line = null;
-          state.arrows = null;
-          hideAim();
+      const wpt = clientToWrapper(cx, cy);
+      const p = { x: snap(wpt.x), y: snap(wpt.y) };
+      state.cursorCanvas = { x: p.x, y: p.y };
 
-          canvas.requestRenderAll();
-          saveMeasuresForPage(state.currentPage);
-          Status.show("Cote plan minute ajoutée", "success");
-        }, 50);
+      // if no session, create one
+      if (state.step === 0) {
+        state.step = 1;
+        state.dep = null;
+        state.arr = null;
+        showTapBar(true);
+        setTapBarState(1);
+        Status.show("Place le curseur sur le départ puis 'Valider départ'", "warning");
       }
     }
 
-    // ===== INTERACTIONS =====
+    function moveTouchCursorFromEvent(e) {
+      if (!isTouchMeasureMode()) return;
+      const t = e.touches?.[0];
+      if (!t) return;
+
+      const cx = t.clientX;
+      const cy = t.clientY - CONFIG.CURSOR_OFFSET_Y;
+
+      state.cursorClient = { x: cx, y: cy };
+      setCursorUI(cx, cy, (state.step <= 1 ? "Départ" : (state.step === 2 ? "Arrivée" : "OK")));
+
+      const wpt = clientToWrapper(cx, cy);
+      const p = { x: snap(wpt.x), y: snap(wpt.y) };
+      state.cursorCanvas = { x: p.x, y: p.y };
+
+      // if dep validated but arrival not validated yet: update preview
+      if (state.step === 2 && state.dep) {
+        const dep = state.dep;
+        const arr = state.cursorCanvas;
+
+        if (!state.line) {
+          state.line = makeLine(dep.x, dep.y, arr.x, arr.y, state.mode);
+          canvas.add(state.line);
+
+          if (wantArrowsNow()) {
+            state.arrows = { a1: createArrowHead(state.currentColor), a2: createArrowHead(state.currentColor) };
+            canvas.add(state.arrows.a1);
+            canvas.add(state.arrows.a2);
+          }
+        }
+
+        state.line.set({ x1: dep.x, y1: dep.y, x2: arr.x, y2: arr.y });
+        if (state.arrows) updateArrowsOutward(dep.x, dep.y, arr.x, arr.y);
+        canvas.requestRenderAll();
+      }
+    }
+
+    function endTouchCursor() {
+      if (!isTouchMeasureMode()) return;
+      // on release, we keep the cursor visible if we are in workflow
+      // so do nothing special here
+    }
+
+    // ===== Buttons tactile =====
+    ui.btnTapCancel.addEventListener("click", () => cancelTouchMeasure("Annulé"));
+
+    ui.btnTapStep.addEventListener("click", () => {
+      if (!isTouchMeasureMode()) return;
+
+      if (state.step === 1) {
+        // validate dep
+        state.dep = { ...state.cursorCanvas };
+        state.step = 2;
+        setTapBarState(2);
+        Status.show("Place le curseur sur l’arrivée puis 'Valider arrivée'", "warning");
+        // cleanup any preview just in case
+        clearTempLine();
+        return;
+      }
+
+      if (state.step === 2) {
+        // validate arrival (freeze preview)
+        state.arr = { ...state.cursorCanvas };
+        state.step = 3;
+        setTapBarState(3);
+        Status.show("Appuie sur OK pour créer la cote", "success");
+
+        // ensure preview exists
+        const dep = state.dep;
+        const arr = state.arr;
+        if (!state.line) {
+          state.line = makeLine(dep.x, dep.y, arr.x, arr.y, state.mode);
+          canvas.add(state.line);
+          if (wantArrowsNow()) {
+            state.arrows = { a1: createArrowHead(state.currentColor), a2: createArrowHead(state.currentColor) };
+            canvas.add(state.arrows.a1);
+            canvas.add(state.arrows.a2);
+          }
+        }
+        state.line.set({ x1: dep.x, y1: dep.y, x2: arr.x, y2: arr.y });
+        if (state.arrows) updateArrowsOutward(dep.x, dep.y, arr.x, arr.y);
+        canvas.requestRenderAll();
+        return;
+      }
+    });
+
+    ui.btnTapOK.addEventListener("click", () => {
+      if (state.step !== 3) return;
+      finalizeTouchAction();
+    });
+
+    // ===== canvas interactions =====
+    // PAN drag (mouse + touch)
+    function getClientPos(evt) {
+      if (evt.touches && evt.touches.length > 0) return { x: evt.touches[0].clientX, y: evt.touches[0].clientY };
+      return { x: evt.clientX, y: evt.clientY };
+    }
+
     canvas.on("mouse:down", (o) => {
       const evt = o.e;
       const client = getClientPos(evt);
-      const touch = isTouchEvent(evt);
 
-      // si clic sur objet en mode PAN, on laisse sélection/drag natif
+      // If touch measure workflow active, ignore Fabric mouse events (touch handled by wrapper listeners)
+      if (IS_TOUCH && isTouchMeasureMode()) return;
+
       if (o.target && state.mode === MODES.PAN) return;
 
-      // PAN drag (souris + tactile)
+      // PAN
       if (state.mode === MODES.PAN) {
         state.isDragging = true;
         state.lastClientX = client.x;
@@ -1410,9 +1479,8 @@
         return;
       }
 
-      // Plan minute: placement symboles
+      // Plan minute symbols : click to place
       if (state.mode === MODES.MINUTE && state.pmTool !== PM_TOOLS.COTE) {
-        cancelTapDrawing();
         const p = canvas.getPointer(evt);
         const sym = pmSymbol(state.pmTool, p.x, p.y);
         if (sym) {
@@ -1425,98 +1493,43 @@
         return;
       }
 
-      // ✅ Mode 2 taps sur tablette/tactile (scale/measure/minute-cote)
-      if (touch && isLineModeForTap()) {
-        const p = canvas.getPointer(evt);
-
-        if (!state.tapPending) {
-          // 1er tap = départ
-          cancelTapDrawing();
-          state.tapPending = true;
-          state.tapStart = { x: p.x, y: p.y };
-          state.startPoint = { x: p.x, y: p.y };
-
-          state.line = makeLine(p.x, p.y, p.x, p.y, state.mode);
-          canvas.add(state.line);
-
-          if (wantArrowsNow()) {
-            state.arrows = { a1: createArrowHead(state.currentColor), a2: createArrowHead(state.currentColor) };
-            canvas.add(state.arrows.a1);
-            canvas.add(state.arrows.a2);
-            updateArrowsOutward(p.x, p.y, p.x, p.y);
-          } else {
-            state.arrows = null;
-          }
-
-          showAimStart(evt);
-          showAimEnd(evt);
-          Status.show("🟡 Tap 2 : choisissez l’arrivée", "warning");
-          canvas.requestRenderAll();
-        } else {
-          // 2e tap = arrivée -> finalize
-          state.tapPending = false;
-          state.tapStart = null;
-
-          // mettre à jour une dernière fois avant finalize
-          state.line.set({ x2: p.x, y2: p.y });
-          if (state.arrows) updateArrowsOutward(state.startPoint.x, state.startPoint.y, p.x, p.y);
-
-          canvas.requestRenderAll();
-          finalizeLine(p, evt);
-        }
-        return;
-      }
-
-      // Souris: drag line (scale/measure/minute-cote)
-      if (evt.touches && evt.touches.length >= 2) return;
-
-      state.isDrawing = true;
-      const p = canvas.getPointer(evt);
-      state.startPoint = { x: p.x, y: p.y };
-
-      state.line = makeLine(p.x, p.y, p.x, p.y, state.mode);
+      // Desktop line drawing (drag)
+      state.startPoint = canvas.getPointer(evt);
+      state.line = makeLine(state.startPoint.x, state.startPoint.y, state.startPoint.x, state.startPoint.y, state.mode);
       canvas.add(state.line);
 
       if (wantArrowsNow()) {
         state.arrows = { a1: createArrowHead(state.currentColor), a2: createArrowHead(state.currentColor) };
         canvas.add(state.arrows.a1);
         canvas.add(state.arrows.a2);
-        updateArrowsOutward(p.x, p.y, p.x, p.y);
+        updateArrowsOutward(state.startPoint.x, state.startPoint.y, state.startPoint.x, state.startPoint.y);
       } else {
         state.arrows = null;
       }
+
+      state.isDragging = true; // reuse for drawing
     });
 
     canvas.on("mouse:move", (o) => {
       const evt = o.e;
       const client = getClientPos(evt);
-      const touch = isTouchEvent(evt);
 
-      // PAN drag
-      if (state.isDragging) {
+      if (IS_TOUCH && isTouchMeasureMode()) return;
+
+      // PAN
+      if (state.mode === MODES.PAN && state.isDragging) {
         const vpt = canvas.viewportTransform;
         vpt[4] += client.x - state.lastClientX;
         vpt[5] += client.y - state.lastClientY;
         state.lastClientX = client.x;
         state.lastClientY = client.y;
-
         clampViewportToBackground();
         canvas.requestRenderAll();
         return;
       }
 
-      // ✅ si 2 taps en attente: on montre une preview en bougeant le doigt (optionnel mais cool)
-      if (touch && state.tapPending && state.line) {
-        const p = canvas.getPointer(evt);
-        state.line.set({ x2: p.x, y2: p.y });
-        if (state.arrows) updateArrowsOutward(state.startPoint.x, state.startPoint.y, p.x, p.y);
-        showAimEnd(evt);
-        canvas.requestRenderAll();
-        return;
-      }
-
-      // Souris drag drawing
-      if (state.isDrawing && state.line) {
+      // Drawing
+      if (state.isDragging && state.line && state.startPoint && state.mode !== MODES.PAN) {
         const p = canvas.getPointer(evt);
         state.line.set({ x2: p.x, y2: p.y });
         if (state.arrows) updateArrowsOutward(state.startPoint.x, state.startPoint.y, p.x, p.y);
@@ -1525,11 +1538,12 @@
     });
 
     canvas.on("mouse:up", (o) => {
-      const evt = o.e;
-      const touch = isTouchEvent(evt);
+      if (IS_TOUCH && isTouchMeasureMode()) return;
 
-      // fin PAN
-      if (state.isDragging) {
+      const evt = o.e;
+
+      // end pan drag
+      if (state.mode === MODES.PAN) {
         state.isDragging = false;
         canvas.setCursor("grab");
         clampViewportToBackground();
@@ -1537,19 +1551,146 @@
         return;
       }
 
-      // ✅ en tactile: on ne finalize pas sur mouse:up (c'est le 2e tap qui finalize)
-      if (touch) return;
-
-      if (!state.isDrawing || !state.line || !state.startPoint) return;
-      state.isDrawing = false;
+      if (!state.line || !state.startPoint) { state.isDragging = false; return; }
+      state.isDragging = false;
 
       const p = canvas.getPointer(evt);
-      finalizeLine(p, evt);
+      const dep = state.startPoint;
+      const arr = { x: p.x, y: p.y };
+
+      const distPx = Math.hypot(arr.x - dep.x, arr.y - dep.y);
+      if (isTooSmall(distPx)) {
+        clearTempLine();
+        canvas.requestRenderAll();
+        return;
+      }
+
+      // SCALE desktop
+      if (state.mode === MODES.SCALE) {
+        setTimeout(() => {
+          const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
+          const meters = parseFloat((input || "").replace(",", "."));
+          if (!(meters > 0)) {
+            clearTempLine();
+            return;
+          }
+          state.pixelsPerMeter = distPx / meters;
+          Status.show(`✅ Étalonné (page ${state.currentPage}) : 1m = ${state.pixelsPerMeter.toFixed(2)} px`, "success");
+          syncMeasureButton();
+
+          clearTempLine();
+          setMode(MODES.MEASURE);
+          saveMeasuresForPage(state.currentPage);
+        }, 50);
+        return;
+      }
+
+      // MEASURE desktop
+      if (state.mode === MODES.MEASURE) {
+        if (!state.pixelsPerMeter) {
+          Status.show("⚠️ Pas d'échelle. Étalonne d'abord.", "warning");
+          clearTempLine();
+          setMode(MODES.SCALE);
+          return;
+        }
+
+        const meters = distPx / state.pixelsPerMeter;
+        const metersStr = `${meters.toFixed(2)} m`;
+
+        const midX = (dep.x + arr.x) / 2;
+        const midY = (dep.y + arr.y) / 2 - 15 / canvas.getZoom();
+        const label = makeLabel(metersStr, midX, midY);
+
+        const parts = [state.line];
+        if (state.arrows) parts.push(state.arrows.a1, state.arrows.a2);
+        parts.forEach(obj => canvas.remove(obj));
+
+        const group = new fabric.Group([...parts, label], { selectable: true });
+        group.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
+        group.isMeasure = true;
+        group.measureValue = meters.toFixed(2);
+
+        canvas.add(group);
+        canvas.setActiveObject(group);
+
+        state.line = null;
+        state.arrows = null;
+        state.startPoint = null;
+
+        updateTotal();
+        canvas.requestRenderAll();
+        saveMeasuresForPage(state.currentPage);
+        return;
+      }
+
+      // PLAN MINUTE COTE desktop
+      if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) {
+        setTimeout(() => {
+          const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
+          const meters = parseFloat((input || "").replace(",", "."));
+          if (!(meters > 0)) {
+            clearTempLine();
+            return;
+          }
+
+          const metersStr = `${meters.toFixed(2)} m`;
+          const midX = (dep.x + arr.x) / 2;
+          const midY = (dep.y + arr.y) / 2 - 15 / canvas.getZoom();
+          const label = makeLabel(metersStr, midX, midY);
+
+          const parts = [state.line];
+          if (state.arrows) parts.push(state.arrows.a1, state.arrows.a2);
+          parts.forEach(obj => canvas.remove(obj));
+
+          const group = new fabric.Group([...parts, label], { selectable: true });
+          group.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
+          group.isPm = true;
+          group.pmKind = "COTE";
+          group.pmValue = meters.toFixed(2);
+
+          canvas.add(group);
+          canvas.setActiveObject(group);
+
+          state.line = null;
+          state.arrows = null;
+          state.startPoint = null;
+
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
+          Status.show("Cote plan minute ajoutée", "success");
+        }, 50);
+      }
     });
+
+    // ===== Wrapper touch listeners for cursor mode =====
+    ui.wrapper.addEventListener("touchstart", (e) => {
+      if (!isTouchMeasureMode()) return;
+      // prevent scrolling
+      e.preventDefault();
+      beginTouchCursorFromEvent(e);
+    }, { passive: false });
+
+    ui.wrapper.addEventListener("touchmove", (e) => {
+      if (!isTouchMeasureMode()) return;
+      e.preventDefault();
+      moveTouchCursorFromEvent(e);
+    }, { passive: false });
+
+    ui.wrapper.addEventListener("touchend", (e) => {
+      if (!isTouchMeasureMode()) return;
+      e.preventDefault();
+      endTouchCursor();
+    }, { passive: false });
+
+    ui.wrapper.addEventListener("touchcancel", (e) => {
+      if (!isTouchMeasureMode()) return;
+      e.preventDefault();
+      endTouchCursor();
+    }, { passive: false });
 
     // ===== Delete / undo / clear / save =====
     ui.btn.del.addEventListener("click", () => {
-      if (state.tapPending) { cancelTapDrawing("Annulé (cotation en cours)"); return; }
+      if (state.step !== 0) { cancelTouchMeasure("Annulé (en cours)"); return; }
 
       const actives = canvas.getActiveObjects();
       if (!actives.length) return;
@@ -1562,7 +1703,7 @@
     });
 
     ui.btn.undo.addEventListener("click", () => {
-      if (state.tapPending) { cancelTapDrawing("Annulé (cotation en cours)"); return; }
+      if (state.step !== 0) { cancelTouchMeasure("Annulé (en cours)"); return; }
 
       const objs = canvas.getObjects().filter(o => o !== canvas.backgroundImage);
       if (!objs.length) return;
@@ -1574,7 +1715,7 @@
     });
 
     ui.btn.clear.addEventListener("click", () => {
-      cancelTapDrawing();
+      if (state.step !== 0) cancelTouchMeasure();
 
       if (!confirm("Tout effacer (page courante) ?")) return;
       canvas.getObjects().forEach(o => { if (o !== canvas.backgroundImage) canvas.remove(o); });
@@ -1586,10 +1727,12 @@
     });
 
     ui.btn.save.addEventListener("click", () => {
-      cancelTapDrawing();
+      if (state.step !== 0) cancelTouchMeasure();
+
       canvas.discardActiveObject();
       canvas.requestRenderAll();
-      const dataURL = canvas.toDataURL({ format: "png", quality: 1, multiplier: CONFIG.EXPORT_MULTIPLIER });
+      const mult = IS_MOBILE ? CONFIG.EXPORT_MULTIPLIER_MOBILE : CONFIG.EXPORT_MULTIPLIER_DESKTOP;
+      const dataURL = canvas.toDataURL({ format: "png", quality: 1, multiplier: mult });
       const a = document.createElement("a");
       a.download = `plan_page_${state.currentPage}.png`;
       a.href = dataURL;
@@ -1598,9 +1741,7 @@
       document.body.removeChild(a);
     });
 
-    // File
     ui.fileInput.addEventListener("change", async (e) => {
-      cancelTapDrawing();
       const file = e.target.files?.[0];
       if (!file) return;
       try { await loadPdfFile(file); }
