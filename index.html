@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Mesureur Réseaux - V2.2.0 (Plan minute)</title>
+  <title>Mesureur Réseaux - V2.1.0 (Plan minute)</title>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -18,12 +18,10 @@
       --accent-color:#3498db;
       --text-color:#fff;
 
-      /* Cadre */
       --frame-color: rgba(255,255,255,0.16);
       --frame-inner: rgba(0,0,0,0.55);
       --frame-glow: rgba(52,152,219,0.10);
 
-      /* Zone intérieure du cadre */
       --frame-top: 72px;
       --frame-left: 12px;
       --frame-right: 12px;
@@ -73,7 +71,6 @@
     .file-btn:hover{ background:rgba(255,255,255,.25); }
     .file-btn:disabled{ opacity:.35; cursor:not-allowed; }
 
-    /* Plein écran */
     .fs-btn{
       background:rgba(255,255,255,.1); color:#fff;
       padding:8px 12px; border-radius:8px;
@@ -237,7 +234,6 @@
       overscroll-behavior:none;
     }
 
-    /* Panel Plan minute */
     #minutePanel{
       position:absolute;
       left: calc(var(--frame-left) + 14px);
@@ -373,7 +369,6 @@
     <div class="total-value" id="totalValue">0.00 m</div>
   </div>
 
-  <!-- Palette couleurs (Mesure + Plan minute) -->
   <div class="color-palette" id="colorPicker">
     <div class="color-dot selected" style="background:#e74c3c;" data-color="#e74c3c" title="Élec (Rouge)"></div>
     <div class="color-dot" style="background:#f1c40f;" data-color="#f1c40f" title="Gaz (Jaune)"></div>
@@ -382,7 +377,6 @@
     <div class="color-dot" style="background:#9b59b6;" data-color="#9b59b6" title="Fibre (Violet)"></div>
   </div>
 
-  <!-- Panel Plan minute -->
   <div id="minutePanel">
     <div class="mp-title">
       <span><i class="fa-solid fa-pen-ruler"></i> Plan minute</span>
@@ -445,7 +439,11 @@
       PM_STROKE: 3,
       STATUS_MS: 3500,
       OCR: { cropWidthRatio: 0.35, lang: "eng" },
-      SCALE_REGEX: /1\s*[:\/.,]\s*(50|100|200|500|1000)\b/
+      SCALE_REGEX: /1\s*[:\/.,]\s*(50|100|200|500|1000)\b/,
+
+      // ✅ Flèches cotes
+      ARROW_W: 14,
+      ARROW_H: 12
     });
 
     const MODES = Object.freeze({
@@ -536,6 +534,7 @@
       lastClientY: 0,
 
       line: null,
+      arrows: null,     // ✅ { a1, a2 } pour les flèches (temp)
       startPoint: null,
 
       pdfDoc: null,
@@ -562,17 +561,15 @@
 
       const vpt = canvas.viewportTransform;
 
-      if (contentW <= canvas.width) {
-        vpt[4] = (canvas.width - contentW) / 2;
-      } else {
+      if (contentW <= canvas.width) vpt[4] = (canvas.width - contentW) / 2;
+      else {
         const minX = canvas.width - contentW;
         const maxX = 0;
         vpt[4] = Math.min(maxX, Math.max(minX, vpt[4]));
       }
 
-      if (contentH <= canvas.height) {
-        vpt[5] = (canvas.height - contentH) / 2;
-      } else {
+      if (contentH <= canvas.height) vpt[5] = (canvas.height - contentH) / 2;
+      else {
         const minY = canvas.height - contentH;
         const maxY = 0;
         vpt[5] = Math.min(maxY, Math.max(minY, vpt[5]));
@@ -653,12 +650,7 @@
       Object.values(ui.btn).forEach(b => b.classList.remove("active"));
       if (ui.btn[mode]) ui.btn[mode].classList.add("active");
 
-      // ✅ Palette visible en MESURE et en PLAN MINUTE
-      ui.colorPicker.classList.toggle(
-        "show",
-        mode === MODES.MEASURE || mode === MODES.MINUTE
-      );
-
+      ui.colorPicker.classList.toggle("show", mode === MODES.MEASURE || mode === MODES.MINUTE);
       ui.minutePanel.classList.toggle("show", mode === MODES.MINUTE);
 
       if (mode === MODES.PAN) {
@@ -680,7 +672,6 @@
       syncMeasureButton();
     }
 
-    // Modes
     ui.btn.pan.addEventListener("click", () => setMode(MODES.PAN));
     ui.btn.scale.addEventListener("click", () => setMode(MODES.SCALE));
     ui.btn.measure.addEventListener("click", () => {
@@ -692,10 +683,9 @@
       setMode(MODES.MEASURE);
     });
     ui.btn.minute.addEventListener("click", () => setMode(MODES.MINUTE));
-
     ui.btn.home.addEventListener("click", () => resetViewToCenter());
 
-    // ✅ Palette couleurs (Mesure + Plan minute)
+    // ✅ Couleur: applique aussi aux flèches quand on sélectionne une cote
     $$(".color-dot").forEach(dot => {
       dot.addEventListener("click", () => {
         $$(".color-dot").forEach(d => d.classList.remove("selected"));
@@ -704,16 +694,18 @@
 
         const active = canvas.getActiveObject();
         if (active && active.type === "group") {
-          const lineObj = active.getObjects().find(o => o.type === "line");
-          if (lineObj) {
-            lineObj.set("stroke", state.currentColor);
-            canvas.requestRenderAll();
-          }
+          active.getObjects().forEach(obj => {
+            if (obj.type === "line") obj.set("stroke", state.currentColor);
+            if (obj.type === "triangle") obj.set({ fill: state.currentColor, stroke: state.currentColor });
+            if (obj.type === "circle") obj.set({ fill: state.currentColor });
+            if (obj.type === "rect") obj.set({ stroke: state.currentColor });
+          });
+          canvas.requestRenderAll();
+          if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
         }
       });
     });
 
-    // Outil plan minute
     function setPmTool(tool) {
       state.pmTool = tool;
       $$("#minutePanel .mp-item").forEach(el => el.classList.remove("active"));
@@ -733,7 +725,6 @@
       el.addEventListener("click", () => setPmTool(el.getAttribute("data-tool")));
     });
 
-    // Total
     function updateTotal() {
       let total = 0;
       canvas.getObjects().forEach(obj => {
@@ -743,7 +734,6 @@
       ui.totalCounter.style.display = total > 0 ? "block" : "none";
     }
 
-    // Zoom
     function clampZoom(z) { return Math.max(state.initialZoom, Math.min(CONFIG.MAX_ZOOM, z)); }
 
     function resetViewToCenter() {
@@ -777,7 +767,6 @@
     ui.btn.zoomIn.addEventListener("click", () => applyZoom(1.2));
     ui.btn.zoomOut.addEventListener("click", () => applyZoom(0.8));
 
-    // Pinch tablette
     (() => {
       let isPinching = false;
       let startDist = 0;
@@ -846,7 +835,6 @@
       ui.wrapper.addEventListener("touchcancel", onTouchEnd, { passive: false });
     })();
 
-    // PDF
     async function loadPdfFile(file) {
       Status.show("⏳ Chargement PDF...", "normal");
       const buffer = await file.arrayBuffer();
@@ -1010,9 +998,8 @@
     function makeLine(x1, y1, x2, y2, mode) {
       const zoom = canvas.getZoom();
       const stroke = (mode === MODES.SCALE ? CONFIG.SCALE_STROKE : (mode === MODES.MEASURE ? CONFIG.MEASURE_STROKE : CONFIG.PM_STROKE)) / zoom;
-      const isScale = mode === MODES.SCALE;
 
-      // ✅ Couleur choisie en Mesure et en Plan minute (cotes)
+      const isScale = mode === MODES.SCALE;
       const color = (mode === MODES.MEASURE || mode === MODES.MINUTE) ? state.currentColor : "#ffffff";
 
       return new fabric.Line([x1, y1, x2, y2], {
@@ -1021,8 +1008,8 @@
         strokeDashArray: isScale ? CONFIG.SCALE_DASH : null,
         originX: "center",
         originY: "center",
-        selectable: true,
-        evented: true
+        selectable: false,
+        evented: false
       });
     }
 
@@ -1036,7 +1023,9 @@
         top: y,
         originX: "center",
         originY: "bottom",
-        fontFamily: "Segoe UI"
+        fontFamily: "Segoe UI",
+        selectable: false,
+        evented: false
       });
     }
 
@@ -1045,34 +1034,59 @@
       return distPx < (CONFIG.MIN_DRAW_PX_AT_ZOOM1 / zoom);
     }
 
+    // ✅ Flèches cote (pour MESURE et PLAN MINUTE COTE)
+    function createArrowHead(color){
+      const z = canvas.getZoom();
+      return new fabric.Triangle({
+        width: CONFIG.ARROW_W / z,
+        height: CONFIG.ARROW_H / z,
+        fill: color,
+        stroke: color,
+        strokeWidth: 0,
+        originX: "center",
+        originY: "center",
+        left: 0,
+        top: 0,
+        selectable: false,
+        evented: false
+      });
+    }
+
+    function updateArrows(x1, y1, x2, y2){
+      if (!state.arrows) return;
+      const angleDeg = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+
+      // triangle Fabric “pointe vers le haut” à angle 0 => +90 pour l’aligner sur la ligne
+      state.arrows.a1.set({ left: x1, top: y1, angle: angleDeg + 90 });
+      state.arrows.a2.set({ left: x2, top: y2, angle: angleDeg + 270 });
+    }
+
     // ====== PLAN MINUTE SYMBOLS ======
     function pmSymbol(tool, x, y) {
       const z = canvas.getZoom();
       const s = 18 / z;
-
-      // ✅ Les symboles prennent la couleur choisie
       const col = state.currentColor;
 
       if (tool === PM_TOOLS.PB) {
-        const stem = new fabric.Line([0, -s, 0, s], { stroke: col, strokeWidth: 3 / z });
-        const arm  = new fabric.Line([-s, 0, s, 0], { stroke: col, strokeWidth: 3 / z });
-        const circ = new fabric.Circle({ radius: 4 / z, fill: col, left: -4 / z, top: -4 / z });
+        const stem = new fabric.Line([0, -s, 0, s], { stroke: col, strokeWidth: 3 / z, selectable:false, evented:false });
+        const arm  = new fabric.Line([-s, 0, s, 0], { stroke: col, strokeWidth: 3 / z, selectable:false, evented:false });
+        const circ = new fabric.Circle({ radius: 4 / z, fill: col, left: -4 / z, top: -4 / z, selectable:false, evented:false });
         const g = new fabric.Group([stem, arm, circ], { left:x, top:y, originX:"center", originY:"center" });
         g.isPm = true; g.pmKind = "PB";
         return g;
       }
 
       if (tool === PM_TOOLS.BOUCHON) {
-        const c = new fabric.Circle({ radius: 7 / z, fill: col, stroke: "rgba(0,0,0,0.35)", strokeWidth: 1 / z });
+        const c = new fabric.Circle({ radius: 7 / z, fill: col, stroke: "rgba(0,0,0,0.35)", strokeWidth: 1 / z, selectable:false, evented:false });
         const g = new fabric.Group([c], { left:x, top:y, originX:"center", originY:"center" });
         g.isPm = true; g.pmKind = "BOUCHON";
         return g;
       }
 
       if (tool === PM_TOOLS.VANNE) {
-        const tri1 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke: col, strokeWidth: 2 / z, originX:"center", originY:"center", angle: 90 });
-        const tri2 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke: col, strokeWidth: 2 / z, originX:"center", originY:"center", angle: -90 });
-        const bar  = new fabric.Line([-16 / z, 0, 16 / z, 0], { stroke: col, strokeWidth: 2 / z });
+        const tri1 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke: col, strokeWidth: 2 / z, originX:"center", originY:"center", angle: 90, selectable:false, evented:false });
+        const tri2 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke: col, strokeWidth: 2 / z, originX:"center", originY:"center", angle: -90, selectable:false, evented:false });
+        const bar  = new fabric.Line([-16 / z, 0, 16 / z, 0], { stroke: col, strokeWidth: 2 / z, selectable:false, evented:false });
         tri1.set({ left: -6 / z, top: 0 });
         tri2.set({ left:  6 / z, top: 0 });
         const g = new fabric.Group([bar, tri1, tri2], { left:x, top:y, originX:"center", originY:"center" });
@@ -1081,7 +1095,7 @@
       }
 
       if (tool === PM_TOOLS.REGARD) {
-        const r = new fabric.Rect({ width: 18 / z, height: 14 / z, fill: "rgba(255,255,255,0.08)", stroke: col, strokeWidth: 2 / z, rx: 3 / z, ry: 3 / z });
+        const r = new fabric.Rect({ width: 18 / z, height: 14 / z, fill: "rgba(255,255,255,0.08)", stroke: col, strokeWidth: 2 / z, rx: 3 / z, ry: 3 / z, selectable:false, evented:false });
         const g = new fabric.Group([r], { left:x, top:y, originX:"center", originY:"center" });
         g.isPm = true; g.pmKind = "REGARD";
         return g;
@@ -1105,7 +1119,7 @@
         return;
       }
 
-      // Plan minute : placement symbole au clic
+      // Plan minute : placement symbole
       if (state.mode === MODES.MINUTE && state.pmTool !== PM_TOOLS.COTE) {
         const p = canvas.getPointer(evt);
         const sym = pmSymbol(state.pmTool, p.x, p.y);
@@ -1121,11 +1135,27 @@
 
       if (evt.touches && evt.touches.length >= 2) return;
 
+      // Démarrage tracé
       state.isDrawing = true;
       const p = canvas.getPointer(evt);
       state.startPoint = { x: p.x, y: p.y };
+
       state.line = makeLine(p.x, p.y, p.x, p.y, state.mode);
       canvas.add(state.line);
+
+      // ✅ Flèches seulement pour Mesure & Plan minute cote
+      const wantArrows = (state.mode === MODES.MEASURE) || (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE);
+      if (wantArrows) {
+        state.arrows = {
+          a1: createArrowHead(state.currentColor),
+          a2: createArrowHead(state.currentColor)
+        };
+        canvas.add(state.arrows.a1);
+        canvas.add(state.arrows.a2);
+        updateArrows(p.x, p.y, p.x, p.y);
+      } else {
+        state.arrows = null;
+      }
     });
 
     canvas.on("mouse:move", (o) => {
@@ -1147,6 +1177,7 @@
       if (state.isDrawing && state.line) {
         const p = canvas.getPointer(evt);
         state.line.set({ x2: p.x, y2: p.y });
+        updateArrows(state.startPoint.x, state.startPoint.y, p.x, p.y);
         canvas.requestRenderAll();
       }
     });
@@ -1168,7 +1199,9 @@
 
       if (isTooSmall(distPx)) {
         canvas.remove(state.line);
+        if (state.arrows) { canvas.remove(state.arrows.a1); canvas.remove(state.arrows.a2); }
         state.line = null;
+        state.arrows = null;
         return;
       }
 
@@ -1200,7 +1233,9 @@
         if (!state.pixelsPerMeter) {
           Status.show("⚠️ Pas d'échelle pour cette page. Étalonnez.", "warning");
           canvas.remove(state.line);
+          if (state.arrows) { canvas.remove(state.arrows.a1); canvas.remove(state.arrows.a2); }
           state.line = null;
+          state.arrows = null;
           setMode(MODES.SCALE);
           return;
         }
@@ -1210,17 +1245,25 @@
 
         const midX = (state.startPoint.x + p.x) / 2;
         const midY = (state.startPoint.y + p.y) / 2 - 15 / canvas.getZoom();
-
         const label = makeLabel(metersStr, midX, midY);
-        const group = new fabric.Group([state.line, label], { selectable: true });
+
+        // grouper (ligne + flèches + texte)
+        const parts = [state.line];
+        if (state.arrows) parts.push(state.arrows.a1, state.arrows.a2);
+
+        parts.forEach(obj => canvas.remove(obj));
+        const group = new fabric.Group([...parts, label], { selectable: true });
+
+        group.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
         group.isMeasure = true;
         group.measureValue = meters.toFixed(2);
 
-        canvas.remove(state.line);
         canvas.add(group);
         canvas.setActiveObject(group);
 
         state.line = null;
+        state.arrows = null;
+
         updateTotal();
         canvas.requestRenderAll();
         saveMeasuresForPage(state.currentPage);
@@ -1234,29 +1277,35 @@
           const meters = parseFloat((input || "").replace(",", "."));
           if (!(meters > 0)) {
             canvas.remove(state.line);
+            if (state.arrows) { canvas.remove(state.arrows.a1); canvas.remove(state.arrows.a2); }
             state.line = null;
+            state.arrows = null;
             return;
           }
 
           const metersStr = `${meters.toFixed(2)} m`;
           const midX = (state.startPoint.x + p.x) / 2;
           const midY = (state.startPoint.y + p.y) / 2 - 15 / canvas.getZoom();
-
-          // ✅ garder la couleur choisie (plus blanc)
-          state.line.set({ stroke: state.currentColor, strokeDashArray: null });
-
           const label = makeLabel(metersStr, midX, midY);
 
-          const group = new fabric.Group([state.line, label], { selectable: true });
+          // groupe final
+          const parts = [state.line];
+          if (state.arrows) parts.push(state.arrows.a1, state.arrows.a2);
+
+          parts.forEach(obj => canvas.remove(obj));
+          const group = new fabric.Group([...parts, label], { selectable: true });
+          group.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
+
           group.isPm = true;
           group.pmKind = "COTE";
           group.pmValue = meters.toFixed(2);
 
-          canvas.remove(state.line);
           canvas.add(group);
           canvas.setActiveObject(group);
 
           state.line = null;
+          state.arrows = null;
+
           canvas.requestRenderAll();
           saveMeasuresForPage(state.currentPage);
           Status.show("Cote plan minute ajoutée", "success");
@@ -1264,7 +1313,6 @@
       }
     });
 
-    // Delete / undo / clear / save
     ui.btn.del.addEventListener("click", () => {
       const actives = canvas.getActiveObjects();
       if (!actives.length) return;
@@ -1308,7 +1356,6 @@
       document.body.removeChild(a);
     });
 
-    // File
     ui.fileInput.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
@@ -1317,7 +1364,6 @@
       finally { ui.fileInput.value = ""; }
     });
 
-    // Boot
     setDisabledAll(true);
     updatePagerUI();
     Status.show("Bienvenue");
@@ -1326,4 +1372,3 @@
   </script>
 </body>
 </html>
-
