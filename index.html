@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b1220" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Mesureur Réseaux - V2.1.1 (SIG Pro)</title>
+  <title>Mesureur Réseaux - V2.1.2 (SIG Pro)</title>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -14,42 +14,35 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
   <style>
-    /* ============================================================
-       V2.1.1 (SIG Pro)
-       - UI "outil terrain"
-       - OCR échelle robuste 1:XXXX (2..5 chiffres + valeurs batardes)
-       - OCR active "Mesurer" (sans bascule auto) => Option B validée
-       - Bouton Plein écran (Fullscreen API)
-       ============================================================ */
-
     :root{
-      /* SIG PRO palette */
       --bg-0:#070b12;
       --bg-1:#0b1220;
       --panel: rgba(12, 20, 36, .88);
-      --panel-2: rgba(14, 24, 42, .92);
       --stroke: rgba(255,255,255,.12);
       --stroke-2: rgba(255,255,255,.18);
 
-      --accent:#3aa3ff;   /* bleu topo */
-      --accent-2:#2ed3a8; /* vert "ok" */
+      --accent:#3aa3ff;
+      --ok:#2ed3a8;
       --warn:#f6c355;
       --danger:#ff6b6b;
 
       --text:#e9eef8;
       --muted: rgba(233,238,248,.72);
 
-      /* Cadre */
       --frame-color: rgba(255,255,255,0.14);
       --frame-inner: rgba(0,0,0,0.55);
       --frame-glow: rgba(58,163,255,0.12);
 
-      /* Zone intérieure */
       --frame-top: 72px;
       --frame-left: 12px;
       --frame-right: 12px;
       --frame-bottom: 18px;
       --frame-radius: 16px;
+
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
     }
 
     *{ box-sizing:border-box; }
@@ -65,11 +58,18 @@
       overflow:hidden;
       touch-action:none;
       color:var(--text);
+      padding-top: var(--safe-top);
+      padding-bottom: var(--safe-bottom);
+      padding-left: var(--safe-left);
+      padding-right: var(--safe-right);
     }
 
-    /* ====== Top bar ====== */
+    /* ===== Top bar ===== */
     .top-bar{
-      position:absolute; top:0; left:0; right:0;
+      position:absolute;
+      top:calc(0px + var(--safe-top));
+      left:calc(0px + var(--safe-left));
+      right:calc(0px + var(--safe-right));
       height:64px;
       padding:10px 12px;
       display:flex;
@@ -115,19 +115,10 @@
       display:flex; flex-direction:column; gap:2px;
       line-height:1.05;
     }
-    .brand .title .t1{
-      font-weight:900; letter-spacing:.4px;
-      font-size:1.0rem;
-    }
-    .brand .title .t2{
-      font-size:.78rem;
-      color: var(--muted);
-      letter-spacing:.2px;
-    }
+    .brand .title .t1{ font-weight:1000; letter-spacing:.3px; font-size:1.0rem; }
+    .brand .title .t2{ font-size:.78rem; color: var(--muted); letter-spacing:.2px; }
 
-    .top-actions{
-      display:flex; gap:8px; align-items:center;
-    }
+    .top-actions{ display:flex; gap:8px; align-items:center; }
 
     .pill{
       display:flex; align-items:center; gap:8px;
@@ -147,7 +138,7 @@
       color: var(--text);
       padding:10px 12px;
       border-radius:14px;
-      font-weight:800;
+      font-weight:900;
       font-size:.9rem;
       display:flex; align-items:center; gap:8px;
       transition: transform .12s, background .2s, border-color .2s, opacity .2s;
@@ -172,21 +163,15 @@
       border-color: rgba(255,107,107,.30);
     }
 
-    .pager{
-      display:flex; align-items:center; gap:8px;
-    }
-    .pager .navbtn{
-      width:42px; height:42px;
-      border-radius:14px;
-      padding:0;
-      justify-content:center;
-    }
+    .pager{ display:flex; align-items:center; gap:8px; }
+    .pager .navbtn{ width:42px; height:42px; border-radius:14px; padding:0; justify-content:center; }
     .pager .page-label{
       min-width: 150px;
       text-align:center;
       font-size:.86rem;
       color: var(--muted);
       font-variant-numeric: tabular-nums;
+      font-weight:900;
     }
     .pager input{
       width:70px;
@@ -199,18 +184,22 @@
       font-size:.9rem;
       text-align:center;
       font-variant-numeric: tabular-nums;
+      font-weight:900;
     }
 
-    /* ====== Status bubble ====== */
+    /* ===== Status bubble ===== */
     #statusBubble{
-      position:absolute; top:80px; left:50%; transform:translateX(-50%);
+      position:absolute;
+      top:calc(80px + var(--safe-top));
+      left:50%;
+      transform:translateX(-50%);
       background: rgba(8, 12, 22, .90);
       border:1px solid var(--stroke);
       color: var(--text);
       padding:10px 18px;
       border-radius:999px;
       font-size:.92rem;
-      font-weight:800;
+      font-weight:1000;
       z-index:100;
       pointer-events:none;
       box-shadow: 0 12px 30px rgba(0,0,0,.45);
@@ -222,11 +211,11 @@
     .status-warning{ border-color: rgba(246,195,85,.35) !important; color: #ffe4ad !important; }
     .status-error{ border-color: rgba(255,107,107,.35) !important; color: #ffd0d0 !important; }
 
-    /* ====== Scale indicator ====== */
+    /* ===== Scale indicator ===== */
     #scaleIndicator{
       position:absolute;
-      top:82px;
-      right:16px;
+      top:calc(82px + var(--safe-top));
+      right:calc(16px + var(--safe-right));
       z-index:95;
       background: rgba(12, 20, 36, .84);
       border:1px solid var(--stroke);
@@ -237,13 +226,8 @@
       backdrop-filter: blur(10px);
     }
     .si-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .si-label{ font-size:.78rem; color: var(--muted); font-weight:800; letter-spacing:.3px; text-transform:uppercase; }
-    .si-value{
-      font-size:.95rem;
-      font-weight:900;
-      color: var(--text);
-      font-variant-numeric: tabular-nums;
-    }
+    .si-label{ font-size:.78rem; color: var(--muted); font-weight:1000; letter-spacing:.3px; text-transform:uppercase; }
+    .si-value{ font-size:.95rem; font-weight:1000; color: var(--text); font-variant-numeric: tabular-nums; }
     .si-badge{
       margin-top:6px;
       display:inline-flex;
@@ -253,7 +237,7 @@
       border-radius:999px;
       border:1px solid var(--stroke);
       font-size:.82rem;
-      font-weight:900;
+      font-weight:1000;
       color: var(--muted);
       background: rgba(255,255,255,.05);
     }
@@ -268,13 +252,13 @@
       background: rgba(246,195,85,.10);
     }
 
-    /* ====== Frame / canvas ====== */
+    /* ===== Frame / canvas ===== */
     #appFrame{
       position:absolute;
-      top:var(--frame-top);
-      left:var(--frame-left);
-      right:var(--frame-right);
-      bottom:var(--frame-bottom);
+      top:calc(var(--frame-top) + var(--safe-top));
+      left:calc(var(--frame-left) + var(--safe-left));
+      right:calc(var(--frame-right) + var(--safe-right));
+      bottom:calc(var(--frame-bottom) + var(--safe-bottom));
       border-radius:var(--frame-radius);
       pointer-events:none;
       z-index:20;
@@ -287,10 +271,10 @@
 
     #canvas-wrapper{
       position:absolute;
-      top:var(--frame-top);
-      left:var(--frame-left);
-      right:var(--frame-right);
-      bottom:var(--frame-bottom);
+      top:calc(var(--frame-top) + var(--safe-top));
+      left:calc(var(--frame-left) + var(--safe-left));
+      right:calc(var(--frame-right) + var(--safe-right));
+      bottom:calc(var(--frame-bottom) + var(--safe-bottom));
       border-radius:var(--frame-radius);
       overflow:hidden;
       background:#151b29;
@@ -298,10 +282,10 @@
       overscroll-behavior:none;
     }
 
-    /* ====== Bottom dock ====== */
+    /* ===== Bottom dock ===== */
     .bottom-dock{
       position:absolute;
-      bottom:22px;
+      bottom:calc(22px + var(--safe-bottom));
       left:50%;
       transform:translateX(-50%);
       background: linear-gradient(180deg, rgba(14,24,42,.90), rgba(10,16,30,.75));
@@ -331,21 +315,20 @@
     .btn-icon:hover:not(:disabled){ transform: translateY(-1px) scale(1.03); background: rgba(255,255,255,.12); border-color: var(--stroke-2); }
     .btn-icon:active{ transform: translateY(0px) scale(.98); }
     .btn-icon:disabled{ opacity:.28; cursor:not-allowed; }
-
     .btn-icon.active{
       background: rgba(58,163,255,.22);
       border-color: rgba(58,163,255,.35);
       box-shadow: 0 0 0 1px rgba(0,0,0,.25) inset, 0 0 18px rgba(58,163,255,.18);
     }
-
     .btn-delete{ color: var(--danger); }
     .btn-undo{ color: var(--warn); }
     .divider{ width:1px; height:26px; background: rgba(255,255,255,.14); margin:0 2px; }
 
-    /* ====== Total ====== */
+    /* ===== Total ===== */
     .total-display{
       position:absolute;
-      bottom:100px; right:18px;
+      bottom:calc(100px + var(--safe-bottom));
+      right:calc(18px + var(--safe-right));
       background: rgba(12, 20, 36, .84);
       border:1px solid var(--stroke);
       border-radius:16px;
@@ -363,7 +346,7 @@
       text-transform:uppercase;
       color: var(--muted);
       letter-spacing:.4px;
-      font-weight:900;
+      font-weight:1000;
     }
     .total-value{
       font-size:1.5rem;
@@ -373,9 +356,12 @@
       margin-top:2px;
     }
 
-    /* ====== Color palettes ====== */
+    /* ===== Color palette ===== */
     .color-palette{
-      position:absolute; bottom:92px; left:50%; transform:translateX(-50%);
+      position:absolute;
+      bottom:calc(92px + var(--safe-bottom));
+      left:50%;
+      transform:translateX(-50%);
       display:flex; gap:10px;
       background: rgba(12, 20, 36, .78);
       border:1px solid var(--stroke);
@@ -399,11 +385,11 @@
     .color-dot:hover{ transform:scale(1.10); }
     .color-dot.selected{ border-color:#fff; transform:scale(1.06); box-shadow:0 0 0 2px rgba(0,0,0,.25) inset; }
 
-    /* ====== Plan minute panel ====== */
+    /* ===== Plan minute panel ===== */
     #minutePanel{
       position:absolute;
-      left: calc(var(--frame-left) + 14px);
-      top:  calc(var(--frame-top) + 14px);
+      left:calc(var(--frame-left) + 14px + var(--safe-left));
+      top:calc(var(--frame-top) + 14px + var(--safe-top));
       z-index:69;
       background: rgba(12, 20, 36, .84);
       border: 1px solid var(--stroke);
@@ -422,12 +408,7 @@
       gap:10px;
       margin-bottom:10px;
     }
-    .mp-title span{
-      font-weight:1000;
-      letter-spacing:.3px;
-      font-size:.95rem;
-      opacity:.95;
-    }
+    .mp-title span{ font-weight:1000; letter-spacing:.3px; font-size:.95rem; opacity:.95; }
     .mp-grid{
       display:grid;
       grid-template-columns: repeat(5, 1fr);
@@ -445,7 +426,7 @@
       justify-content:center;
       transition: transform .12s, background .2s, border-color .2s;
       user-select:none;
-      font-weight:900;
+      font-weight:1000;
       letter-spacing:.2px;
     }
     .mp-item:hover{
@@ -463,22 +444,72 @@
       font-size:0.82rem;
       color: var(--muted);
       line-height:1.25rem;
-      font-weight:700;
+      font-weight:800;
     }
     .mp-hint b{ color: var(--text); }
 
-    /* ====== Version ====== */
+    /* ===== Touch cursor (offset crosshair) ===== */
+    #touchCursor{
+      position:absolute;
+      z-index:110;
+      width:34px; height:34px;
+      border-radius:50%;
+      border:2px solid rgba(58,163,255,.85);
+      box-shadow: 0 0 0 3px rgba(0,0,0,.35), 0 0 18px rgba(58,163,255,.18);
+      pointer-events:none;
+      display:none;
+      transform: translate(-50%, -50%);
+      backdrop-filter: blur(2px);
+    }
+    #touchCursor:before, #touchCursor:after{
+      content:"";
+      position:absolute;
+      left:50%; top:50%;
+      background: rgba(58,163,255,.85);
+      transform: translate(-50%,-50%);
+    }
+    #touchCursor:before{ width:18px; height:2px; }
+    #touchCursor:after{ width:2px; height:18px; }
+    #touchCursor .dot{
+      position:absolute;
+      left:50%; top:50%;
+      width:6px; height:6px;
+      border-radius:50%;
+      background: rgba(255,255,255,.95);
+      transform: translate(-50%,-50%);
+      box-shadow: 0 0 0 2px rgba(0,0,0,.25);
+    }
+    #touchHint{
+      position:absolute;
+      z-index:111;
+      padding:6px 10px;
+      border-radius:999px;
+      background: rgba(8, 12, 22, .82);
+      border: 1px solid rgba(255,255,255,.14);
+      color: rgba(233,238,248,.9);
+      font-size:.78rem;
+      font-weight:1000;
+      pointer-events:none;
+      display:none;
+      transform: translate(-50%, -130%);
+      white-space:nowrap;
+      box-shadow: 0 10px 22px rgba(0,0,0,.35);
+    }
+
+    /* ===== Version ===== */
     #versionLabel{
       position:fixed;
-      bottom:8px; right:12px;
+      bottom:calc(8px + var(--safe-bottom));
+      right:calc(12px + var(--safe-right));
       opacity:.28;
       font-size:.74rem;
       z-index:120;
       color: var(--text);
-      font-weight:900;
+      font-weight:1000;
       letter-spacing:.2px;
     }
 
+    /* ===== Responsive ===== */
     @media (max-width: 900px){
       :root{
         --frame-top: 78px;
@@ -488,43 +519,30 @@
       }
       .pager .page-label{ min-width: 120px; }
       .btn-icon{ width:56px; height:56px; font-size:1.2rem; }
-      .btn{ padding:10px 12px; }
-      #scaleIndicator{ top: 88px; right: 12px; min-width: 180px; }
       #minutePanel{ min-width: 290px; }
-      .mp-grid{ grid-template-columns: repeat(5, 1fr); }
     }
 
-    @media (max-width: 600px){
-      :root{
-        --frame-top: 76px;
-        --frame-left: 10px;
-        --frame-right: 10px;
-        --frame-bottom: 14px;
-        --frame-radius: 16px;
-      }
-      .brand .title .t2{ display:none; }
-      .pager .page-label{ display:none; }
-      .bottom-dock{ width:94%; justify-content:space-between; gap:8px; padding:10px 12px; }
-      #minutePanel{
-        left: calc(var(--frame-left) + 10px);
-        top:  calc(var(--frame-top) + 10px);
-        min-width: 255px;
-      }
-      .mp-grid{ grid-template-columns: repeat(5, 1fr); }
-      #scaleIndicator{ display:none; } /* gagne de la place sur très petit écran */
-    }
+    /* Portrait compact (Option A) */
+    body.portrait-compact .brand .title .t2{ display:none; }
+    body.portrait-compact .pager .page-label{ display:none; }
+    body.portrait-compact #scaleIndicator{ display:none; }
+    body.portrait-compact .top-bar{ height:58px; padding:8px 10px; }
+    body.portrait-compact .topbar-inner{ padding:8px 10px; border-radius:14px; }
+    body.portrait-compact .btn{ padding:9px 10px; border-radius:14px; }
+    body.portrait-compact .brand .logo{ width:34px; height:34px; border-radius:12px; }
+    body.portrait-compact .bottom-dock{ width:94%; justify-content:space-between; gap:8px; padding:10px 12px; }
+    body.portrait-compact #minutePanel{ min-width: 255px; }
   </style>
 </head>
 
 <body>
-  <!-- Top -->
   <div class="top-bar">
     <div class="topbar-inner">
       <div class="brand">
         <div class="logo"><i class="fa-solid fa-ruler-combined"></i></div>
         <div class="title">
           <div class="t1">Mesureur Réseaux</div>
-          <div class="t2">V2.1.1 • SIG Pro</div>
+          <div class="t2">V2.1.2 • SIG Pro</div>
         </div>
       </div>
 
@@ -564,10 +582,8 @@
     </div>
   </div>
 
-  <!-- Status -->
   <div id="statusBubble">Bienvenue</div>
 
-  <!-- Scale indicator -->
   <div id="scaleIndicator">
     <div class="si-row">
       <div class="si-label">Échelle</div>
@@ -578,14 +594,12 @@
     </div>
   </div>
 
-  <!-- Total -->
   <div class="total-display" id="totalCounter">
     <div class="total-label">Linéaire total (page)</div>
     <div class="total-value" id="totalValue">0.00 m</div>
   </div>
 
-  <!-- Palette Mesure -->
-  <div class="color-palette" id="colorPicker" aria-label="Couleur mesure">
+  <div class="color-palette" id="colorPicker" aria-label="Couleur">
     <div class="color-dot selected" style="background:#ff6b6b;" data-color="#ff6b6b" title="Rouge"></div>
     <div class="color-dot" style="background:#f6c355;" data-color="#f6c355" title="Jaune"></div>
     <div class="color-dot" style="background:#3aa3ff;" data-color="#3aa3ff" title="Bleu"></div>
@@ -594,7 +608,6 @@
     <div class="color-dot" style="background:#ffffff;" data-color="#ffffff" title="Blanc"></div>
   </div>
 
-  <!-- Panel Plan minute -->
   <div id="minutePanel">
     <div class="mp-title">
       <span><i class="fa-solid fa-pen-ruler"></i> Plan minute</span>
@@ -612,11 +625,10 @@
     <div class="mp-hint">
       • <b>Cote</b> : trace une ligne → saisis la valeur terrain (m).<br>
       • <b>PB/B/V/R</b> : clique pour poser le symbole.<br>
-      • Couleur : utilise la palette (comme en mesure).
+      • Couleur : palette disponible (Mesure & Plan minute).
     </div>
   </div>
 
-  <!-- Dock -->
   <div class="bottom-dock">
     <button id="btnPan" class="btn-icon active" title="Déplacer"><i class="fa-solid fa-hand"></i></button>
     <button id="btnHome" class="btn-icon" title="Recentrer"><i class="fa-solid fa-house"></i></button>
@@ -638,48 +650,50 @@
     <button id="btnDelete" class="btn-icon btn-delete" disabled title="Supprimer"><i class="fa-solid fa-xmark"></i></button>
   </div>
 
-  <div id="versionLabel">V2.1.1 (SIG Pro)</div>
+  <!-- Touch cursor overlay -->
+  <div id="touchCursor"><div class="dot"></div></div>
+  <div id="touchHint"></div>
+
+  <div id="versionLabel">V2.1.2 (SIG Pro)</div>
 
   <div id="appFrame"></div>
   <div id="canvas-wrapper"><canvas id="c"></canvas></div>
 
   <script>
-    /* ============================================================
-       Mesureur Réseaux - V2.1.1 (SIG Pro)
-       - OCR échelle robuste -> active Mesurer (sans bascule auto)
-       ============================================================ */
-
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
     const CONFIG = Object.freeze({
-      PDF_RENDER_SCALE: 3.0,      // NE PAS BAISSER => qualité OCR + rendu
+      PDF_RENDER_SCALE: 3.0,       // ne pas réduire
       EXPORT_MULTIPLIER: 3,
       MAX_ZOOM: 20,
       MIN_DRAW_PX_AT_ZOOM1: 5,
+
       MEASURE_STROKE: 3,
       SCALE_STROKE: 3,
       SCALE_DASH: [10, 5],
       PM_STROKE: 3,
+
       STATUS_MS: 3200,
 
-      // OCR : on scanne des zones probables (cartouche)
       OCR: {
         lang: "eng",
-        // zones : on teste 3 crops (gauche, droite, bas) mais UNE seule passe Tesseract (on les concatène)
-        // => plus robuste sans multiplier les appels.
         cropLeftWidthRatio: 0.42,
         cropRightWidthRatio: 0.42,
         cropBottomHeightRatio: 0.28,
         binarizeThreshold: 170,
       },
 
-      // Regex robuste : 1:XXXX / 1/XXXX / 1 XXXX / "Echelle 1 : 250"
-      // -> capture 2..5 chiffres (ex: 50..50000) mais on limite ensuite à <= 5000 (selon ton besoin)
       SCALE_REGEX: /(?:echelle|échelle)?\s*1\s*[:\/.,\s]\s*(\d{2,5})\b/i,
+      OCR_DO_NOT_AUTO_SWITCH_TO_MEASURE: true,
 
-      // Option B : OCR active Mesurer mais ne change PAS le mode.
-      OCR_DO_NOT_AUTO_SWITCH_TO_MEASURE: true
+      // Touch cursor offset (croix au dessus du doigt)
+      TOUCH_OFFSET_X: 0,
+      TOUCH_OFFSET_Y: -40,
+
+      // Arrow style
+      ARROW_LENGTH_PX: 14,   // at zoom=1
+      ARROW_WIDTH_PX: 10     // at zoom=1
     });
 
     const MODES = Object.freeze({
@@ -709,6 +723,9 @@
       colorPicker: $("#colorPicker"),
       scaleValue: $("#scaleValue"),
       scaleBadge: $("#scaleBadge"),
+
+      touchCursor: $("#touchCursor"),
+      touchHint: $("#touchHint"),
 
       minutePanel: $("#minutePanel"),
       minuteToolLabel: $("#minuteToolLabel"),
@@ -763,7 +780,8 @@
       pmTool: PM_TOOLS.COTE,
 
       pixelsPerMeter: 0,
-      lastDetectedScale: null, // number
+      lastDetectedScale: null,
+
       initialZoom: 0.05,
       currentColor: "#ff6b6b",
 
@@ -773,6 +791,8 @@
       lastClientY: 0,
 
       line: null,
+      arrowA: null,
+      arrowB: null,
       startPoint: null,
 
       pdfDoc: null,
@@ -780,9 +800,22 @@
       currentPage: 1,
 
       perPage: new Map(),
+
+      // touch cursor
+      isTouchActive: false,
+      lastPointerClient: null,   // {x,y} on screen
+      lastPointerCanvas: null,   // {x,y} on fabric canvas coords
     };
 
     const canvas = new fabric.Canvas("c", { selection: true, preserveObjectStacking: true });
+
+    /* ====== Portrait compact handling ====== */
+    function updateOrientationCompact() {
+      const isPortrait = window.innerHeight > window.innerWidth;
+      document.body.classList.toggle("portrait-compact", isPortrait);
+    }
+    window.addEventListener("resize", updateOrientationCompact);
+    updateOrientationCompact();
 
     function updateScaleIndicator() {
       if (state.lastDetectedScale && state.pixelsPerMeter > 0) {
@@ -844,8 +877,15 @@
       Object.values(ui.btn).forEach(b => b.classList.remove("active"));
       if (ui.btn[mode]) ui.btn[mode].classList.add("active");
 
+      // palette: Mesure + Plan minute
       ui.colorPicker.classList.toggle("show", mode === MODES.MEASURE || mode === MODES.MINUTE);
+
+      // panel minute uniquement en plan minute
       ui.minutePanel.classList.toggle("show", mode === MODES.MINUTE);
+
+      // touch cursor: only useful in measure/minute/scale (not pan)
+      const showCursor = (mode === MODES.MEASURE || mode === MODES.MINUTE || mode === MODES.SCALE);
+      if (!showCursor) hideTouchCursor();
 
       if (mode === MODES.PAN) {
         canvas.selection = true;
@@ -863,7 +903,6 @@
         if (mode === MODES.MEASURE) Status.show("✅ Mode Mesure", "success");
         if (mode === MODES.MINUTE) Status.show("📝 Mode Plan minute", "success");
       }
-
       syncMeasureButton();
     }
 
@@ -908,7 +947,7 @@
       }
     });
 
-    /* Color picker (Mesure + Plan minute) */
+    /* Color picker */
     $$(".color-dot").forEach(dot => {
       dot.addEventListener("click", () => {
         $$(".color-dot").forEach(d => d.classList.remove("selected"));
@@ -917,13 +956,16 @@
 
         const active = canvas.getActiveObject();
         if (active && active.type === "group") {
-          // Mesures : line inside group
           const lineObj = active.getObjects().find(o => o.type === "line");
           if (lineObj) {
             lineObj.set("stroke", state.currentColor);
-            canvas.requestRenderAll();
-            saveMeasuresForPage(state.currentPage);
           }
+          // recolor arrowheads too (triangles)
+          active.getObjects().forEach(o => {
+            if (o.type === "triangle") o.set("fill", state.currentColor);
+          });
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
         }
       });
     });
@@ -1067,7 +1109,50 @@
       ui.wrapper.addEventListener("touchcancel", onTouchEnd, { passive: false });
     })();
 
-    /* PDF */
+    /* ===== Touch cursor (offset crosshair) ===== */
+    function showTouchCursor() {
+      ui.touchCursor.style.display = "block";
+      ui.touchHint.style.display = "block";
+    }
+    function hideTouchCursor() {
+      ui.touchCursor.style.display = "none";
+      ui.touchHint.style.display = "none";
+      state.isTouchActive = false;
+      state.lastPointerClient = null;
+      state.lastPointerCanvas = null;
+    }
+    function setTouchHint(text) {
+      ui.touchHint.textContent = text || "";
+    }
+    function updateTouchCursorAtClient(clientX, clientY) {
+      // offset upward so finger does not hide the target
+      const x = clientX + CONFIG.TOUCH_OFFSET_X;
+      const y = clientY + CONFIG.TOUCH_OFFSET_Y;
+
+      ui.touchCursor.style.left = `${x}px`;
+      ui.touchCursor.style.top = `${y}px`;
+
+      ui.touchHint.style.left = `${x}px`;
+      ui.touchHint.style.top = `${y}px`;
+    }
+    function clientToCanvasPoint(clientX, clientY) {
+      const rect = ui.wrapper.getBoundingClientRect();
+      const x = clientX - rect.left + CONFIG.TOUCH_OFFSET_X;
+      const y = clientY - rect.top + CONFIG.TOUCH_OFFSET_Y;
+      return { x, y };
+    }
+
+    // Provide "virtual" pointer event object for Fabric (so it uses our offset point)
+    function makeVirtualEventFrom(origEvt, clientX, clientY) {
+      // Fabric uses offsetX/offsetY for mouse wheel; for pointer it uses getPointer with clientX/Y and canvas bounds.
+      // We'll set clientX/clientY to offset position.
+      const ve = Object.assign({}, origEvt || {});
+      ve.clientX = clientX + CONFIG.TOUCH_OFFSET_X;
+      ve.clientY = clientY + CONFIG.TOUCH_OFFSET_Y;
+      return ve;
+    }
+
+    /* ===== PDF ===== */
     async function loadPdfFile(file) {
       Status.show("⏳ Chargement PDF...", "normal");
 
@@ -1079,7 +1164,6 @@
       state.currentPage = 1;
       state.perPage.clear();
 
-      // reset scale per file
       state.pixelsPerMeter = 0;
       state.lastDetectedScale = null;
       syncMeasureButton();
@@ -1108,7 +1192,6 @@
       tempCanvas.height = viewport.height;
 
       await page.render({ canvasContext: ctx, viewport }).promise;
-
       const dataUrl = tempCanvas.toDataURL("image/png");
 
       await new Promise((resolve) => {
@@ -1120,11 +1203,7 @@
         }, { crossOrigin: "anonymous" });
       });
 
-      // OCR: seulement la 1ère fois qu'on va sur une page (et si pas déjà d'échelle enregistrée pour cette page)
-      if (firstTimeOnPage) {
-        performVisualOCR(tempCanvas).catch(() => {});
-      }
-
+      if (firstTimeOnPage) performVisualOCR(tempCanvas).catch(() => {});
       Status.show(`✅ Page ${pageNumber} prête`, "success");
     }
 
@@ -1175,7 +1254,6 @@
 
       resetViewToCenter();
       setDisabledAll(false);
-
       ui.btn.minute.disabled = false;
 
       setMode(MODES.PAN);
@@ -1192,8 +1270,6 @@
 
     function restoreMeasuresForPage(pageNumber) {
       const saved = state.perPage.get(pageNumber);
-
-      // restore scale for that page (important)
       state.pixelsPerMeter = (saved?.pixelsPerMeter && saved.pixelsPerMeter > 0) ? saved.pixelsPerMeter : 0;
       state.lastDetectedScale = saved?.lastDetectedScale || null;
       syncMeasureButton();
@@ -1209,8 +1285,7 @@
       });
     }
 
-    /* ===== OCR SCALE (robuste) ===== */
-
+    /* ===== OCR ===== */
     function preprocessBinarize(canvasEl, threshold = 170) {
       const c = document.createElement("canvas");
       const ctx = c.getContext("2d", { willReadFrequently: true });
@@ -1222,7 +1297,6 @@
       const d = img.data;
 
       for (let i = 0; i < d.length; i += 4) {
-        // luminance
         const r = d[i], g = d[i+1], b = d[i+2];
         const lum = (0.2126*r + 0.7152*g + 0.0722*b);
         const v = lum > threshold ? 255 : 0;
@@ -1241,22 +1315,17 @@
       const rightW = Math.floor(W * CONFIG.OCR.cropRightWidthRatio);
       const bottomH = Math.floor(H * CONFIG.OCR.cropBottomHeightRatio);
 
-      // On concatène 3 zones en une image verticale => 1 seul appel OCR
       const out = document.createElement("canvas");
       const ctx = out.getContext("2d", { willReadFrequently: true });
 
       out.width = Math.max(leftW, rightW, W);
       out.height = H + H + bottomH;
 
-      // 1) bande gauche
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, out.width, out.height);
+
       ctx.drawImage(pageCanvas, 0, 0, leftW, H, 0, 0, leftW, H);
-
-      // 2) bande droite
       ctx.drawImage(pageCanvas, W - rightW, 0, rightW, H, 0, H, rightW, H);
-
-      // 3) bas (full width, mais petite hauteur)
       ctx.drawImage(pageCanvas, 0, H - bottomH, W, bottomH, 0, H + H, W, bottomH);
 
       return out;
@@ -1264,41 +1333,25 @@
 
     function parseScaleString(text) {
       const raw = String(text || "");
-
-      // On évite quelques confusions fréquentes
-      const clean = raw
-        .replace(/[Oo]/g, "0")
-        .replace(/[Il]/g, "1");
-
+      const clean = raw.replace(/[Oo]/g, "0").replace(/[Il]/g, "1");
       const match = clean.match(CONFIG.SCALE_REGEX);
       if (!match?.[1]) return null;
 
       const val = parseInt(match[1], 10);
       if (!Number.isFinite(val)) return null;
-
-      // Limite demandée (max 5000)
       if (val < 10 || val > 5000) return null;
-
       return val;
     }
 
-    // Conserve ta logique "ancienne" (celle qui marchait chez toi)
     function computePixelsPerMeterFromScale(scaleVal) {
-      // NOTE: base 72dpi -> conversion pouces -> mètres, comme ta version historique.
-      // On garde EXACTEMENT cette approche pour ne pas déstabiliser le comportement.
       return (72 * CONFIG.PDF_RENDER_SCALE * 39.3701) / scaleVal;
     }
 
     async function performVisualOCR(pageCanvasEl) {
       Status.show("👁️ OCR échelle...", "normal");
-
-      // si déjà une échelle active pour cette page, on ne refait pas
       if (state.pixelsPerMeter > 0 && state.lastDetectedScale) return;
 
-      // 1) construire strip (zones probables)
       const strip = buildOcrStripFromPage(pageCanvasEl);
-
-      // 2) binarize (boost OCR)
       const pre = preprocessBinarize(strip, CONFIG.OCR.binarizeThreshold);
 
       try {
@@ -1318,16 +1371,12 @@
         state.lastDetectedScale = scaleVal;
         state.pixelsPerMeter = computePixelsPerMeterFromScale(scaleVal);
 
-        // Option B: on active Mesurer, mais on ne change pas le mode
         syncMeasureButton();
         saveMeasuresForPage(state.currentPage);
 
-        Status.show(`✅ Échelle détectée : 1:${scaleVal} (Mesurer activé)`, "success");
+        Status.show(`✅ Échelle : 1:${scaleVal} (Mesurer activé)`, "success");
 
-        // ne pas auto-switch (Option B)
-        if (!CONFIG.OCR_DO_NOT_AUTO_SWITCH_TO_MEASURE) {
-          setMode(MODES.MEASURE);
-        }
+        if (!CONFIG.OCR_DO_NOT_AUTO_SWITCH_TO_MEASURE) setMode(MODES.MEASURE);
 
       } catch (err) {
         console.error(err);
@@ -1335,14 +1384,17 @@
       }
     }
 
-    /* ====== SHAPES ====== */
+    /* ===== Shapes ===== */
+    function isTooSmall(distPx) {
+      const zoom = canvas.getZoom();
+      return distPx < (CONFIG.MIN_DRAW_PX_AT_ZOOM1 / zoom);
+    }
+
     function makeLine(x1, y1, x2, y2, mode) {
       const zoom = canvas.getZoom();
       const stroke = (mode === MODES.SCALE ? CONFIG.SCALE_STROKE : (mode === MODES.MEASURE ? CONFIG.MEASURE_STROKE : CONFIG.PM_STROKE)) / zoom;
 
       const isScale = mode === MODES.SCALE;
-
-      // Mesure + Plan minute: couleur sélectionnée
       const color = (mode === MODES.MEASURE || mode === MODES.MINUTE) ? state.currentColor : "#ffffff";
 
       return new fabric.Line([x1, y1, x2, y2], {
@@ -1367,16 +1419,59 @@
         originX: "center",
         originY: "bottom",
         fontFamily: "Segoe UI",
-        fontWeight: "800"
+        fontWeight: "900"
       });
     }
 
-    function isTooSmall(distPx) {
-      const zoom = canvas.getZoom();
-      return distPx < (CONFIG.MIN_DRAW_PX_AT_ZOOM1 / zoom);
+    function makeArrowHead(x, y, angleRad, color) {
+      const z = canvas.getZoom();
+      const len = CONFIG.ARROW_LENGTH_PX / z;
+      const w = CONFIG.ARROW_WIDTH_PX / z;
+
+      // Fabric triangle points "up" by default, we rotate it
+      const tri = new fabric.Triangle({
+        width: w,
+        height: len,
+        fill: color,
+        originX: "center",
+        originY: "center",
+        left: x,
+        top: y,
+        angle: (angleRad * 180 / Math.PI) + 90, // align with line direction
+        selectable: false,
+        evented: false
+      });
+      return tri;
     }
 
-    /* ====== PLAN MINUTE SYMBOLS ====== */
+    function buildDimensionGroup(line, p1, p2, labelText, isMeasure, isPlanMinute) {
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const angle = Math.atan2(dy, dx);
+
+      // Arrows OUTWARD:
+      // start arrow points opposite to the line (angle + PI)
+      // end arrow points along the line (angle)
+      const color = line.stroke || state.currentColor;
+      const a1 = makeArrowHead(p1.x, p1.y, angle + Math.PI, color);
+      const a2 = makeArrowHead(p2.x, p2.y, angle, color);
+
+      const midX = (p1.x + p2.x) / 2;
+      const midY = (p1.y + p2.y) / 2 - 15 / canvas.getZoom();
+      const label = makeLabel(labelText, midX, midY);
+
+      const group = new fabric.Group([line, a1, a2, label], { selectable: true });
+      if (isMeasure) {
+        group.isMeasure = true;
+      }
+      if (isPlanMinute) {
+        group.isPm = true;
+        group.pmKind = "COTE";
+      }
+      return group;
+    }
+
+    /* ===== Plan minute symbols ===== */
     function pmSymbol(kind, x, y) {
       const z = canvas.getZoom();
       const s = 18 / z;
@@ -1432,15 +1527,75 @@
       return null;
     }
 
-    /* ====== INTERACTIONS ====== */
+    /* ===== Interactions (with touch offset cursor) ===== */
+    function getPointerWithOffset(evt) {
+      // We create a virtual event so fabric.getPointer uses offset clientX/Y
+      const client = getClientPos(evt);
+      const ve = makeVirtualEventFrom(evt, client.x, client.y);
+      return canvas.getPointer(ve);
+    }
+
+    // Update touch cursor on pointer movement (when in drawing modes)
+    function maybeUpdateCursor(evt) {
+      if (!(state.mode === MODES.MEASURE || state.mode === MODES.MINUTE || state.mode === MODES.SCALE)) return;
+      const client = getClientPos(evt);
+      state.lastPointerClient = client;
+      state.lastPointerCanvas = getPointerWithOffset(evt);
+
+      // show cursor (only for touch interactions)
+      if (evt.touches && evt.touches.length === 1) {
+        showTouchCursor();
+        updateTouchCursorAtClient(client.x, client.y);
+      }
+    }
+
+    // Attach listeners to wrapper for consistent cursor behavior
+    ui.wrapper.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        state.isTouchActive = true;
+        maybeUpdateCursor(e);
+        setTouchHint(
+          (state.mode === MODES.SCALE) ? "Visez (croix) puis tracez" :
+          (state.mode === MODES.MEASURE) ? "Visez (croix) puis tracez" :
+          (state.mode === MODES.MINUTE) ? "Visez (croix) puis tracez/posez" : ""
+        );
+      } else {
+        hideTouchCursor(); // pinch etc.
+      }
+    }, { passive:false });
+
+    ui.wrapper.addEventListener("touchmove", (e) => {
+      if (e.touches.length === 1) {
+        maybeUpdateCursor(e);
+        // do not prevent default here always (we handle in fabric too), but keep responsive
+      }
+    }, { passive:false });
+
+    ui.wrapper.addEventListener("touchend", () => {
+      setTouchHint("");
+      // keep cursor hidden after finishing
+      hideTouchCursor();
+    }, { passive:true });
+
+    ui.wrapper.addEventListener("touchcancel", () => {
+      setTouchHint("");
+      hideTouchCursor();
+    }, { passive:true });
+
     canvas.on("mouse:down", (o) => {
       const evt = o.e;
-      const client = getClientPos(evt);
+
+      // Ignore if pinch
+      if (evt.touches && evt.touches.length >= 2) return;
+
+      // Update cursor (so start point is accurate)
+      maybeUpdateCursor(evt);
 
       if (o.target && state.mode === MODES.PAN) return;
 
       // PAN
       if (state.mode === MODES.PAN) {
+        const client = getClientPos(evt);
         state.isDragging = true;
         state.lastClientX = client.x;
         state.lastClientY = client.y;
@@ -1448,9 +1603,9 @@
         return;
       }
 
-      // Plan minute : placement symbole au clic
+      // Plan minute : placement symbole au clic (use offset pointer)
       if (state.mode === MODES.MINUTE && state.pmTool !== PM_TOOLS.COTE) {
-        const p = canvas.getPointer(evt);
+        const p = getPointerWithOffset(evt);
         const sym = pmSymbol(state.pmTool, p.x, p.y);
         if (sym) {
           canvas.add(sym);
@@ -1463,10 +1618,8 @@
       }
 
       // DRAW line (scale / measure / plan minute cote)
-      if (evt.touches && evt.touches.length >= 2) return;
-
       state.isDrawing = true;
-      const p = canvas.getPointer(evt);
+      const p = getPointerWithOffset(evt);
       state.startPoint = { x: p.x, y: p.y };
       state.line = makeLine(p.x, p.y, p.x, p.y, state.mode);
       canvas.add(state.line);
@@ -1474,9 +1627,14 @@
 
     canvas.on("mouse:move", (o) => {
       const evt = o.e;
-      const client = getClientPos(evt);
+
+      // Update cursor for touch
+      if (evt.touches && evt.touches.length === 1) {
+        maybeUpdateCursor(evt);
+      }
 
       if (state.isDragging) {
+        const client = getClientPos(evt);
         const vpt = canvas.viewportTransform;
         vpt[4] += client.x - state.lastClientX;
         vpt[5] += client.y - state.lastClientY;
@@ -1489,13 +1647,15 @@
       }
 
       if (state.isDrawing && state.line) {
-        const p = canvas.getPointer(evt);
+        const p = getPointerWithOffset(evt);
         state.line.set({ x2: p.x, y2: p.y });
         canvas.requestRenderAll();
       }
     });
 
     canvas.on("mouse:up", (o) => {
+      const evt = o.e;
+
       if (state.isDragging) {
         state.isDragging = false;
         canvas.setCursor("grab");
@@ -1507,7 +1667,7 @@
       if (!state.isDrawing || !state.line || !state.startPoint) return;
       state.isDrawing = false;
 
-      const p = canvas.getPointer(o.e);
+      const p = getPointerWithOffset(evt);
       const distPx = Math.hypot(p.x - state.startPoint.x, p.y - state.startPoint.y);
 
       if (isTooSmall(distPx)) {
@@ -1516,7 +1676,7 @@
         return;
       }
 
-      // SCALE (échelle)
+      // SCALE
       if (state.mode === MODES.SCALE) {
         setTimeout(() => {
           const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
@@ -1528,21 +1688,26 @@
           }
 
           state.pixelsPerMeter = distPx / meters;
-          state.lastDetectedScale = null; // manuel
-          Status.show(`✅ Étalonné (page ${state.currentPage}) : 1m = ${state.pixelsPerMeter.toFixed(2)} px`, "success");
+          state.lastDetectedScale = null;
           syncMeasureButton();
 
+          // build group with arrows outward + label for visual (optional)
+          const metersStr = `${meters.toFixed(2)} m`;
+          const group = buildDimensionGroup(state.line, state.startPoint, p, metersStr, false, false);
+
           canvas.remove(state.line);
+          canvas.add(group);
+          canvas.setActiveObject(group);
           state.line = null;
 
-          // tu veux rester maître -> on bascule en mesure (logique historique)
+          Status.show(`✅ Étalonné (page ${state.currentPage})`, "success");
           setMode(MODES.MEASURE);
           saveMeasuresForPage(state.currentPage);
         }, 50);
         return;
       }
 
-      // MEASURE (calcul)
+      // MEASURE
       if (state.mode === MODES.MEASURE) {
         if (!(state.pixelsPerMeter > 0)) {
           Status.show("⚠️ Pas d'échelle pour cette page. Étalonnez.", "warning");
@@ -1555,26 +1720,21 @@
         const meters = distPx / state.pixelsPerMeter;
         const metersStr = `${meters.toFixed(2)} m`;
 
-        const midX = (state.startPoint.x + p.x) / 2;
-        const midY = (state.startPoint.y + p.y) / 2 - 15 / canvas.getZoom();
-
-        const label = makeLabel(metersStr, midX, midY);
-        const group = new fabric.Group([state.line, label], { selectable: true });
-        group.isMeasure = true;
+        const group = buildDimensionGroup(state.line, state.startPoint, p, metersStr, true, false);
         group.measureValue = meters.toFixed(2);
 
         canvas.remove(state.line);
         canvas.add(group);
         canvas.setActiveObject(group);
-
         state.line = null;
+
         updateTotal();
         canvas.requestRenderAll();
         saveMeasuresForPage(state.currentPage);
         return;
       }
 
-      // PLAN MINUTE - COTE LIBRE (saisie)
+      // PLAN MINUTE - COTE
       if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) {
         setTimeout(() => {
           const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
@@ -1586,22 +1746,16 @@
           }
 
           const metersStr = `${meters.toFixed(2)} m`;
-          const midX = (state.startPoint.x + p.x) / 2;
-          const midY = (state.startPoint.y + p.y) / 2 - 15 / canvas.getZoom();
-
           state.line.set({ stroke: state.currentColor, strokeDashArray: null });
-          const label = makeLabel(metersStr, midX, midY);
 
-          const group = new fabric.Group([state.line, label], { selectable: true });
-          group.isPm = true;
-          group.pmKind = "COTE";
+          const group = buildDimensionGroup(state.line, state.startPoint, p, metersStr, false, true);
           group.pmValue = meters.toFixed(2);
 
           canvas.remove(state.line);
           canvas.add(group);
           canvas.setActiveObject(group);
-
           state.line = null;
+
           canvas.requestRenderAll();
           saveMeasuresForPage(state.currentPage);
           Status.show("Cote plan minute ajoutée", "success");
@@ -1669,6 +1823,7 @@
     setMode(MODES.PAN);
     setPmTool(PM_TOOLS.COTE);
     updateScaleIndicator();
+
   </script>
 </body>
 </html>
