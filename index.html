@@ -3,554 +3,1672 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Mesureur SIG Pro - V3.0</title>
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Mesureur Réseaux - V2.1.1 (SIG Pro)</title>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
   <style>
-    :root {
-      --bg-dark: #0f1115;
-      --panel-bg: rgba(22, 25, 30, 0.95);
-      --accent: #3b82f6;
-      --accent-hover: #60a5fa;
-      --text: #f8fafc;
-      --text-dim: #94a3b8;
-      --border: rgba(255, 255, 255, 0.08);
-      --danger: #ef4444;
-      --success: #10b981;
-      --sidebar-w: 280px;
+    /* ============================================================
+       V2.1.1 (SIG Pro)
+       - UI "outil terrain"
+       - OCR échelle robuste 1:XXXX (2..5 chiffres + valeurs batardes)
+       - OCR active "Mesurer" (sans bascule auto) => Option B validée
+       - Bouton Plein écran (Fullscreen API)
+       ============================================================ */
+
+    :root{
+      /* SIG PRO palette */
+      --bg-0:#070b12;
+      --bg-1:#0b1220;
+      --panel: rgba(12, 20, 36, .88);
+      --panel-2: rgba(14, 24, 42, .92);
+      --stroke: rgba(255,255,255,.12);
+      --stroke-2: rgba(255,255,255,.18);
+
+      --accent:#3aa3ff;   /* bleu topo */
+      --accent-2:#2ed3a8; /* vert "ok" */
+      --warn:#f6c355;
+      --danger:#ff6b6b;
+
+      --text:#e9eef8;
+      --muted: rgba(233,238,248,.72);
+
+      /* Cadre */
+      --frame-color: rgba(255,255,255,0.14);
+      --frame-inner: rgba(0,0,0,0.55);
+      --frame-glow: rgba(58,163,255,0.12);
+
+      /* Zone intérieure */
+      --frame-top: 72px;
+      --frame-left: 12px;
+      --frame-right: 12px;
+      --frame-bottom: 18px;
+      --frame-radius: 16px;
     }
 
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg-dark);
-      color: var(--text);
-      margin: 0; padding: 0;
-      height: 100vh; width: 100vw;
-      overflow: hidden; display: flex;
+    *{ box-sizing:border-box; }
+
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background: radial-gradient(1000px 600px at 30% 0%, rgba(58,163,255,.10), transparent 60%),
+                  radial-gradient(900px 500px at 80% 10%, rgba(46,211,168,.08), transparent 55%),
+                  linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 60%, #060a12 100%);
+      margin:0;
+      height:100vh;
+      width:100vw;
+      overflow:hidden;
+      touch-action:none;
+      color:var(--text);
     }
 
-    /* --- Sidebar --- */
-    aside {
-      width: var(--sidebar-w);
-      background: var(--panel-bg);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      z-index: 100;
+    /* ====== Top bar ====== */
+    .top-bar{
+      position:absolute; top:0; left:0; right:0;
+      height:64px;
+      padding:10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      z-index:70;
+      pointer-events:none;
+    }
+
+    .topbar-inner{
+      width:100%;
+      height:100%;
+      border-radius:16px;
+      background: linear-gradient(180deg, rgba(14,24,42,.88), rgba(10,16,30,.62));
+      border:1px solid var(--stroke);
+      box-shadow: 0 10px 26px rgba(0,0,0,.45);
       backdrop-filter: blur(10px);
-      transition: transform 0.3s ease;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 12px;
+      pointer-events:auto;
+      gap:10px;
     }
 
-    .brand {
-      padding: 20px;
-      display: flex; align-items: center; gap: 12px;
-      border-bottom: 1px solid var(--border);
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 160px;
     }
-    .brand i { color: var(--accent); font-size: 1.5rem; }
-    .brand span { font-weight: 800; letter-spacing: -0.5px; font-size: 1.1rem; }
+    .brand .logo{
+      width:38px; height:38px;
+      border-radius:12px;
+      background: linear-gradient(135deg, rgba(58,163,255,.25), rgba(46,211,168,.18));
+      border:1px solid rgba(255,255,255,.12);
+      display:flex; align-items:center; justify-content:center;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
+    }
+    .brand .logo i{ color: var(--text); opacity:.92; font-size:1.05rem; }
+    .brand .title{
+      display:flex; flex-direction:column; gap:2px;
+      line-height:1.05;
+    }
+    .brand .title .t1{
+      font-weight:900; letter-spacing:.4px;
+      font-size:1.0rem;
+    }
+    .brand .title .t2{
+      font-size:.78rem;
+      color: var(--muted);
+      letter-spacing:.2px;
+    }
 
-    .tool-section { padding: 16px; border-bottom: 1px solid var(--border); }
-    .section-title { font-size: 0.7rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 12px; font-weight: 700; }
+    .top-actions{
+      display:flex; gap:8px; align-items:center;
+    }
 
-    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .tool-btn {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border);
+    .pill{
+      display:flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--stroke);
+      border-radius:14px;
       color: var(--text);
-      padding: 12px 8px;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      transition: all 0.2s;
-      font-size: 0.75rem; font-weight: 600;
-    }
-    .tool-btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); border-color: var(--accent); }
-    .tool-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-    .tool-btn i { font-size: 1.1rem; }
-    .tool-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-    /* --- Main Content --- */
-    main { flex: 1; position: relative; display: flex; flex-direction: column; overflow: hidden; }
-
-    header {
-      height: 60px;
-      padding: 0 20px;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-      background: rgba(15, 17, 21, 0.8);
-      z-index: 90;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
     }
 
-    .pager-ctrl { display: flex; align-items: center; gap: 15px; }
-    .page-indicator { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--accent); background: rgba(59, 130, 246, 0.1); padding: 4px 12px; border-radius: 20px; }
+    .btn{
+      border:none;
+      cursor:pointer;
+      background: rgba(255,255,255,.08);
+      border:1px solid var(--stroke);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius:14px;
+      font-weight:800;
+      font-size:.9rem;
+      display:flex; align-items:center; gap:8px;
+      transition: transform .12s, background .2s, border-color .2s, opacity .2s;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:hover:not(:disabled){
+      background: rgba(255,255,255,.14);
+      border-color: var(--stroke-2);
+      transform: translateY(-1px);
+    }
+    .btn:active{ transform: translateY(0px) scale(.99); }
+    .btn:disabled{ opacity:.35; cursor:not-allowed; }
 
-    #canvas-container { flex: 1; position: relative; background: #1a1d23; overflow: hidden; cursor: crosshair; }
-    canvas { outline: none; }
-
-    /* --- Floating Panels --- */
-    .status-bubble {
-      position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
-      padding: 8px 16px; border-radius: 30px;
-      background: var(--panel-bg); border: 1px solid var(--accent);
-      font-size: 0.85rem; font-weight: 600; z-index: 1000;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      display: none; align-items: center; gap: 8px;
+    .btn-danger{
+      background: rgba(255,107,107,.12);
+      border-color: rgba(255,107,107,.20);
+      color: #ffdede;
+    }
+    .btn-danger:hover:not(:disabled){
+      background: rgba(255,107,107,.18);
+      border-color: rgba(255,107,107,.30);
     }
 
-    .metrics-panel {
-      position: absolute; bottom: 20px; right: 20px;
-      background: var(--panel-bg); padding: 15px; border-radius: 12px;
-      border: 1px solid var(--border); min-width: 180px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    .pager{
+      display:flex; align-items:center; gap:8px;
     }
-    .metric-item { display: flex; flex-direction: column; }
-    .metric-label { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; }
-    .metric-val { font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 800; color: var(--accent); }
-
-    /* --- Color Picker --- */
-    .palette { display: flex; gap: 8px; margin-top: 10px; }
-    .swatch { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
-    .swatch.active { border-color: white; transform: scale(1.2); }
-
-    /* --- Tablet Cursor --- */
-    #crosshair {
-      position: absolute; width: 40px; height: 40px;
-      pointer-events: none; z-index: 9999; display: none;
+    .pager .navbtn{
+      width:42px; height:42px;
+      border-radius:14px;
+      padding:0;
+      justify-content:center;
     }
-    .ch-line-v { position: absolute; left: 50%; top: 0; width: 2px; height: 100%; background: var(--accent); transform: translateX(-50%); }
-    .ch-line-h { position: absolute; top: 50%; left: 0; height: 2px; width: 100%; background: var(--accent); transform: translateY(-50%); }
-    .ch-center { position: absolute; inset: 10px; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 10px var(--accent); }
-
-    /* --- Validation Bar --- */
-    .validation-bar {
-      position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
-      background: #1e293b; padding: 8px 20px; border-radius: 40px;
-      display: none; align-items: center; gap: 15px; border: 1px solid var(--accent);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 1000;
+    .pager .page-label{
+      min-width: 150px;
+      text-align:center;
+      font-size:.86rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
     }
-    .btn-action { border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 700; font-size: 0.8rem; }
-    .btn-confirm { background: var(--success); color: white; }
-    .btn-cancel { background: var(--danger); color: white; }
+    .pager input{
+      width:70px;
+      background: rgba(0,0,0,.22);
+      border:1px solid var(--stroke);
+      color: var(--text);
+      border-radius:14px;
+      padding:10px 10px;
+      outline:none;
+      font-size:.9rem;
+      text-align:center;
+      font-variant-numeric: tabular-nums;
+    }
 
-    /* Responsive */
-    @media (max-width: 900px) {
-      aside { position: fixed; left: -100%; height: 100%; }
-      aside.open { left: 0; }
+    /* ====== Status bubble ====== */
+    #statusBubble{
+      position:absolute; top:80px; left:50%; transform:translateX(-50%);
+      background: rgba(8, 12, 22, .90);
+      border:1px solid var(--stroke);
+      color: var(--text);
+      padding:10px 18px;
+      border-radius:999px;
+      font-size:.92rem;
+      font-weight:800;
+      z-index:100;
+      pointer-events:none;
+      box-shadow: 0 12px 30px rgba(0,0,0,.45);
+      opacity:0;
+      transition: opacity .22s ease, transform .22s ease;
+    }
+    #statusBubble.visible{ opacity:1; transform:translateX(-50%) translateY(0); }
+    .status-success{ border-color: rgba(46,211,168,.35) !important; color: #bff6e7 !important; }
+    .status-warning{ border-color: rgba(246,195,85,.35) !important; color: #ffe4ad !important; }
+    .status-error{ border-color: rgba(255,107,107,.35) !important; color: #ffd0d0 !important; }
+
+    /* ====== Scale indicator ====== */
+    #scaleIndicator{
+      position:absolute;
+      top:82px;
+      right:16px;
+      z-index:95;
+      background: rgba(12, 20, 36, .84);
+      border:1px solid var(--stroke);
+      border-radius:16px;
+      padding:10px 12px;
+      min-width: 200px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+    }
+    .si-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .si-label{ font-size:.78rem; color: var(--muted); font-weight:800; letter-spacing:.3px; text-transform:uppercase; }
+    .si-value{
+      font-size:.95rem;
+      font-weight:900;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .si-badge{
+      margin-top:6px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--stroke);
+      font-size:.82rem;
+      font-weight:900;
+      color: var(--muted);
+      background: rgba(255,255,255,.05);
+    }
+    .badge-ok{
+      color:#bff6e7;
+      border-color: rgba(46,211,168,.30);
+      background: rgba(46,211,168,.10);
+    }
+    .badge-warn{
+      color:#ffe4ad;
+      border-color: rgba(246,195,85,.30);
+      background: rgba(246,195,85,.10);
+    }
+
+    /* ====== Frame / canvas ====== */
+    #appFrame{
+      position:absolute;
+      top:var(--frame-top);
+      left:var(--frame-left);
+      right:var(--frame-right);
+      bottom:var(--frame-bottom);
+      border-radius:var(--frame-radius);
+      pointer-events:none;
+      z-index:20;
+      border:3px solid var(--frame-color);
+      box-shadow:
+        0 0 0 1px var(--frame-inner) inset,
+        0 0 22px var(--frame-glow),
+        0 12px 40px rgba(0,0,0,0.55);
+    }
+
+    #canvas-wrapper{
+      position:absolute;
+      top:var(--frame-top);
+      left:var(--frame-left);
+      right:var(--frame-right);
+      bottom:var(--frame-bottom);
+      border-radius:var(--frame-radius);
+      overflow:hidden;
+      background:#151b29;
+      z-index:1;
+      overscroll-behavior:none;
+    }
+
+    /* ====== Bottom dock ====== */
+    .bottom-dock{
+      position:absolute;
+      bottom:22px;
+      left:50%;
+      transform:translateX(-50%);
+      background: linear-gradient(180deg, rgba(14,24,42,.90), rgba(10,16,30,.75));
+      border:1px solid var(--stroke);
+      border-radius:999px;
+      padding:10px 12px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.5);
+      z-index:70;
+      backdrop-filter: blur(10px);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-icon{
+      width:50px; height:50px;
+      border-radius:999px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.07);
+      color: var(--text);
+      font-size:1.1rem;
+      cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition: transform .12s, background .2s, border-color .2s, opacity .2s;
+      user-select:none;
+    }
+    .btn-icon:hover:not(:disabled){ transform: translateY(-1px) scale(1.03); background: rgba(255,255,255,.12); border-color: var(--stroke-2); }
+    .btn-icon:active{ transform: translateY(0px) scale(.98); }
+    .btn-icon:disabled{ opacity:.28; cursor:not-allowed; }
+
+    .btn-icon.active{
+      background: rgba(58,163,255,.22);
+      border-color: rgba(58,163,255,.35);
+      box-shadow: 0 0 0 1px rgba(0,0,0,.25) inset, 0 0 18px rgba(58,163,255,.18);
+    }
+
+    .btn-delete{ color: var(--danger); }
+    .btn-undo{ color: var(--warn); }
+    .divider{ width:1px; height:26px; background: rgba(255,255,255,.14); margin:0 2px; }
+
+    /* ====== Total ====== */
+    .total-display{
+      position:absolute;
+      bottom:100px; right:18px;
+      background: rgba(12, 20, 36, .84);
+      border:1px solid var(--stroke);
+      border-radius:16px;
+      padding:10px 12px;
+      text-align:right;
+      pointer-events:none;
+      z-index:60;
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+      display:none;
+      min-width: 180px;
+    }
+    .total-label{
+      font-size:.75rem;
+      text-transform:uppercase;
+      color: var(--muted);
+      letter-spacing:.4px;
+      font-weight:900;
+    }
+    .total-value{
+      font-size:1.5rem;
+      font-weight:1000;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      margin-top:2px;
+    }
+
+    /* ====== Color palettes ====== */
+    .color-palette{
+      position:absolute; bottom:92px; left:50%; transform:translateX(-50%);
+      display:flex; gap:10px;
+      background: rgba(12, 20, 36, .78);
+      border:1px solid var(--stroke);
+      padding:10px;
+      border-radius:999px;
+      z-index:68;
+      transition:opacity .2s;
+      opacity:0;
+      pointer-events:none;
+      box-shadow: 0 12px 28px rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+    }
+    .color-palette.show{ opacity:1; pointer-events:auto; }
+    .color-dot{
+      width:30px; height:30px;
+      border-radius:999px;
+      cursor:pointer;
+      border:2px solid rgba(255,255,255,.20);
+      transition:transform .12s, border-color .2s;
+    }
+    .color-dot:hover{ transform:scale(1.10); }
+    .color-dot.selected{ border-color:#fff; transform:scale(1.06); box-shadow:0 0 0 2px rgba(0,0,0,.25) inset; }
+
+    /* ====== Plan minute panel ====== */
+    #minutePanel{
+      position:absolute;
+      left: calc(var(--frame-left) + 14px);
+      top:  calc(var(--frame-top) + 14px);
+      z-index:69;
+      background: rgba(12, 20, 36, .84);
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      padding: 12px;
+      display:none;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      min-width: 270px;
+    }
+    #minutePanel.show{ display:block; }
+    .mp-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .mp-title span{
+      font-weight:1000;
+      letter-spacing:.3px;
+      font-size:.95rem;
+      opacity:.95;
+    }
+    .mp-grid{
+      display:grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap:8px;
+    }
+    .mp-item{
+      height:44px;
+      border-radius:14px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition: transform .12s, background .2s, border-color .2s;
+      user-select:none;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+    .mp-item:hover{
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.10);
+      border-color: var(--stroke-2);
+    }
+    .mp-item.active{
+      background: rgba(58,163,255,.20);
+      border-color: rgba(58,163,255,.35);
+      box-shadow: 0 0 16px rgba(58,163,255,.16);
+    }
+    .mp-hint{
+      margin-top:10px;
+      font-size:0.82rem;
+      color: var(--muted);
+      line-height:1.25rem;
+      font-weight:700;
+    }
+    .mp-hint b{ color: var(--text); }
+
+    /* ====== Version ====== */
+    #versionLabel{
+      position:fixed;
+      bottom:8px; right:12px;
+      opacity:.28;
+      font-size:.74rem;
+      z-index:120;
+      color: var(--text);
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+
+    @media (max-width: 900px){
+      :root{
+        --frame-top: 78px;
+        --frame-left: 10px;
+        --frame-right: 10px;
+        --frame-bottom: 16px;
+      }
+      .pager .page-label{ min-width: 120px; }
+      .btn-icon{ width:56px; height:56px; font-size:1.2rem; }
+      .btn{ padding:10px 12px; }
+      #scaleIndicator{ top: 88px; right: 12px; min-width: 180px; }
+      #minutePanel{ min-width: 290px; }
+      .mp-grid{ grid-template-columns: repeat(5, 1fr); }
+    }
+
+    @media (max-width: 600px){
+      :root{
+        --frame-top: 76px;
+        --frame-left: 10px;
+        --frame-right: 10px;
+        --frame-bottom: 14px;
+        --frame-radius: 16px;
+      }
+      .brand .title .t2{ display:none; }
+      .pager .page-label{ display:none; }
+      .bottom-dock{ width:94%; justify-content:space-between; gap:8px; padding:10px 12px; }
+      #minutePanel{
+        left: calc(var(--frame-left) + 10px);
+        top:  calc(var(--frame-top) + 10px);
+        min-width: 255px;
+      }
+      .mp-grid{ grid-template-columns: repeat(5, 1fr); }
+      #scaleIndicator{ display:none; } /* gagne de la place sur très petit écran */
     }
   </style>
 </head>
+
 <body>
-
-  <aside id="sidebar">
-    <div class="brand">
-      <i class="fa-solid fa-compass-drafting"></i>
-      <span>SIG MEASURE V3</span>
-    </div>
-
-    <div class="tool-section">
-      <div class="section-title">Fichier</div>
-      <button class="tool-btn" onclick="document.getElementById('fileInput').click()" style="width: 100%; flex-direction: row; justify-content: center;">
-        <i class="fa-solid fa-file-pdf"></i> Charger un Plan
-      </button>
-      <input type="file" id="fileInput" accept=".pdf" hidden>
-    </div>
-
-    <div class="tool-section">
-      <div class="section-title">Outils de Dessin</div>
-      <div class="btn-grid">
-        <button id="btn-pan" class="tool-btn active" title="Déplacer"><i class="fa-solid fa-up-down-left-right"></i>Pan</button>
-        <button id="btn-scale" class="tool-btn" disabled><i class="fa-solid fa-ruler-combined"></i>Échelle</button>
-        <button id="btn-measure" class="tool-btn" disabled><i class="fa-solid fa-pen-nib"></i>Mesure</button>
-        <button id="btn-undo" class="tool-btn" disabled><i class="fa-solid fa-rotate-left"></i>Undo</button>
-      </div>
-    </div>
-
-    <div class="tool-section">
-      <div class="section-title">Plan Minute</div>
-      <div class="btn-grid" id="pm-tools">
-        <button class="tool-btn" data-tool="PB" disabled><i class="fa-solid fa-plug"></i>P.B</button>
-        <button class="tool-btn" data-tool="Vanne" disabled><i class="fa-solid fa-faucet"></i>Vanne</button>
-        <button class="tool-btn" data-tool="Regard" disabled><i class="fa-solid fa-square"></i>Regard</button>
-        <button class="tool-btn" data-tool="Cote" disabled><i class="fa-solid fa-arrows-left-right"></i>Cote</button>
-      </div>
-    </div>
-
-    <div class="tool-section">
-      <div class="section-title">Couleur Réseau</div>
-      <div class="palette" id="color-palette">
-        <div class="swatch active" style="background:#ef4444" data-color="#ef4444"></div>
-        <div class="swatch" style="background:#f59e0b" data-color="#f59e0b"></div>
-        <div class="swatch" style="background:#3b82f6" data-color="#3b82f6"></div>
-        <div class="swatch" style="background:#10b981" data-color="#10b981"></div>
-        <div class="swatch" style="background:#a855f7" data-color="#a855f7"></div>
-      </div>
-    </div>
-
-    <div style="margin-top: auto; padding: 20px;">
-        <button class="tool-btn" id="btn-save" style="width: 100%; flex-direction: row; justify-content: center;" disabled>
-            <i class="fa-solid fa-download"></i> Exporter PNG
-        </button>
-    </div>
-  </aside>
-
-  <main>
-    <header>
-      <div class="pager-ctrl">
-        <button class="tool-btn" id="prev-pg" style="padding: 8px;"><i class="fa-solid fa-chevron-left"></i></button>
-        <span class="page-indicator" id="page-num">Page -- / --</span>
-        <button class="tool-btn" id="next-pg" style="padding: 8px;"><i class="fa-solid fa-chevron-right"></i></button>
-      </div>
-      <div style="display: flex; gap: 10px;">
-        <button class="tool-btn" onclick="app.resetZoom()" style="flex-direction: row; padding: 8px 12px;"><i class="fa-solid fa-house"></i></button>
-        <button class="tool-btn" id="btn-fs" style="flex-direction: row; padding: 8px 12px;"><i class="fa-solid fa-expand"></i></button>
-      </div>
-    </header>
-
-    <div id="canvas-container">
-      <canvas id="main-canvas"></canvas>
-      
-      <div id="crosshair">
-        <div class="ch-line-v"></div>
-        <div class="ch-line-h"></div>
-        <div class="ch-center"></div>
-      </div>
-
-      <div class="status-bubble" id="status-msg">
-        <i class="fa-solid fa-circle-info"></i> <span>Prêt</span>
-      </div>
-
-      <div class="validation-bar" id="v-bar">
-        <span id="v-text" style="font-weight: 600; font-size: 0.9rem;">Valider le point ?</span>
-        <button class="btn-action btn-confirm" id="v-ok">OK</button>
-        <button class="btn-action btn-cancel" id="v-no">Annuler</button>
-      </div>
-
-      <div class="metrics-panel">
-        <div class="metric-item">
-          <span class="metric-label">Linéaire Total</span>
-          <span class="metric-val" id="total-m">0.00 m</span>
+  <!-- Top -->
+  <div class="top-bar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="logo"><i class="fa-solid fa-ruler-combined"></i></div>
+        <div class="title">
+          <div class="t1">Mesureur Réseaux</div>
+          <div class="t2">V2.1.1 • SIG Pro</div>
         </div>
       </div>
+
+      <div class="pager pill" title="Navigation PDF">
+        <button id="btnPrevPage" class="btn navbtn" disabled title="Page précédente">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <div class="page-label" id="pageLabel">Page - / -</div>
+        <button id="btnNextPage" class="btn navbtn" disabled title="Page suivante">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+
+        <input id="pageJump" type="number" min="1" step="1" placeholder="N°" disabled />
+        <button id="btnGoPage" class="btn navbtn" disabled title="Aller">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i>
+        </button>
+      </div>
+
+      <div class="top-actions">
+        <label for="fileInput" class="btn" title="Ouvrir un PDF">
+          <i class="fa-solid fa-folder-open"></i><span>Ouvrir</span>
+        </label>
+        <input type="file" id="fileInput" accept=".pdf" style="display:none;" />
+
+        <button id="btnFullscreen" class="btn" title="Plein écran">
+          <i class="fa-solid fa-expand"></i><span>Plein écran</span>
+        </button>
+
+        <button id="btnSave" class="btn" disabled title="Exporter PNG">
+          <i class="fa-solid fa-floppy-disk"></i><span>PNG</span>
+        </button>
+
+        <button id="btnClear" class="btn btn-danger" title="Tout effacer (page courante)">
+          <i class="fa-solid fa-trash"></i><span>Effacer</span>
+        </button>
+      </div>
     </div>
-  </main>
+  </div>
+
+  <!-- Status -->
+  <div id="statusBubble">Bienvenue</div>
+
+  <!-- Scale indicator -->
+  <div id="scaleIndicator">
+    <div class="si-row">
+      <div class="si-label">Échelle</div>
+      <div class="si-value" id="scaleValue">—</div>
+    </div>
+    <div class="si-badge badge-warn" id="scaleBadge">
+      <i class="fa-solid fa-triangle-exclamation"></i> Non détectée
+    </div>
+  </div>
+
+  <!-- Total -->
+  <div class="total-display" id="totalCounter">
+    <div class="total-label">Linéaire total (page)</div>
+    <div class="total-value" id="totalValue">0.00 m</div>
+  </div>
+
+  <!-- Palette Mesure -->
+  <div class="color-palette" id="colorPicker" aria-label="Couleur mesure">
+    <div class="color-dot selected" style="background:#ff6b6b;" data-color="#ff6b6b" title="Rouge"></div>
+    <div class="color-dot" style="background:#f6c355;" data-color="#f6c355" title="Jaune"></div>
+    <div class="color-dot" style="background:#3aa3ff;" data-color="#3aa3ff" title="Bleu"></div>
+    <div class="color-dot" style="background:#2ed3a8;" data-color="#2ed3a8" title="Vert"></div>
+    <div class="color-dot" style="background:#b47cff;" data-color="#b47cff" title="Violet"></div>
+    <div class="color-dot" style="background:#ffffff;" data-color="#ffffff" title="Blanc"></div>
+  </div>
+
+  <!-- Panel Plan minute -->
+  <div id="minutePanel">
+    <div class="mp-title">
+      <span><i class="fa-solid fa-pen-ruler"></i> Plan minute</span>
+      <span style="opacity:.85; font-size:.82rem" id="minuteToolLabel">Outil : Cote</span>
+    </div>
+
+    <div class="mp-grid">
+      <div class="mp-item active" data-tool="pm_cote" title="Tracer une cote">Cote</div>
+      <div class="mp-item" data-tool="pm_pb" title="Prise de branchement">PB</div>
+      <div class="mp-item" data-tool="pm_bouchon" title="Bouchon">B</div>
+      <div class="mp-item" data-tool="pm_vanne" title="Vanne">V</div>
+      <div class="mp-item" data-tool="pm_regard" title="Regard / Chambre">R</div>
+    </div>
+
+    <div class="mp-hint">
+      • <b>Cote</b> : trace une ligne → saisis la valeur terrain (m).<br>
+      • <b>PB/B/V/R</b> : clique pour poser le symbole.<br>
+      • Couleur : utilise la palette (comme en mesure).
+    </div>
+  </div>
+
+  <!-- Dock -->
+  <div class="bottom-dock">
+    <button id="btnPan" class="btn-icon active" title="Déplacer"><i class="fa-solid fa-hand"></i></button>
+    <button id="btnHome" class="btn-icon" title="Recentrer"><i class="fa-solid fa-house"></i></button>
+
+    <div class="divider"></div>
+
+    <button id="btnZoomOut" class="btn-icon" disabled title="Zoom -"><i class="fa-solid fa-minus"></i></button>
+    <button id="btnZoomIn" class="btn-icon" disabled title="Zoom +"><i class="fa-solid fa-plus"></i></button>
+
+    <div class="divider"></div>
+
+    <button id="btnScale" class="btn-icon" disabled title="Étalonnage"><i class="fa-solid fa-ruler-horizontal"></i></button>
+    <button id="btnMeasure" class="btn-icon" disabled title="Mesurer"><i class="fa-solid fa-pen-nib"></i></button>
+    <button id="btnMinute" class="btn-icon" disabled title="Plan minute"><i class="fa-solid fa-pen-ruler"></i></button>
+
+    <div class="divider"></div>
+
+    <button id="btnUndo" class="btn-icon btn-undo" disabled title="Annuler"><i class="fa-solid fa-rotate-left"></i></button>
+    <button id="btnDelete" class="btn-icon btn-delete" disabled title="Supprimer"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <div id="versionLabel">V2.1.1 (SIG Pro)</div>
+
+  <div id="appFrame"></div>
+  <div id="canvas-wrapper"><canvas id="c"></canvas></div>
 
   <script>
-    /**
-     * Moteur SIG Pro V3.0
-     * Gestion d'échelle par résolution PDF + OCR
-     */
-    
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    /* ============================================================
+       Mesureur Réseaux - V2.1.1 (SIG Pro)
+       - OCR échelle robuste -> active Mesurer (sans bascule auto)
+       ============================================================ */
 
-    const app = {
-      canvas: null,
-      pdfDoc: null,
-      currentPage: 1,
-      renderScale: 3.0,
-      pixelsPerMeter: 0,
-      mode: 'PAN',
-      color: '#ef4444',
-      isTablet: window.matchMedia("(pointer: coarse)").matches,
-      
-      // État du curseur tablette
-      cursor: { x: 0, y: 0, step: 'IDLE', start: null, preview: null },
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-      init() {
-        this.canvas = new fabric.Canvas('main-canvas', {
-          width: document.getElementById('canvas-container').clientWidth,
-          height: document.getElementById('canvas-container').clientHeight,
-          selection: false,
-          preserveObjectStacking: true
-        });
+    const CONFIG = Object.freeze({
+      PDF_RENDER_SCALE: 3.0,      // NE PAS BAISSER => qualité OCR + rendu
+      EXPORT_MULTIPLIER: 3,
+      MAX_ZOOM: 20,
+      MIN_DRAW_PX_AT_ZOOM1: 5,
+      MEASURE_STROKE: 3,
+      SCALE_STROKE: 3,
+      SCALE_DASH: [10, 5],
+      PM_STROKE: 3,
+      STATUS_MS: 3200,
 
-        this.bindEvents();
-        this.initColorPicker();
-        window.addEventListener('resize', () => this.resize());
+      // OCR : on scanne des zones probables (cartouche)
+      OCR: {
+        lang: "eng",
+        // zones : on teste 3 crops (gauche, droite, bas) mais UNE seule passe Tesseract (on les concatène)
+        // => plus robuste sans multiplier les appels.
+        cropLeftWidthRatio: 0.42,
+        cropRightWidthRatio: 0.42,
+        cropBottomHeightRatio: 0.28,
+        binarizeThreshold: 170,
       },
 
-      resize() {
-        this.canvas.setWidth(document.getElementById('canvas-container').clientWidth);
-        this.canvas.setHeight(document.getElementById('canvas-container').clientHeight);
-        this.canvas.requestRenderAll();
+      // Regex robuste : 1:XXXX / 1/XXXX / 1 XXXX / "Echelle 1 : 250"
+      // -> capture 2..5 chiffres (ex: 50..50000) mais on limite ensuite à <= 5000 (selon ton besoin)
+      SCALE_REGEX: /(?:echelle|échelle)?\s*1\s*[:\/.,\s]\s*(\d{2,5})\b/i,
+
+      // Option B : OCR active Mesurer mais ne change PAS le mode.
+      OCR_DO_NOT_AUTO_SWITCH_TO_MEASURE: true
+    });
+
+    const MODES = Object.freeze({
+      PAN: "pan",
+      SCALE: "scale",
+      MEASURE: "measure",
+      MINUTE: "minute"
+    });
+
+    const PM_TOOLS = Object.freeze({
+      COTE: "pm_cote",
+      PB: "pm_pb",
+      BOUCHON: "pm_bouchon",
+      VANNE: "pm_vanne",
+      REGARD: "pm_regard"
+    });
+
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+    const ui = {
+      wrapper: $("#canvas-wrapper"),
+      fileInput: $("#fileInput"),
+      statusBubble: $("#statusBubble"),
+      totalCounter: $("#totalCounter"),
+      totalValue: $("#totalValue"),
+      colorPicker: $("#colorPicker"),
+      scaleValue: $("#scaleValue"),
+      scaleBadge: $("#scaleBadge"),
+
+      minutePanel: $("#minutePanel"),
+      minuteToolLabel: $("#minuteToolLabel"),
+
+      pager: {
+        prev: $("#btnPrevPage"),
+        next: $("#btnNextPage"),
+        label: $("#pageLabel"),
+        jump: $("#pageJump"),
+        go: $("#btnGoPage"),
       },
 
-      notify(msg, type='info') {
-        const b = document.getElementById('status-msg');
-        b.querySelector('span').innerText = msg;
-        b.style.display = 'flex';
-        setTimeout(() => b.style.display = 'none', 3000);
-      },
-
-      bindEvents() {
-        document.getElementById('fileInput').addEventListener('change', (e) => this.loadPDF(e));
-        document.getElementById('btn-pan').addEventListener('click', () => this.setMode('PAN'));
-        document.getElementById('btn-scale').addEventListener('click', () => this.setMode('SCALE'));
-        document.getElementById('btn-measure').addEventListener('click', () => this.setMode('MEASURE'));
-        
-        // Navigation
-        document.getElementById('prev-pg').addEventListener('click', () => this.changePage(-1));
-        document.getElementById('next-pg').addEventListener('click', () => this.changePage(1));
-
-        // Tablette & Souris
-        this.canvas.on('mouse:down', (opt) => this.handleMouseDown(opt));
-        this.canvas.on('mouse:move', (opt) => this.handleMouseMove(opt));
-        this.canvas.on('mouse:up', () => this.handleMouseUp());
-        this.canvas.on('mouse:wheel', (opt) => this.handleZoom(opt));
-
-        // Validation Tablette
-        document.getElementById('v-ok').addEventListener('click', () => this.validateStep());
-        document.getElementById('v-no').addEventListener('click', () => this.cancelStep());
-      },
-
-      initColorPicker() {
-        document.querySelectorAll('.swatch').forEach(s => {
-          s.addEventListener('click', () => {
-            document.querySelector('.swatch.active').classList.remove('active');
-            s.classList.add('active');
-            this.color = s.dataset.color;
-          });
-        });
-      },
-
-      async loadPDF(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async () => {
-          this.pdfDoc = await pdfjsLib.getDocument({ data: reader.result }).promise;
-          this.renderPage(1);
-          this.toggleUI(true);
-        };
-        reader.readAsArrayBuffer(file);
-      },
-
-      async renderPage(num) {
-        this.currentPage = num;
-        const page = await this.pdfDoc.getPage(num);
-        const viewport = page.getViewport({ scale: this.renderScale });
-
-        const offCanvas = document.createElement('canvas');
-        const context = offCanvas.getContext('2d');
-        offCanvas.height = viewport.height;
-        offCanvas.width = viewport.width;
-
-        await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-        fabric.Image.fromURL(offCanvas.toDataURL(), (img) => {
-          this.canvas.clear();
-          this.canvas.setBackgroundImage(img, this.canvas.renderAll.bind(this.canvas));
-          this.resetZoom();
-          this.runOCR(offCanvas);
-        });
-
-        document.getElementById('page-num').innerText = `Page ${num} / ${this.pdfDoc.numPages}`;
-      },
-
-      /** * OCR + Intelligence d'échelle
-       * Formule : 1m (réel) = (DPI / 0.0254) / Echelle_Papier * Render_Scale
-       */
-      async runOCR(sourceCanvas) {
-        this.notify("Analyse de l'échelle...", "info");
-        const worker = await Tesseract.createWorker('fra');
-        
-        // On cible le coin inférieur droit ou gauche pour l'échelle (cartouche)
-        const region = { left: 0, top: sourceCanvas.height * 0.7, width: sourceCanvas.width, height: sourceCanvas.height * 0.3 };
-        
-        const { data: { text } } = await worker.recognize(sourceCanvas);
-        await worker.terminate();
-
-        const match = text.match(/1[/\s:]+([0-9]+)/);
-        if (match) {
-          const scaleVal = parseInt(match[1]);
-          this.notify(`Échelle détectée : 1/${scaleVal}`, "success");
-          
-          // Calcul théorique : PDF standard = 72 DPI
-          // 1 pouce = 0.0254 mètres
-          const dpi = 72;
-          this.pixelsPerMeter = (dpi / 0.0254 / scaleVal) * this.renderScale;
-          
-          document.getElementById('btn-measure').disabled = false;
-        } else {
-          this.notify("Échelle non détectée. Étalonnage manuel requis.", "warning");
-        }
-      },
-
-      setMode(mode) {
-        this.mode = mode;
-        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-        const btn = document.getElementById(`btn-${mode.toLowerCase()}`);
-        if(btn) btn.classList.add('active');
-
-        this.canvas.defaultCursor = mode === 'PAN' ? 'grab' : 'crosshair';
-        
-        if (this.isTablet) {
-          const ch = document.getElementById('crosshair');
-          ch.style.display = (mode === 'PAN') ? 'none' : 'block';
-          this.cursor.step = 'START';
-          this.updateValidationBar();
-        }
-      },
-
-      handleZoom(opt) {
-        let delta = opt.e.deltaY;
-        let zoom = this.canvas.getZoom();
-        zoom *= 0.999 ** delta;
-        if (zoom > 20) zoom = 20;
-        if (zoom < 0.01) zoom = 0.01;
-        this.canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
-        opt.e.preventDefault();
-        opt.e.stopPropagation();
-      },
-
-      handleMouseDown(opt) {
-        if (this.mode === 'PAN') {
-          this.canvas.isDragging = true;
-          this.canvas.lastPosX = opt.e.clientX || opt.e.touches[0].clientX;
-          this.canvas.lastPosY = opt.e.clientY || opt.e.touches[0].clientY;
-        }
-      },
-
-      handleMouseMove(opt) {
-        const e = opt.e;
-        if (this.canvas.isDragging) {
-            const clientX = e.clientX || e.touches[0].clientX;
-            const clientY = e.clientY || e.touches[0].clientY;
-            const vpt = this.canvas.viewportTransform;
-            vpt[4] += clientX - this.canvas.lastPosX;
-            vpt[5] += clientY - this.canvas.lastPosY;
-            this.canvas.requestRenderAll();
-            this.canvas.lastPosX = clientX;
-            this.canvas.lastPosY = clientY;
-        }
-
-        if (this.isTablet && this.mode !== 'PAN') {
-            const touch = e.touches ? e.touches[0] : e;
-            const container = document.getElementById('canvas-container').getBoundingClientRect();
-            // Offset pour ne pas avoir le doigt sur le viseur
-            const x = touch.clientX - container.left;
-            const y = touch.clientY - container.top - 60; 
-
-            const ch = document.getElementById('crosshair');
-            ch.style.left = x + 'px';
-            ch.style.top = y + 'px';
-            
-            // Stockage coord canvas
-            const pointer = this.canvas.getPointer(opt.e);
-            this.cursor.x = pointer.x;
-            this.cursor.y = pointer.y;
-        }
-      },
-
-      handleMouseUp() {
-        this.canvas.isDragging = false;
-      },
-
-      validateStep() {
-        if (this.cursor.step === 'START') {
-            this.cursor.start = { x: this.cursor.x, y: this.cursor.y };
-            this.cursor.step = 'END';
-            this.notify("Point de départ validé");
-        } else if (this.cursor.step === 'END') {
-            this.drawFinalMeasure();
-            this.cursor.step = 'START';
-            this.cursor.start = null;
-        }
-        this.updateValidationBar();
-      },
-
-      updateValidationBar() {
-        const bar = document.getElementById('v-bar');
-        const text = document.getElementById('v-text');
-        
-        if (this.mode === 'PAN') {
-            bar.style.display = 'none';
-            return;
-        }
-
-        bar.style.display = 'flex';
-        text.innerText = this.cursor.step === 'START' ? "Valider le DEPART" : "Valider l'ARRIVEE";
-      },
-
-      drawFinalMeasure() {
-        const p1 = this.cursor.start;
-        const p2 = { x: this.cursor.x, y: this.cursor.y };
-        const distPx = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-
-        if (this.mode === 'SCALE') {
-            const realDist = prompt("Distance réelle en mètres ?", "1.0");
-            if (realDist) {
-                this.pixelsPerMeter = distPx / parseFloat(realDist);
-                document.getElementById('btn-measure').disabled = false;
-                this.notify("Échelle manuelle enregistrée");
-                this.setMode('MEASURE');
-            }
-        } else if (this.mode === 'MEASURE') {
-            const distM = distPx / this.pixelsPerMeter;
-            this.addMeasureToCanvas(p1, p2, distM);
-            this.updateTotal();
-        }
-      },
-
-      addMeasureToCanvas(p1, p2, distM) {
-        const line = new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
-          stroke: this.color,
-          strokeWidth: 3,
-          selectable: false
-        });
-
-        const text = new fabric.Text(`${distM.toFixed(2)}m`, {
-          left: (p1.x + p2.x) / 2,
-          top: (p1.y + p2.y) / 2 - 15,
-          fontSize: 18,
-          fill: 'white',
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          fontFamily: 'JetBrains Mono',
-          selectable: false
-        });
-
-        const group = new fabric.Group([line, text], { isMeasure: true, value: distM });
-        this.canvas.add(group);
-      },
-
-      updateTotal() {
-        let total = 0;
-        this.canvas.getObjects().forEach(obj => {
-          if (obj.isMeasure) total += obj.value;
-        });
-        document.getElementById('total-m').innerText = `${total.toFixed(2)} m`;
-      },
-
-      resetZoom() {
-        if (!this.canvas.backgroundImage) return;
-        const img = this.canvas.backgroundImage;
-        const scale = Math.min(this.canvas.width / img.width, this.canvas.height / img.height) * 0.9;
-        this.canvas.setZoom(scale);
-        this.canvas.absolutePan({ x: - (this.canvas.width - img.width * scale) / 2, y: - (this.canvas.height - img.height * scale) / 2 });
-      },
-
-      toggleUI(active) {
-        document.getElementById('btn-scale').disabled = !active;
-        document.getElementById('btn-undo').disabled = !active;
-        document.getElementById('btn-save').disabled = !active;
-        document.querySelectorAll('#pm-tools .tool-btn').forEach(b => b.disabled = !active);
-      },
-
-      changePage(delta) {
-        const newPage = this.currentPage + delta;
-        if (newPage > 0 && newPage <= this.pdfDoc.numPages) {
-            this.renderPage(newPage);
-        }
+      btn: {
+        pan: $("#btnPan"),
+        home: $("#btnHome"),
+        scale: $("#btnScale"),
+        measure: $("#btnMeasure"),
+        minute: $("#btnMinute"),
+        zoomIn: $("#btnZoomIn"),
+        zoomOut: $("#btnZoomOut"),
+        undo: $("#btnUndo"),
+        del: $("#btnDelete"),
+        clear: $("#btnClear"),
+        save: $("#btnSave"),
+        fullscreen: $("#btnFullscreen"),
       }
     };
 
-    app.init();
+    function setDisabledAll(disabled) {
+      Object.values(ui.btn).forEach(b => b.disabled = disabled);
+      ui.btn.clear.disabled = false;
+      ui.btn.fullscreen.disabled = false;
+    }
+
+    const Status = (() => {
+      let timer;
+      function show(message, type = "normal") {
+        ui.statusBubble.innerText = message;
+        ui.statusBubble.className = "";
+        ui.statusBubble.classList.add("visible");
+        if (type === "success") ui.statusBubble.classList.add("status-success");
+        if (type === "warning") ui.statusBubble.classList.add("status-warning");
+        if (type === "error") ui.statusBubble.classList.add("status-error");
+        clearTimeout(timer);
+        timer = setTimeout(() => ui.statusBubble.classList.remove("visible"), CONFIG.STATUS_MS);
+      }
+      return { show };
+    })();
+
+    const state = {
+      mode: MODES.PAN,
+      pmTool: PM_TOOLS.COTE,
+
+      pixelsPerMeter: 0,
+      lastDetectedScale: null, // number
+      initialZoom: 0.05,
+      currentColor: "#ff6b6b",
+
+      isDragging: false,
+      isDrawing: false,
+      lastClientX: 0,
+      lastClientY: 0,
+
+      line: null,
+      startPoint: null,
+
+      pdfDoc: null,
+      pageCount: 0,
+      currentPage: 1,
+
+      perPage: new Map(),
+    };
+
+    const canvas = new fabric.Canvas("c", { selection: true, preserveObjectStacking: true });
+
+    function updateScaleIndicator() {
+      if (state.lastDetectedScale && state.pixelsPerMeter > 0) {
+        ui.scaleValue.textContent = `1:${state.lastDetectedScale}`;
+        ui.scaleBadge.className = "si-badge badge-ok";
+        ui.scaleBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Détectée`;
+      } else {
+        ui.scaleValue.textContent = "—";
+        ui.scaleBadge.className = "si-badge badge-warn";
+        ui.scaleBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Non détectée`;
+      }
+    }
+
+    function syncMeasureButton() {
+      ui.btn.measure.disabled = !(state.pixelsPerMeter > 0);
+      updateScaleIndicator();
+    }
+
+    function getClientPos(evt) {
+      if (evt.touches && evt.touches.length > 0) return { x: evt.touches[0].clientX, y: evt.touches[0].clientY };
+      return { x: evt.clientX, y: evt.clientY };
+    }
+
+    function clampViewportToBackground() {
+      const bg = canvas.backgroundImage;
+      if (!bg) return;
+
+      const zoom = canvas.getZoom();
+      const contentW = bg.width * zoom;
+      const contentH = bg.height * zoom;
+
+      const vpt = canvas.viewportTransform;
+
+      if (contentW <= canvas.width) vpt[4] = (canvas.width - contentW) / 2;
+      else {
+        const minX = canvas.width - contentW;
+        vpt[4] = Math.min(0, Math.max(minX, vpt[4]));
+      }
+
+      if (contentH <= canvas.height) vpt[5] = (canvas.height - contentH) / 2;
+      else {
+        const minY = canvas.height - contentH;
+        vpt[5] = Math.min(0, Math.max(minY, vpt[5]));
+      }
+    }
+
+    function resizeCanvas() {
+      canvas.setWidth(ui.wrapper.clientWidth);
+      canvas.setHeight(ui.wrapper.clientHeight);
+      clampViewportToBackground();
+      canvas.requestRenderAll();
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    function setMode(mode) {
+      state.mode = mode;
+
+      Object.values(ui.btn).forEach(b => b.classList.remove("active"));
+      if (ui.btn[mode]) ui.btn[mode].classList.add("active");
+
+      ui.colorPicker.classList.toggle("show", mode === MODES.MEASURE || mode === MODES.MINUTE);
+      ui.minutePanel.classList.toggle("show", mode === MODES.MINUTE);
+
+      if (mode === MODES.PAN) {
+        canvas.selection = true;
+        canvas.forEachObject(o => o.selectable = true);
+        canvas.defaultCursor = "grab";
+        if (state.pdfDoc) Status.show("Mode Déplacement");
+      } else {
+        canvas.selection = false;
+        canvas.forEachObject(o => o.selectable = false);
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
+        canvas.defaultCursor = "crosshair";
+
+        if (mode === MODES.SCALE) Status.show("⚠️ Étalonnage : Tracez une cote connue", "warning");
+        if (mode === MODES.MEASURE) Status.show("✅ Mode Mesure", "success");
+        if (mode === MODES.MINUTE) Status.show("📝 Mode Plan minute", "success");
+      }
+
+      syncMeasureButton();
+    }
+
+    /* Buttons modes */
+    ui.btn.pan.addEventListener("click", () => setMode(MODES.PAN));
+    ui.btn.scale.addEventListener("click", () => setMode(MODES.SCALE));
+    ui.btn.measure.addEventListener("click", () => {
+      if (!(state.pixelsPerMeter > 0)) {
+        alert("Aucune échelle définie pour cette page !");
+        setMode(MODES.SCALE);
+        return;
+      }
+      setMode(MODES.MEASURE);
+    });
+    ui.btn.minute.addEventListener("click", () => setMode(MODES.MINUTE));
+
+    /* Home */
+    ui.btn.home.addEventListener("click", () => resetViewToCenter());
+
+    /* Fullscreen */
+    async function toggleFullscreen() {
+      try {
+        const el = document.documentElement;
+        if (!document.fullscreenElement) {
+          await el.requestFullscreen?.();
+          ui.btn.fullscreen.innerHTML = `<i class="fa-solid fa-compress"></i><span>Quitter</span>`;
+          Status.show("Plein écran activé", "success");
+        } else {
+          await document.exitFullscreen?.();
+          ui.btn.fullscreen.innerHTML = `<i class="fa-solid fa-expand"></i><span>Plein écran</span>`;
+          Status.show("Plein écran quitté");
+        }
+      } catch (e) {
+        console.warn(e);
+        Status.show("Plein écran non disponible sur cet appareil.", "warning");
+      }
+    }
+    ui.btn.fullscreen.addEventListener("click", toggleFullscreen);
+    document.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement) {
+        ui.btn.fullscreen.innerHTML = `<i class="fa-solid fa-expand"></i><span>Plein écran</span>`;
+      }
+    });
+
+    /* Color picker (Mesure + Plan minute) */
+    $$(".color-dot").forEach(dot => {
+      dot.addEventListener("click", () => {
+        $$(".color-dot").forEach(d => d.classList.remove("selected"));
+        dot.classList.add("selected");
+        state.currentColor = dot.getAttribute("data-color");
+
+        const active = canvas.getActiveObject();
+        if (active && active.type === "group") {
+          // Mesures : line inside group
+          const lineObj = active.getObjects().find(o => o.type === "line");
+          if (lineObj) {
+            lineObj.set("stroke", state.currentColor);
+            canvas.requestRenderAll();
+            saveMeasuresForPage(state.currentPage);
+          }
+        }
+      });
+    });
+
+    /* Plan minute tool selection */
+    function setPmTool(tool) {
+      state.pmTool = tool;
+      $$("#minutePanel .mp-item").forEach(el => el.classList.remove("active"));
+      const btn = $(`#minutePanel .mp-item[data-tool="${tool}"]`);
+      if (btn) btn.classList.add("active");
+
+      const labels = {
+        [PM_TOOLS.COTE]: "Outil : Cote",
+        [PM_TOOLS.PB]: "Outil : Prise branchement",
+        [PM_TOOLS.BOUCHON]: "Outil : Bouchon",
+        [PM_TOOLS.VANNE]: "Outil : Vanne",
+        [PM_TOOLS.REGARD]: "Outil : Regard",
+      };
+      ui.minuteToolLabel.textContent = labels[tool] || "Outil : -";
+    }
+    $$("#minutePanel .mp-item").forEach(el => {
+      el.addEventListener("click", () => setPmTool(el.getAttribute("data-tool")));
+    });
+
+    /* Total */
+    function updateTotal() {
+      let total = 0;
+      canvas.getObjects().forEach(obj => {
+        if (obj.type === "group" && obj.isMeasure) total += Number(obj.measureValue || 0);
+      });
+      ui.totalValue.innerText = `${total.toFixed(2)} m`;
+      ui.totalCounter.style.display = total > 0 ? "block" : "none";
+    }
+
+    /* Zoom */
+    function clampZoom(z) {
+      return Math.max(state.initialZoom, Math.min(CONFIG.MAX_ZOOM, z));
+    }
+
+    function resetViewToCenter() {
+      canvas.setZoom(state.initialZoom);
+      const vpt = canvas.viewportTransform;
+      vpt[0] = state.initialZoom; vpt[3] = state.initialZoom;
+      vpt[4] = (canvas.width - (canvas.backgroundImage?.width || 0) * state.initialZoom) / 2;
+      vpt[5] = (canvas.height - (canvas.backgroundImage?.height || 0) * state.initialZoom) / 2;
+      clampViewportToBackground();
+      canvas.requestRenderAll();
+    }
+
+    function applyZoom(factor) {
+      const zoom = clampZoom(canvas.getZoom() * factor);
+      canvas.zoomToPoint({ x: canvas.width / 2, y: canvas.height / 2 }, zoom);
+      clampViewportToBackground();
+      canvas.requestRenderAll();
+    }
+
+    canvas.on("mouse:wheel", (opt) => {
+      let zoom = canvas.getZoom();
+      zoom *= 0.999 ** opt.e.deltaY;
+      zoom = clampZoom(zoom);
+
+      canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
+      clampViewportToBackground();
+      canvas.requestRenderAll();
+
+      opt.e.preventDefault();
+      opt.e.stopPropagation();
+    });
+
+    ui.btn.zoomIn.addEventListener("click", () => applyZoom(1.2));
+    ui.btn.zoomOut.addEventListener("click", () => applyZoom(0.8));
+
+    /* Tablet pinch */
+    (() => {
+      let isPinching = false;
+      let startDist = 0;
+      let startZoom = 1;
+      let lastMid = null;
+
+      function dist(t1, t2) {
+        const dx = t2.clientX - t1.clientX;
+        const dy = t2.clientY - t1.clientY;
+        return Math.hypot(dx, dy);
+      }
+      function midpoint(t1, t2) {
+        return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+      }
+      function toCanvasPoint(clientX, clientY) {
+        const rect = ui.wrapper.getBoundingClientRect();
+        return { x: clientX - rect.left, y: clientY - rect.top };
+      }
+
+      function onTouchStart(e) {
+        if (e.touches.length === 2) {
+          isPinching = true;
+          startDist = dist(e.touches[0], e.touches[1]);
+          startZoom = canvas.getZoom();
+          lastMid = midpoint(e.touches[0], e.touches[1]);
+          e.preventDefault();
+        }
+      }
+
+      function onTouchMove(e) {
+        if (!isPinching) return;
+        if (e.touches.length !== 2) return;
+
+        const d = dist(e.touches[0], e.touches[1]);
+        const ratio = d / (startDist || 1);
+        const newZoom = clampZoom(startZoom * ratio);
+
+        const mid = midpoint(e.touches[0], e.touches[1]);
+        const canvasMid = toCanvasPoint(mid.x, mid.y);
+
+        canvas.zoomToPoint(canvasMid, newZoom);
+
+        if (lastMid) {
+          const dx = mid.x - lastMid.x;
+          const dy = mid.y - lastMid.y;
+          const vpt = canvas.viewportTransform;
+          vpt[4] += dx;
+          vpt[5] += dy;
+        }
+
+        clampViewportToBackground();
+        lastMid = mid;
+        canvas.requestRenderAll();
+        e.preventDefault();
+      }
+
+      function onTouchEnd(e) {
+        if (e.touches.length < 2) {
+          isPinching = false;
+          startDist = 0;
+          lastMid = null;
+        }
+      }
+
+      ui.wrapper.addEventListener("touchstart", onTouchStart, { passive: false });
+      ui.wrapper.addEventListener("touchmove", onTouchMove, { passive: false });
+      ui.wrapper.addEventListener("touchend", onTouchEnd, { passive: false });
+      ui.wrapper.addEventListener("touchcancel", onTouchEnd, { passive: false });
+    })();
+
+    /* PDF */
+    async function loadPdfFile(file) {
+      Status.show("⏳ Chargement PDF...", "normal");
+
+      const buffer = await file.arrayBuffer();
+      const typed = new Uint8Array(buffer);
+      state.pdfDoc = await pdfjsLib.getDocument(typed).promise;
+
+      state.pageCount = state.pdfDoc.numPages;
+      state.currentPage = 1;
+      state.perPage.clear();
+
+      // reset scale per file
+      state.pixelsPerMeter = 0;
+      state.lastDetectedScale = null;
+      syncMeasureButton();
+
+      Status.show(`✅ PDF chargé (${state.pageCount} pages)`, "success");
+      updatePagerUI();
+      await renderPage(1, { restoreMeasures: true });
+    }
+
+    async function renderPage(pageNumber, { restoreMeasures = true } = {}) {
+      if (!state.pdfDoc) return;
+
+      if (state.currentPage && state.currentPage !== pageNumber) saveMeasuresForPage(state.currentPage);
+      const firstTimeOnPage = !state.perPage.has(pageNumber);
+
+      state.currentPage = pageNumber;
+      updatePagerUI();
+      Status.show(`⏳ Rendu page ${pageNumber}...`, "normal");
+
+      const page = await state.pdfDoc.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: CONFIG.PDF_RENDER_SCALE });
+
+      const tempCanvas = document.createElement("canvas");
+      const ctx = tempCanvas.getContext("2d", { willReadFrequently: true });
+      tempCanvas.width = viewport.width;
+      tempCanvas.height = viewport.height;
+
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      const dataUrl = tempCanvas.toDataURL("image/png");
+
+      await new Promise((resolve) => {
+        fabric.Image.fromURL(dataUrl, (img) => {
+          setupBackground(img);
+          if (restoreMeasures) restoreMeasuresForPage(pageNumber);
+          updateTotal();
+          resolve();
+        }, { crossOrigin: "anonymous" });
+      });
+
+      // OCR: seulement la 1ère fois qu'on va sur une page (et si pas déjà d'échelle enregistrée pour cette page)
+      if (firstTimeOnPage) {
+        performVisualOCR(tempCanvas).catch(() => {});
+      }
+
+      Status.show(`✅ Page ${pageNumber} prête`, "success");
+    }
+
+    function updatePagerUI() {
+      const hasPdf = !!state.pdfDoc;
+      ui.pager.prev.disabled = !hasPdf || state.currentPage <= 1;
+      ui.pager.next.disabled = !hasPdf || state.currentPage >= state.pageCount;
+      ui.pager.jump.disabled = !hasPdf;
+      ui.pager.go.disabled = !hasPdf;
+
+      ui.pager.label.textContent = hasPdf ? `Page ${state.currentPage} / ${state.pageCount}` : "Page - / -";
+      ui.pager.jump.min = 1;
+      ui.pager.jump.max = state.pageCount || 1;
+      ui.pager.jump.value = hasPdf ? state.currentPage : "";
+    }
+
+    ui.pager.prev.addEventListener("click", () => {
+      if (state.currentPage > 1) renderPage(state.currentPage - 1, { restoreMeasures: true });
+    });
+    ui.pager.next.addEventListener("click", () => {
+      if (state.currentPage < state.pageCount) renderPage(state.currentPage + 1, { restoreMeasures: true });
+    });
+    ui.pager.go.addEventListener("click", () => {
+      const n = parseInt(ui.pager.jump.value, 10);
+      if (!Number.isFinite(n)) return;
+      const target = Math.max(1, Math.min(state.pageCount, n));
+      renderPage(target, { restoreMeasures: true });
+    });
+    ui.pager.jump.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") ui.pager.go.click();
+    });
+
+    function setupBackground(img) {
+      canvas.clear();
+      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+
+      const ratio = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.98;
+      state.initialZoom = ratio;
+
+      canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+        originX: "left",
+        originY: "top",
+        left: 0,
+        top: 0,
+        selectable: false,
+        evented: false
+      });
+
+      resetViewToCenter();
+      setDisabledAll(false);
+
+      ui.btn.minute.disabled = false;
+
+      setMode(MODES.PAN);
+    }
+
+    function saveMeasuresForPage(pageNumber) {
+      const json = canvas.toDatalessJSON(["isMeasure", "measureValue", "isPm", "pmKind", "pmValue"]);
+      state.perPage.set(pageNumber, {
+        json,
+        pixelsPerMeter: state.pixelsPerMeter || 0,
+        lastDetectedScale: state.lastDetectedScale || null,
+      });
+    }
+
+    function restoreMeasuresForPage(pageNumber) {
+      const saved = state.perPage.get(pageNumber);
+
+      // restore scale for that page (important)
+      state.pixelsPerMeter = (saved?.pixelsPerMeter && saved.pixelsPerMeter > 0) ? saved.pixelsPerMeter : 0;
+      state.lastDetectedScale = saved?.lastDetectedScale || null;
+      syncMeasureButton();
+
+      if (!saved?.json) { updateTotal(); return; }
+
+      canvas.getObjects().forEach(o => { if (o !== canvas.backgroundImage) canvas.remove(o); });
+
+      canvas.loadFromJSON(saved.json, () => {
+        if (state.mode !== MODES.PAN) canvas.forEachObject(o => o.selectable = false);
+        canvas.requestRenderAll();
+        updateTotal();
+      });
+    }
+
+    /* ===== OCR SCALE (robuste) ===== */
+
+    function preprocessBinarize(canvasEl, threshold = 170) {
+      const c = document.createElement("canvas");
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      c.width = canvasEl.width;
+      c.height = canvasEl.height;
+      ctx.drawImage(canvasEl, 0, 0);
+
+      const img = ctx.getImageData(0, 0, c.width, c.height);
+      const d = img.data;
+
+      for (let i = 0; i < d.length; i += 4) {
+        // luminance
+        const r = d[i], g = d[i+1], b = d[i+2];
+        const lum = (0.2126*r + 0.7152*g + 0.0722*b);
+        const v = lum > threshold ? 255 : 0;
+        d[i] = d[i+1] = d[i+2] = v;
+        d[i+3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      return c;
+    }
+
+    function buildOcrStripFromPage(pageCanvas) {
+      const W = pageCanvas.width;
+      const H = pageCanvas.height;
+
+      const leftW = Math.floor(W * CONFIG.OCR.cropLeftWidthRatio);
+      const rightW = Math.floor(W * CONFIG.OCR.cropRightWidthRatio);
+      const bottomH = Math.floor(H * CONFIG.OCR.cropBottomHeightRatio);
+
+      // On concatène 3 zones en une image verticale => 1 seul appel OCR
+      const out = document.createElement("canvas");
+      const ctx = out.getContext("2d", { willReadFrequently: true });
+
+      out.width = Math.max(leftW, rightW, W);
+      out.height = H + H + bottomH;
+
+      // 1) bande gauche
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(pageCanvas, 0, 0, leftW, H, 0, 0, leftW, H);
+
+      // 2) bande droite
+      ctx.drawImage(pageCanvas, W - rightW, 0, rightW, H, 0, H, rightW, H);
+
+      // 3) bas (full width, mais petite hauteur)
+      ctx.drawImage(pageCanvas, 0, H - bottomH, W, bottomH, 0, H + H, W, bottomH);
+
+      return out;
+    }
+
+    function parseScaleString(text) {
+      const raw = String(text || "");
+
+      // On évite quelques confusions fréquentes
+      const clean = raw
+        .replace(/[Oo]/g, "0")
+        .replace(/[Il]/g, "1");
+
+      const match = clean.match(CONFIG.SCALE_REGEX);
+      if (!match?.[1]) return null;
+
+      const val = parseInt(match[1], 10);
+      if (!Number.isFinite(val)) return null;
+
+      // Limite demandée (max 5000)
+      if (val < 10 || val > 5000) return null;
+
+      return val;
+    }
+
+    // Conserve ta logique "ancienne" (celle qui marchait chez toi)
+    function computePixelsPerMeterFromScale(scaleVal) {
+      // NOTE: base 72dpi -> conversion pouces -> mètres, comme ta version historique.
+      // On garde EXACTEMENT cette approche pour ne pas déstabiliser le comportement.
+      return (72 * CONFIG.PDF_RENDER_SCALE * 39.3701) / scaleVal;
+    }
+
+    async function performVisualOCR(pageCanvasEl) {
+      Status.show("👁️ OCR échelle...", "normal");
+
+      // si déjà une échelle active pour cette page, on ne refait pas
+      if (state.pixelsPerMeter > 0 && state.lastDetectedScale) return;
+
+      // 1) construire strip (zones probables)
+      const strip = buildOcrStripFromPage(pageCanvasEl);
+
+      // 2) binarize (boost OCR)
+      const pre = preprocessBinarize(strip, CONFIG.OCR.binarizeThreshold);
+
+      try {
+        const result = await Tesseract.recognize(pre, CONFIG.OCR.lang);
+        const text = result?.data?.text || "";
+
+        const scaleVal = parseScaleString(text);
+        if (!scaleVal) {
+          Status.show("⚠️ Échelle non détectée. Étalonnage manuel possible.", "warning");
+          state.pixelsPerMeter = 0;
+          state.lastDetectedScale = null;
+          syncMeasureButton();
+          saveMeasuresForPage(state.currentPage);
+          return;
+        }
+
+        state.lastDetectedScale = scaleVal;
+        state.pixelsPerMeter = computePixelsPerMeterFromScale(scaleVal);
+
+        // Option B: on active Mesurer, mais on ne change pas le mode
+        syncMeasureButton();
+        saveMeasuresForPage(state.currentPage);
+
+        Status.show(`✅ Échelle détectée : 1:${scaleVal} (Mesurer activé)`, "success");
+
+        // ne pas auto-switch (Option B)
+        if (!CONFIG.OCR_DO_NOT_AUTO_SWITCH_TO_MEASURE) {
+          setMode(MODES.MEASURE);
+        }
+
+      } catch (err) {
+        console.error(err);
+        Status.show("Erreur OCR.", "error");
+      }
+    }
+
+    /* ====== SHAPES ====== */
+    function makeLine(x1, y1, x2, y2, mode) {
+      const zoom = canvas.getZoom();
+      const stroke = (mode === MODES.SCALE ? CONFIG.SCALE_STROKE : (mode === MODES.MEASURE ? CONFIG.MEASURE_STROKE : CONFIG.PM_STROKE)) / zoom;
+
+      const isScale = mode === MODES.SCALE;
+
+      // Mesure + Plan minute: couleur sélectionnée
+      const color = (mode === MODES.MEASURE || mode === MODES.MINUTE) ? state.currentColor : "#ffffff";
+
+      return new fabric.Line([x1, y1, x2, y2], {
+        strokeWidth: stroke,
+        stroke: isScale ? "#20314f" : color,
+        strokeDashArray: isScale ? CONFIG.SCALE_DASH : null,
+        originX: "center",
+        originY: "center",
+        selectable: true,
+        evented: true
+      });
+    }
+
+    function makeLabel(textValue, x, y) {
+      const zoom = canvas.getZoom();
+      return new fabric.Text(textValue, {
+        fontSize: 14 / zoom,
+        fill: "#ffffff",
+        backgroundColor: "rgba(0,0,0,0.55)",
+        left: x,
+        top: y,
+        originX: "center",
+        originY: "bottom",
+        fontFamily: "Segoe UI",
+        fontWeight: "800"
+      });
+    }
+
+    function isTooSmall(distPx) {
+      const zoom = canvas.getZoom();
+      return distPx < (CONFIG.MIN_DRAW_PX_AT_ZOOM1 / zoom);
+    }
+
+    /* ====== PLAN MINUTE SYMBOLS ====== */
+    function pmSymbol(kind, x, y) {
+      const z = canvas.getZoom();
+      const s = 18 / z;
+
+      const stroke = state.currentColor;
+      const sw = 3 / z;
+
+      if (kind === PM_TOOLS.PB) {
+        const stem = new fabric.Line([0, -s, 0, s], { stroke, strokeWidth: sw });
+        const arm  = new fabric.Line([-s, 0, s, 0], { stroke, strokeWidth: sw });
+        const circ = new fabric.Circle({ radius: 4 / z, fill: stroke, left: -4 / z, top: -4 / z });
+        const g = new fabric.Group([stem, arm, circ], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "PB";
+        return g;
+      }
+
+      if (kind === PM_TOOLS.BOUCHON) {
+        const c = new fabric.Circle({
+          radius: 7 / z,
+          fill: "rgba(255,255,255,0.08)",
+          stroke,
+          strokeWidth: 2 / z
+        });
+        const g = new fabric.Group([c], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "BOUCHON";
+        return g;
+      }
+
+      if (kind === PM_TOOLS.VANNE) {
+        const tri1 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke, strokeWidth: 2 / z, originX:"center", originY:"center", angle: 90 });
+        const tri2 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke, strokeWidth: 2 / z, originX:"center", originY:"center", angle: -90 });
+        const bar  = new fabric.Line([-16 / z, 0, 16 / z, 0], { stroke, strokeWidth: 2 / z });
+        tri1.set({ left: -6 / z, top: 0 });
+        tri2.set({ left:  6 / z, top: 0 });
+        const g = new fabric.Group([bar, tri1, tri2], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "VANNE";
+        return g;
+      }
+
+      if (kind === PM_TOOLS.REGARD) {
+        const r = new fabric.Rect({
+          width: 18 / z, height: 14 / z,
+          fill: "rgba(255,255,255,0.06)",
+          stroke,
+          strokeWidth: 2 / z,
+          rx: 3 / z, ry: 3 / z
+        });
+        const g = new fabric.Group([r], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "REGARD";
+        return g;
+      }
+
+      return null;
+    }
+
+    /* ====== INTERACTIONS ====== */
+    canvas.on("mouse:down", (o) => {
+      const evt = o.e;
+      const client = getClientPos(evt);
+
+      if (o.target && state.mode === MODES.PAN) return;
+
+      // PAN
+      if (state.mode === MODES.PAN) {
+        state.isDragging = true;
+        state.lastClientX = client.x;
+        state.lastClientY = client.y;
+        canvas.setCursor("grabbing");
+        return;
+      }
+
+      // Plan minute : placement symbole au clic
+      if (state.mode === MODES.MINUTE && state.pmTool !== PM_TOOLS.COTE) {
+        const p = canvas.getPointer(evt);
+        const sym = pmSymbol(state.pmTool, p.x, p.y);
+        if (sym) {
+          canvas.add(sym);
+          canvas.setActiveObject(sym);
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
+          Status.show("Symbole ajouté", "success");
+        }
+        return;
+      }
+
+      // DRAW line (scale / measure / plan minute cote)
+      if (evt.touches && evt.touches.length >= 2) return;
+
+      state.isDrawing = true;
+      const p = canvas.getPointer(evt);
+      state.startPoint = { x: p.x, y: p.y };
+      state.line = makeLine(p.x, p.y, p.x, p.y, state.mode);
+      canvas.add(state.line);
+    });
+
+    canvas.on("mouse:move", (o) => {
+      const evt = o.e;
+      const client = getClientPos(evt);
+
+      if (state.isDragging) {
+        const vpt = canvas.viewportTransform;
+        vpt[4] += client.x - state.lastClientX;
+        vpt[5] += client.y - state.lastClientY;
+        state.lastClientX = client.x;
+        state.lastClientY = client.y;
+
+        clampViewportToBackground();
+        canvas.requestRenderAll();
+        return;
+      }
+
+      if (state.isDrawing && state.line) {
+        const p = canvas.getPointer(evt);
+        state.line.set({ x2: p.x, y2: p.y });
+        canvas.requestRenderAll();
+      }
+    });
+
+    canvas.on("mouse:up", (o) => {
+      if (state.isDragging) {
+        state.isDragging = false;
+        canvas.setCursor("grab");
+        clampViewportToBackground();
+        canvas.requestRenderAll();
+        return;
+      }
+
+      if (!state.isDrawing || !state.line || !state.startPoint) return;
+      state.isDrawing = false;
+
+      const p = canvas.getPointer(o.e);
+      const distPx = Math.hypot(p.x - state.startPoint.x, p.y - state.startPoint.y);
+
+      if (isTooSmall(distPx)) {
+        canvas.remove(state.line);
+        state.line = null;
+        return;
+      }
+
+      // SCALE (échelle)
+      if (state.mode === MODES.SCALE) {
+        setTimeout(() => {
+          const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
+          const meters = parseFloat((input || "").replace(",", "."));
+          if (!(meters > 0)) {
+            canvas.remove(state.line);
+            state.line = null;
+            return;
+          }
+
+          state.pixelsPerMeter = distPx / meters;
+          state.lastDetectedScale = null; // manuel
+          Status.show(`✅ Étalonné (page ${state.currentPage}) : 1m = ${state.pixelsPerMeter.toFixed(2)} px`, "success");
+          syncMeasureButton();
+
+          canvas.remove(state.line);
+          state.line = null;
+
+          // tu veux rester maître -> on bascule en mesure (logique historique)
+          setMode(MODES.MEASURE);
+          saveMeasuresForPage(state.currentPage);
+        }, 50);
+        return;
+      }
+
+      // MEASURE (calcul)
+      if (state.mode === MODES.MEASURE) {
+        if (!(state.pixelsPerMeter > 0)) {
+          Status.show("⚠️ Pas d'échelle pour cette page. Étalonnez.", "warning");
+          canvas.remove(state.line);
+          state.line = null;
+          setMode(MODES.SCALE);
+          return;
+        }
+
+        const meters = distPx / state.pixelsPerMeter;
+        const metersStr = `${meters.toFixed(2)} m`;
+
+        const midX = (state.startPoint.x + p.x) / 2;
+        const midY = (state.startPoint.y + p.y) / 2 - 15 / canvas.getZoom();
+
+        const label = makeLabel(metersStr, midX, midY);
+        const group = new fabric.Group([state.line, label], { selectable: true });
+        group.isMeasure = true;
+        group.measureValue = meters.toFixed(2);
+
+        canvas.remove(state.line);
+        canvas.add(group);
+        canvas.setActiveObject(group);
+
+        state.line = null;
+        updateTotal();
+        canvas.requestRenderAll();
+        saveMeasuresForPage(state.currentPage);
+        return;
+      }
+
+      // PLAN MINUTE - COTE LIBRE (saisie)
+      if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) {
+        setTimeout(() => {
+          const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
+          const meters = parseFloat((input || "").replace(",", "."));
+          if (!(meters > 0)) {
+            canvas.remove(state.line);
+            state.line = null;
+            return;
+          }
+
+          const metersStr = `${meters.toFixed(2)} m`;
+          const midX = (state.startPoint.x + p.x) / 2;
+          const midY = (state.startPoint.y + p.y) / 2 - 15 / canvas.getZoom();
+
+          state.line.set({ stroke: state.currentColor, strokeDashArray: null });
+          const label = makeLabel(metersStr, midX, midY);
+
+          const group = new fabric.Group([state.line, label], { selectable: true });
+          group.isPm = true;
+          group.pmKind = "COTE";
+          group.pmValue = meters.toFixed(2);
+
+          canvas.remove(state.line);
+          canvas.add(group);
+          canvas.setActiveObject(group);
+
+          state.line = null;
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
+          Status.show("Cote plan minute ajoutée", "success");
+        }, 50);
+      }
+    });
+
+    /* Delete / undo / clear / save */
+    ui.btn.del.addEventListener("click", () => {
+      const actives = canvas.getActiveObjects();
+      if (!actives.length) return;
+      actives.forEach(obj => canvas.remove(obj));
+      canvas.discardActiveObject();
+      updateTotal();
+      canvas.requestRenderAll();
+      Status.show("Supprimé");
+      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
+    });
+
+    ui.btn.undo.addEventListener("click", () => {
+      const objs = canvas.getObjects().filter(o => o !== canvas.backgroundImage);
+      if (!objs.length) return;
+      canvas.remove(objs[objs.length - 1]);
+      updateTotal();
+      canvas.requestRenderAll();
+      Status.show("Annulé");
+      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
+    });
+
+    ui.btn.clear.addEventListener("click", () => {
+      if (!confirm("Tout effacer (page courante) ?")) return;
+      canvas.getObjects().forEach(o => { if (o !== canvas.backgroundImage) canvas.remove(o); });
+      canvas.discardActiveObject();
+      updateTotal();
+      canvas.requestRenderAll();
+      Status.show("Page nettoyée");
+      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
+    });
+
+    ui.btn.save.addEventListener("click", () => {
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      const dataURL = canvas.toDataURL({ format: "png", quality: 1, multiplier: CONFIG.EXPORT_MULTIPLIER });
+      const a = document.createElement("a");
+      a.download = `plan_page_${state.currentPage}.png`;
+      a.href = dataURL;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+
+    /* File */
+    ui.fileInput.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try { await loadPdfFile(file); }
+      catch (err) { console.error(err); Status.show("Erreur chargement PDF.", "error"); }
+      finally { ui.fileInput.value = ""; }
+    });
+
+    /* Boot */
+    setDisabledAll(true);
+    updatePagerUI();
+    Status.show("Bienvenue");
+    setMode(MODES.PAN);
+    setPmTool(PM_TOOLS.COTE);
+    updateScaleIndicator();
   </script>
 </body>
 </html>
