@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b1220" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Mesureur Réseaux - V2.1.3 (SIG Pro)</title>
+  <title>Mesures Terrain • V2.1.3</title>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -102,13 +102,16 @@
       gap:10px;
       min-width: 160px;
     }
-    .brand .logo{
-      width:38px; height:38px;
-      border-radius:12px;
-      background: linear-gradient(135deg, rgba(58,163,255,.25), rgba(46,211,168,.18));
-      border:1px solid rgba(255,255,255,.12);
-      display:flex; align-items:center; justify-content:center;
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
+.brand .logo{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:40px;
+}
+.brand .logo img{
+  height:32px;
+  width:auto;
+  display:block;
     }
     .brand .logo i{ color: var(--text); opacity:.92; font-size:1.05rem; }
     .brand .title{
@@ -557,10 +560,12 @@
   <div class="top-bar">
     <div class="topbar-inner">
       <div class="brand">
-        <div class="logo"><i class="fa-solid fa-ruler-combined"></i></div>
-        <div class="title">
-          <div class="t1">Mesureur Réseaux</div>
-          <div class="t2">V2.1.3 • SIG Pro</div>
+        <div class="logo">
+    <img src="assets/grdf-logo.png" alt="GRDF" />
+  </div>
+  <div class="title">
+    <div class="t1">GRDF – Mesures Terrain</div>
+    <div class="t2">V2.1.3</div>
         </div>
       </div>
 
@@ -1968,4 +1973,5 @@
   </script>
 </body>
 </html>
+
 
