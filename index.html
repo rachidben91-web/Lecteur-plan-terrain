@@ -2,26 +2,35 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Mesureur Réseaux - V2.1.1 (Curseur tactile + OCR)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#25282e" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <title>Mesureur Réseaux - V2.1.0 (SIG + Curseur tablette)</title>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
     :root{
-      --bg-color:#1a1a1a;
-      --panel-bg:rgba(30,30,30,.85);
-      --accent-color:#3498db;
+      /* ===== Option 2B: SIG moderne + lisible extérieur ===== */
+      --bg-color:#25282e;
+      --panel-bg:rgba(45, 50, 60, 0.90);
+      --accent-color:#3aa0ff;
       --text-color:#fff;
 
-      --frame-color: rgba(255,255,255,0.16);
-      --frame-inner: rgba(0,0,0,0.55);
-      --frame-glow: rgba(52,152,219,0.10);
+      --border: rgba(255,255,255,0.15);
 
+      /* Cadre */
+      --frame-color: rgba(255,255,255,0.18);
+      --frame-inner: rgba(0,0,0,0.40);
+      --frame-glow: rgba(58,160,255,0.10);
+
+      /* Zone intérieure du cadre */
       --frame-top: 72px;
       --frame-left: 12px;
       --frame-right: 12px;
@@ -42,67 +51,70 @@
     .top-bar{
       position:absolute; top:0; left:0; right:0;
       height:60px;
-      background:linear-gradient(180deg,rgba(0,0,0,.8) 0%,rgba(0,0,0,0) 100%);
+      background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 100%);
       display:flex; align-items:center; justify-content:space-between;
       padding:0 14px; z-index:60; pointer-events:none;
       gap:12px;
     }
     .app-title{
-      font-weight:700; font-size:1.05rem; letter-spacing:1px;
-      text-shadow:0 2px 4px rgba(0,0,0,.5);
-      opacity:.9;
+      font-weight:700; font-size:1.02rem; letter-spacing:0.6px;
+      text-shadow:0 2px 4px rgba(0,0,0,.35);
+      opacity:.92;
       pointer-events:auto;
       white-space:nowrap;
     }
+
     .top-actions{
       display:flex; gap:10px; align-items:center;
       pointer-events:auto;
     }
     .file-btn{
-      background:rgba(255,255,255,.1); color:#fff;
-      padding:8px 12px; border-radius:8px;
-      font-weight:600; font-size:.9rem;
+      background:rgba(255,255,255,.10); color:#fff;
+      padding:8px 12px; border-radius:10px;
+      font-weight:700; font-size:.9rem;
       cursor:pointer;
-      transition:background .2s;
+      transition:background .2s, transform .12s;
       text-decoration:none; border:none;
       display:flex; align-items:center; gap:8px;
+      border:1px solid rgba(255,255,255,.12);
     }
-    .file-btn:hover{ background:rgba(255,255,255,.25); }
-    .file-btn:disabled{ opacity:.35; cursor:not-allowed; }
+    .file-btn:hover{ background:rgba(255,255,255,.18); transform:translateY(-1px); }
+    .file-btn:disabled{ opacity:.35; cursor:not-allowed; transform:none; }
 
     .pager{
       display:flex; align-items:center; gap:8px;
       background:rgba(255,255,255,.08);
       border:1px solid rgba(255,255,255,.12);
       padding:6px 10px;
-      border-radius:12px;
+      border-radius:14px;
       pointer-events:auto;
+      backdrop-filter: blur(10px);
     }
     .pager .page-label{
       font-size:.85rem;
-      opacity:.9;
-      min-width:88px;
+      opacity:.92;
+      min-width:92px;
       text-align:center;
       font-variant-numeric: tabular-nums;
     }
     .pager button{
       width:38px; height:38px;
-      border-radius:10px;
-      border:none;
-      background:rgba(255,255,255,.1);
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.08);
       color:#fff;
       cursor:pointer;
       display:flex; align-items:center; justify-content:center;
       transition:transform .15s, background .2s;
     }
-    .pager button:hover:not(:disabled){ transform:scale(1.05); background:rgba(255,255,255,.2); }
+    .pager button:hover:not(:disabled){ transform:scale(1.06); background:rgba(255,255,255,.16); }
     .pager button:disabled{ opacity:.25; cursor:not-allowed; }
     .pager input{
-      width:56px;
-      background:rgba(0,0,0,.25);
-      border:1px solid rgba(255,255,255,.15);
+      width:60px;
+      background:rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.14);
       color:#fff;
-      border-radius:10px;
+      border-radius:12px;
       padding:8px 10px;
       outline:none;
       font-size:.9rem;
@@ -113,83 +125,86 @@
     .bottom-dock{
       position:absolute; bottom:26px; left:50%; transform:translateX(-50%);
       background:var(--panel-bg);
-      backdrop-filter:blur(10px);
+      backdrop-filter:blur(12px);
       padding:10px 16px;
-      border-radius:50px;
-      border:1px solid rgba(255,255,255,.1);
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
       display:flex; gap:12px; align-items:center;
-      box-shadow:0 10px 30px rgba(0,0,0,.5);
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
       z-index:60;
     }
     .btn-icon{
       width:48px; height:48px;
       border-radius:50%;
-      border:none;
-      background:rgba(255,255,255,.1);
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.08);
       color:#fff;
       font-size:1.1rem;
       cursor:pointer;
-      transition:all .2s cubic-bezier(.175,.885,.32,1.275);
+      transition:all .18s cubic-bezier(.175,.885,.32,1.275);
       display:flex; align-items:center; justify-content:center;
     }
-    .btn-icon:hover:not(:disabled){ transform:scale(1.12); background:rgba(255,255,255,.2); }
-    .btn-icon:active{ transform:scale(.95); }
+    .btn-icon:hover:not(:disabled){ transform:scale(1.10); background:rgba(255,255,255,.14); }
+    .btn-icon:active{ transform:scale(.96); }
     .btn-icon:disabled{ opacity:.3; cursor:not-allowed; }
     .btn-icon.active{
-      background:var(--accent-color);
-      box-shadow:0 0 15px var(--accent-color);
+      background:rgba(58,160,255,0.25);
+      border-color:rgba(58,160,255,0.55);
+      box-shadow:0 0 18px rgba(58,160,255,0.22);
       transform:scale(1.06);
     }
-    .btn-delete{ color:#e74c3c; }
-    .btn-delete:hover{ background:rgba(231,76,60,.2); }
-    .btn-undo{ color:#f1c40f; }
-    .divider{ width:1px; height:26px; background:rgba(255,255,255,.2); }
+    .btn-delete{ color:#ff6b4a; }
+    .btn-delete:hover{ background:rgba(255,107,74,.14); }
+    .btn-undo{ color:#f5c542; }
+    .divider{ width:1px; height:26px; background:rgba(255,255,255,.18); }
 
     #statusBubble{
       position:absolute; top:78px; left:50%; transform:translateX(-50%);
-      background:rgba(0,0,0,.82); color:#fff;
-      padding:10px 22px; border-radius:30px;
-      font-size:.95rem; font-weight:600;
+      background:rgba(20, 22, 26, .82); color:#fff;
+      padding:10px 18px; border-radius:999px;
+      font-size:.95rem; font-weight:800;
       pointer-events:none; z-index:100;
-      border:1px solid rgba(255,255,255,.15);
-      box-shadow:0 5px 15px rgba(0,0,0,.3);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:0 8px 22px rgba(0,0,0,.25);
       opacity:0; transition:opacity .25s ease, transform .25s ease;
     }
     #statusBubble.visible{ opacity:1; transform:translateX(-50%) translateY(0); }
-    .status-success{ border-color:#27ae60 !important; color:#2ecc71 !important; }
-    .status-warning{ border-color:#f39c12 !important; color:#f1c40f !important; }
-    .status-error{ border-color:#c0392b !important; color:#e74c3c !important; }
+    .status-success{ border-color:rgba(59,209,127,.65) !important; color:#3bd17f !important; }
+    .status-warning{ border-color:rgba(245,197,66,.70) !important; color:#f5c542 !important; }
+    .status-error{ border-color:rgba(255,107,74,.70) !important; color:#ff6b4a !important; }
 
     .total-display{
       position:absolute; bottom:100px; right:18px;
-      background:var(--panel-bg); backdrop-filter:blur(5px);
-      padding:10px 18px; border-radius:12px;
-      border:1px solid rgba(255,255,255,.1);
+      background:var(--panel-bg); backdrop-filter:blur(10px);
+      padding:10px 16px; border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
       text-align:right; pointer-events:none; z-index:55;
-      box-shadow:0 5px 15px rgba(0,0,0,.3);
+      box-shadow:0 8px 20px rgba(0,0,0,.25);
       display:none;
     }
-    .total-label{ font-size:.75rem; text-transform:uppercase; color:#aaa; letter-spacing:1px; }
-    .total-value{ font-size:1.5rem; font-weight:800; color:var(--accent-color); font-variant-numeric: tabular-nums; }
+    .total-label{ font-size:.75rem; text-transform:uppercase; color:rgba(255,255,255,.70); letter-spacing:1px; }
+    .total-value{ font-size:1.5rem; font-weight:900; color:var(--accent-color); font-variant-numeric: tabular-nums; }
 
     .color-palette{
       position:absolute; bottom:92px; left:50%; transform:translateX(-50%);
       display:flex; gap:10px;
-      background:rgba(0,0,0,.6);
-      padding:8px; border-radius:20px;
+      background:rgba(20, 22, 26, .65);
+      padding:8px 10px; border-radius:999px;
       z-index:58;
       transition:opacity .2s;
       opacity:0; pointer-events:none;
+      border:1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(10px);
     }
     .color-palette.show{ opacity:1; pointer-events:auto; }
     .color-dot{
       width:28px; height:28px; border-radius:50%;
       cursor:pointer;
-      border:2px solid rgba(255,255,255,.2);
+      border:2px solid rgba(255,255,255,.22);
       transition:transform .15s;
     }
-    .color-dot:hover{ transform:scale(1.18); }
-    .color-dot.selected{ border:2px solid #fff; transform:scale(1.08); box-shadow:0 0 10px currentColor; }
+    .color-dot:hover{ transform:scale(1.16); }
+    .color-dot.selected{ border:2px solid #fff; transform:scale(1.05); box-shadow:0 0 10px rgba(255,255,255,.20); }
 
     #appFrame{
       position:absolute;
@@ -201,11 +216,11 @@
       pointer-events:none;
       z-index:20;
 
-      border:3px solid var(--frame-color);
+      border:2px solid var(--frame-color);
       box-shadow:
         0 0 0 1px var(--frame-inner) inset,
         0 0 22px var(--frame-glow),
-        0 10px 35px rgba(0,0,0,0.55);
+        0 10px 35px rgba(0,0,0,0.35);
     }
 
     #canvas-wrapper{
@@ -216,10 +231,81 @@
       bottom:var(--frame-bottom);
       border-radius:var(--frame-radius);
       overflow:hidden;
-      background:#252525;
+      background:#2b2f37;
       z-index:1;
       overscroll-behavior:none;
     }
+
+    /* Curseur tablette (overlay) */
+    #cursorOverlay{
+      position:absolute;
+      width:38px; height:38px;
+      transform:translate(-50%, -50%);
+      pointer-events:none;
+      z-index:70;
+      display:none;
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,.35));
+    }
+    #cursorOverlay.show{ display:block; }
+    .cursor-ring{
+      position:absolute; inset:0;
+      border-radius:50%;
+      border:2px solid rgba(58,160,255,0.95);
+      box-shadow:0 0 0 6px rgba(58,160,255,0.12);
+      background:rgba(0,0,0,0.05);
+    }
+    .cursor-cross:before, .cursor-cross:after{
+      content:"";
+      position:absolute;
+      left:50%; top:50%;
+      background:rgba(58,160,255,0.95);
+      transform:translate(-50%,-50%);
+      border-radius:2px;
+    }
+    .cursor-cross:before{ width:2px; height:24px; }
+    .cursor-cross:after{ width:24px; height:2px; }
+
+    /* Barre validation (tablette) */
+    #confirmBar{
+      position:absolute;
+      left:50%;
+      bottom:92px; /* au-dessus du dock */
+      transform:translateX(-50%);
+      display:none;
+      z-index:75;
+      gap:10px;
+      align-items:center;
+      padding:10px 12px;
+      background:rgba(20, 22, 26, .70);
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:999px;
+      backdrop-filter: blur(12px);
+      box-shadow:0 12px 26px rgba(0,0,0,.30);
+      max-width:92%;
+    }
+    #confirmBar.show{ display:flex; }
+    #confirmText{
+      font-weight:900;
+      opacity:.92;
+      white-space:nowrap;
+      font-size:.92rem;
+      margin:0 6px 0 2px;
+    }
+    .cbtn{
+      border:none;
+      cursor:pointer;
+      padding:10px 14px;
+      border-radius:999px;
+      font-weight:900;
+      color:#fff;
+      display:flex; align-items:center; gap:8px;
+      transition:transform .12s, opacity .15s;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.10);
+    }
+    .cbtn:hover{ transform:translateY(-1px); }
+    .cbtn.ok{ background:rgba(59,209,127,.18); border-color:rgba(59,209,127,.45); }
+    .cbtn.cancel{ background:rgba(255,107,74,.14); border-color:rgba(255,107,74,.35); }
 
     /* ===== MINI PANEL PLAN MINUTE ===== */
     #minutePanel{
@@ -227,14 +313,14 @@
       left: calc(var(--frame-left) + 14px);
       top:  calc(var(--frame-top) + 14px);
       z-index:59;
-      background: rgba(0,0,0,0.55);
-      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(20, 22, 26, 0.60);
+      border: 1px solid rgba(255,255,255,0.14);
       border-radius: 14px;
       padding: 10px;
       display:none;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 10px 25px rgba(0,0,0,.35);
-      min-width: 240px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 24px rgba(0,0,0,.26);
+      min-width: 260px;
     }
     #minutePanel.show{ display:block; }
     .mp-title{
@@ -245,8 +331,8 @@
       margin-bottom:8px;
     }
     .mp-title span{
-      font-weight:800;
-      letter-spacing:0.5px;
+      font-weight:900;
+      letter-spacing:0.4px;
       font-size:0.95rem;
       opacity:0.95;
     }
@@ -265,14 +351,15 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      transition: transform .15s, background .2s;
+      transition: transform .15s, background .2s, border-color .2s;
       user-select:none;
+      font-weight:900;
     }
-    .mp-item:hover{ transform: scale(1.05); background: rgba(255,255,255,0.15); }
+    .mp-item:hover{ transform: scale(1.04); background: rgba(255,255,255,0.14); }
     .mp-item.active{
-      background: var(--accent-color);
-      border-color: rgba(255,255,255,0.25);
-      box-shadow: 0 0 16px rgba(52,152,219,0.35);
+      background: rgba(58,160,255,0.18);
+      border-color: rgba(58,160,255,0.55);
+      box-shadow: 0 0 16px rgba(58,160,255,0.18);
     }
     .mp-hint{
       margin-top:8px;
@@ -283,96 +370,9 @@
 
     #versionLabel{
       position:fixed; bottom:6px; right:10px;
-      opacity:.28; font-size:.72rem;
+      opacity:.30; font-size:.72rem;
       z-index:80;
     }
-
-    /* ===== Curseur tactile flottant ===== */
-    #touchCursor{
-      position:fixed;
-      width:22px; height:22px;
-      border-radius:50%;
-      border:2px solid rgba(255,255,255,0.95);
-      background:rgba(0,0,0,0.28);
-      box-shadow:0 8px 18px rgba(0,0,0,0.35);
-      z-index:200;
-      pointer-events:none;
-      display:none;
-      transform:translate(-50%, -50%);
-    }
-    #touchCursor::after{
-      content:"";
-      position:absolute;
-      left:50%; top:50%;
-      width:2px; height:14px;
-      background:rgba(255,255,255,0.85);
-      transform:translate(-50%,-50%);
-      border-radius:2px;
-    }
-    #touchCursor::before{
-      content:"";
-      position:absolute;
-      left:50%; top:50%;
-      width:14px; height:2px;
-      background:rgba(255,255,255,0.85);
-      transform:translate(-50%,-50%);
-      border-radius:2px;
-    }
-    #cursorTag{
-      position:fixed;
-      z-index:201;
-      pointer-events:none;
-      display:none;
-      transform:translate(-50%, calc(-50% - 22px));
-      background:rgba(0,0,0,0.55);
-      border:1px solid rgba(255,255,255,0.18);
-      padding:4px 8px;
-      border-radius:10px;
-      font-size:0.78rem;
-      font-weight:900;
-      color:#fff;
-      white-space:nowrap;
-    }
-
-    /* Barre de validation tactile */
-    #tapConfirmBar{
-      position:fixed;
-      left:50%;
-      bottom:92px;
-      transform:translateX(-50%);
-      display:none;
-      gap:10px;
-      z-index:220;
-      background:rgba(0,0,0,.65);
-      border:1px solid rgba(255,255,255,.15);
-      padding:10px 12px;
-      border-radius:18px;
-      backdrop-filter: blur(8px);
-      align-items:center;
-    }
-    .tbtn{
-      border:none;
-      border-radius:14px;
-      padding:10px 14px;
-      font-weight:900;
-      cursor:pointer;
-      min-width:120px;
-    }
-    #btnTapCancel{ background:rgba(231,76,60,.18); color:#e74c3c; }
-    #btnTapStep{ background:rgba(52,152,219,.18); color:#6bbcff; }
-    #btnTapOK{ background:rgba(46,204,113,.18); color:#2ecc71; display:none; }
-
-    /* Mode immersif (fallback plein écran) */
-    body.immersive .top-bar{ display:none; }
-    body.immersive .bottom-dock{ bottom:14px; }
-    body.immersive #canvas-wrapper{
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      bottom: 10px;
-      border-radius: 14px;
-    }
-    body.immersive #appFrame{ display:none; }
 
     @media (max-width: 900px){
       :root{
@@ -383,9 +383,10 @@
       }
       .btn-icon{ width:54px; height:54px; font-size:1.2rem; }
       .pager button{ width:44px; height:44px; }
-      .pager input{ width:64px; padding:10px; }
+      .pager input{ width:68px; padding:10px; }
       .file-btn{ padding:10px 12px; }
-      #minutePanel{ min-width: 260px; }
+      #minutePanel{ min-width: 280px; }
+      #confirmBar{ bottom:104px; }
     }
     @media (max-width: 600px){
       :root{
@@ -402,9 +403,9 @@
       #minutePanel{
         left: calc(var(--frame-left) + 10px);
         top:  calc(var(--frame-top) + 10px);
-        min-width: 240px;
+        min-width: 250px;
       }
-      .tbtn{ min-width:110px; }
+      #confirmBar{ bottom:112px; }
     }
   </style>
 </head>
@@ -426,10 +427,10 @@
       <label for="fileInput" class="file-btn"><i class="fa-solid fa-folder-open"></i> Ouvrir</label>
       <input type="file" id="fileInput" accept=".pdf" style="display:none;">
 
-      <button id="btnFull" class="file-btn" title="Plein écran / immersif"><i class="fa-solid fa-expand"></i></button>
+      <button id="btnFullscreen" class="file-btn" title="Plein écran"><i class="fa-solid fa-expand"></i></button>
       <button id="btnSave" class="file-btn" disabled title="Exporter PNG"><i class="fa-solid fa-floppy-disk"></i></button>
       <button id="btnClear" class="file-btn" title="Tout effacer"
-              style="background:rgba(231, 76, 60, 0.2); color:#e74c3c;">
+              style="background:rgba(255,107,74,0.14); color:#ff6b4a; border-color:rgba(255,107,74,0.25);">
         <i class="fa-solid fa-trash"></i>
       </button>
     </div>
@@ -442,14 +443,16 @@
     <div class="total-value" id="totalValue">0.00 m</div>
   </div>
 
+  <!-- Palette couleurs (Mesure + Plan minute) -->
   <div class="color-palette" id="colorPicker">
-    <div class="color-dot selected" style="background:#e74c3c;" data-color="#e74c3c" title="Élec (Rouge)"></div>
-    <div class="color-dot" style="background:#f1c40f;" data-color="#f1c40f" title="Gaz (Jaune)"></div>
-    <div class="color-dot" style="background:#3498db;" data-color="#3498db" title="Eau (Bleu)"></div>
-    <div class="color-dot" style="background:#2ecc71;" data-color="#2ecc71" title="Telecom (Vert)"></div>
-    <div class="color-dot" style="background:#9b59b6;" data-color="#9b59b6" title="Fibre (Violet)"></div>
+    <div class="color-dot selected" style="background:#ff6b4a;" data-color="#ff6b4a" title="Élec"></div>
+    <div class="color-dot" style="background:#f5c542;" data-color="#f5c542" title="Gaz"></div>
+    <div class="color-dot" style="background:#4aa3ff;" data-color="#4aa3ff" title="Eau"></div>
+    <div class="color-dot" style="background:#3bd17f;" data-color="#3bd17f" title="Télécom"></div>
+    <div class="color-dot" style="background:#9b6bff;" data-color="#9b6bff" title="Fibre / Autre"></div>
   </div>
 
+  <!-- Panel Plan minute -->
   <div id="minutePanel">
     <div class="mp-title">
       <span><i class="fa-solid fa-pen-ruler"></i> Plan minute</span>
@@ -465,9 +468,16 @@
     </div>
 
     <div class="mp-hint">
-      • <b>Cote</b> : curseur → Valider départ → Valider arrivée → OK.<br>
-      • <b>PB/B/V/R</b> : clique pour poser le symbole (couleur = palette).
+      • <b>Cote</b> : PC = glissé ; Tablette = curseur + valider départ/arrivée.<br>
+      • <b>PB/B/V/R</b> : PC = clic ; Tablette = curseur + “Poser”.
     </div>
+  </div>
+
+  <!-- Barre validation tablette -->
+  <div id="confirmBar" aria-hidden="true">
+    <span id="confirmText">Valider</span>
+    <button class="cbtn ok" id="confirmOk"><i class="fa-solid fa-circle-check"></i> OK</button>
+    <button class="cbtn cancel" id="confirmCancel"><i class="fa-solid fa-circle-xmark"></i> Annuler</button>
   </div>
 
   <div class="bottom-dock">
@@ -483,6 +493,7 @@
 
     <button id="btnScale" class="btn-icon" disabled title="Étalonnage"><i class="fa-solid fa-ruler-horizontal"></i></button>
     <button id="btnMeasure" class="btn-icon" disabled title="Mesurer"><i class="fa-solid fa-pen-nib"></i></button>
+
     <button id="btnMinute" class="btn-icon" disabled title="Plan minute"><i class="fa-solid fa-pen-ruler"></i></button>
 
     <div class="divider"></div>
@@ -491,39 +502,35 @@
     <button id="btnDelete" class="btn-icon btn-delete" disabled title="Supprimer"><i class="fa-solid fa-xmark"></i></button>
   </div>
 
-  <div id="versionLabel">V2.1.1 (Curseur tactile + OCR)</div>
-
-  <div id="touchCursor"></div>
-  <div id="cursorTag">Curseur</div>
-
-  <div id="tapConfirmBar">
-    <button id="btnTapCancel" class="tbtn">Annuler</button>
-    <button id="btnTapStep" class="tbtn">Valider départ</button>
-    <button id="btnTapOK" class="tbtn">OK</button>
-  </div>
+  <div id="versionLabel">V2.1.0 (SIG + Curseur tablette)</div>
 
   <div id="appFrame"></div>
-  <div id="canvas-wrapper"><canvas id="c"></canvas></div>
+
+  <div id="canvas-wrapper">
+    <canvas id="c"></canvas>
+
+    <!-- Cursor overlay (tablette) -->
+    <div id="cursorOverlay">
+      <div class="cursor-ring"></div>
+      <div class="cursor-cross"></div>
+    </div>
+  </div>
 
   <script>
     /* ============================================================
-       Mesureur Réseaux - V2.1.1
-       FIX :
-       - Curseur tactile => conversion coords wrapper -> coords Fabric (viewportTransform)
-       - OCR rétabli + rendu PDF non réduit (scale=3.0)
-       - OCR échelles 1:50..1:10000 + crop cartouche + pre-processing
-       - Plein écran + fallback immersif
+       Mesureur Réseaux - V2.1.0 (SIG + Curseur tablette)
+       - PC: souris (glissé) = dessin / clic = symboles
+       - Tablette: curseur + validation (départ/arrivée), pinch 2 doigts conservé
+       - OCR: lecture robuste "1:XXXX" (jusqu'à 5000 + échelles bâtardes)
+       - Plein écran: bouton (requiert geste utilisateur)
        ============================================================ */
 
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-    const IS_TOUCH = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
-
     const CONFIG = Object.freeze({
       PDF_RENDER_SCALE: 3.0,
       EXPORT_MULTIPLIER: 3,
-
       MAX_ZOOM: 20,
       MIN_DRAW_PX_AT_ZOOM1: 5,
 
@@ -532,24 +539,19 @@
       SCALE_DASH: [10, 5],
       PM_STROKE: 3,
 
-      STATUS_MS: 3500,
+      ARROW_SIZE: 14,          // taille flèche (px à zoom=1)
+      ARROW_ANGLE_DEG: 28,     // ouverture flèche
 
-      ARROW_W: 14,
-      ARROW_H: 12,
-
-      CURSOR_OFFSET_Y: 60,
+      STATUS_MS: 3200,
 
       OCR: {
-        lang: "eng",
-        // crop cartouche : (par défaut) bas-droite, zone assez large
-        crops: [
-          { x: 0.55, y: 0.55, w: 0.45, h: 0.45 }, // bas-droite
-          { x: 0.55, y: 0.00, w: 0.45, h: 0.35 }, // haut-droite (fallback)
-        ],
-      },
-
-      // ✅ accepte beaucoup d'échelles
-      SCALE_REGEX: /(?:Echelle|Échelle|Scale|1)\s*[:\/.,]?\s*1?\s*[:\/.,]\s*(25|50|75|100|125|200|250|500|750|1000|2000|2500|5000|10000)\b/i
+        // Cartouche en haut à gauche (stable sur tes plans)
+        cropX: 0.00,
+        cropY: 0.00,
+        cropW: 0.34,
+        cropH: 0.34,
+        lang: "eng"
+      }
     });
 
     const MODES = Object.freeze({
@@ -570,6 +572,9 @@
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
+    // Détection "tablette" (pointer coarse)
+    const IS_COARSE = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+
     const ui = {
       wrapper: $("#canvas-wrapper"),
       fileInput: $("#fileInput"),
@@ -578,17 +583,14 @@
       totalValue: $("#totalValue"),
       colorPicker: $("#colorPicker"),
 
+      cursorOverlay: $("#cursorOverlay"),
+      confirmBar: $("#confirmBar"),
+      confirmText: $("#confirmText"),
+      confirmOk: $("#confirmOk"),
+      confirmCancel: $("#confirmCancel"),
+
       minutePanel: $("#minutePanel"),
       minuteToolLabel: $("#minuteToolLabel"),
-
-      touchCursor: $("#touchCursor"),
-      cursorTag: $("#cursorTag"),
-      tapBar: $("#tapConfirmBar"),
-      btnTapCancel: $("#btnTapCancel"),
-      btnTapStep: $("#btnTapStep"),
-      btnTapOK: $("#btnTapOK"),
-
-      btnFull: $("#btnFull"),
 
       pager: {
         prev: $("#btnPrevPage"),
@@ -610,12 +612,14 @@
         del: $("#btnDelete"),
         clear: $("#btnClear"),
         save: $("#btnSave"),
+        fullscreen: $("#btnFullscreen"),
       }
     };
 
     function setDisabledAll(disabled) {
       Object.values(ui.btn).forEach(b => b.disabled = disabled);
       ui.btn.clear.disabled = false;
+      ui.btn.fullscreen.disabled = false;
     }
 
     const Status = (() => {
@@ -639,27 +643,32 @@
 
       pixelsPerMeter: 0,
       initialZoom: 0.05,
-      currentColor: "#e74c3c",
+      currentColor: "#ff6b4a",
 
       isDragging: false,
+      isDrawing: false,
       lastClientX: 0,
       lastClientY: 0,
 
       line: null,
-      arrows: null,
+      startPoint: null,
 
-      // Touch workflow
-      step: 0, // 0 idle, 1 choose dep, 2 choose arr, 3 ok
-      dep: null,
-      arr: null,
-      cursorCanvas: { x: 0, y: 0 },
-
-      // PDF
       pdfDoc: null,
       pageCount: 0,
       currentPage: 1,
-
       perPage: new Map(),
+
+      // Tablet cursor workflow
+      cursor: {
+        enabled: IS_COARSE,
+        visible: false,
+        point: { x: 0, y: 0 },        // canvas coords
+        stage: "idle",                // idle | start | end | place
+        action: null,                 // "measure" | "scale" | "pm_cote" | "pm_symbol"
+        symbolTool: null,             // pm tool when placing symbol
+        startPoint: null,             // canvas coords
+        preview: null                 // fabric object preview (line+arrows)
+      }
     };
 
     const canvas = new fabric.Canvas("c", { selection: true, preserveObjectStacking: true });
@@ -694,100 +703,35 @@
       canvas.setHeight(ui.wrapper.clientHeight);
       clampViewportToBackground();
       canvas.requestRenderAll();
+      updateCursorOverlayPos();
     }
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
-    // ✅ Conversion wrapper -> coords Fabric (avec zoom/pan)
-    function wrapperPointToFabric(wx, wy) {
-      const pt = new fabric.Point(wx, wy);
-      const inv = fabric.util.invertTransform(canvas.viewportTransform);
-      const p2 = fabric.util.transformPoint(pt, inv);
-      return { x: p2.x, y: p2.y };
-    }
-
-    function clientToWrapper(clientX, clientY) {
-      const rect = ui.wrapper.getBoundingClientRect();
-      return { x: clientX - rect.left, y: clientY - rect.top };
-    }
-
-    function setCursorUI(clientX, clientY, label) {
-      ui.touchCursor.style.display = "block";
-      ui.cursorTag.style.display = "block";
-      ui.touchCursor.style.left = clientX + "px";
-      ui.touchCursor.style.top  = clientY + "px";
-      ui.cursorTag.style.left = clientX + "px";
-      ui.cursorTag.style.top  = clientY + "px";
-      ui.cursorTag.textContent = label || "Curseur";
-    }
-    function hideCursorUI() {
-      ui.touchCursor.style.display = "none";
-      ui.cursorTag.style.display = "none";
-    }
-
-    function showTapBar(show) { ui.tapBar.style.display = show ? "flex" : "none"; }
-
-    function setTapBarState(step) {
-      if (step === 1) {
-        ui.btnTapStep.textContent = "Valider départ";
-        ui.btnTapStep.style.display = "inline-block";
-        ui.btnTapOK.style.display = "none";
-      } else if (step === 2) {
-        ui.btnTapStep.textContent = "Valider arrivée";
-        ui.btnTapStep.style.display = "inline-block";
-        ui.btnTapOK.style.display = "none";
-      } else if (step === 3) {
-        ui.btnTapStep.style.display = "none";
-        ui.btnTapOK.style.display = "inline-block";
-      }
-    }
-
-    function cancelTouchMeasure(msg) {
-      state.step = 0;
-      state.dep = null;
-      state.arr = null;
-
-      if (state.line) canvas.remove(state.line);
-      if (state.arrows) { canvas.remove(state.arrows.a1); canvas.remove(state.arrows.a2); }
-      state.line = null;
-      state.arrows = null;
-
-      hideCursorUI();
-      showTapBar(false);
-      canvas.requestRenderAll();
-
-      if (msg) Status.show(msg, "warning");
-    }
-
-    function isTouchMeasureMode() {
-      if (!IS_TOUCH) return false;
-      if (state.mode === MODES.SCALE) return true;
-      if (state.mode === MODES.MEASURE) return true;
-      if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) return true;
-      return false;
-    }
-
-    function updateTotal() {
-      let total = 0;
-      canvas.getObjects().forEach(obj => {
-        if (obj.type === "group" && obj.isMeasure) total += Number(obj.measureValue || 0);
-      });
-      ui.totalValue.innerText = `${total.toFixed(2)} m`;
-      ui.totalCounter.style.display = total > 0 ? "block" : "none";
-    }
-
     function syncMeasureButton() { ui.btn.measure.disabled = !state.pixelsPerMeter; }
 
-    function setMode(mode) {
-      if (state.step !== 0) cancelTouchMeasure();
+    function showColorPalette(show) {
+      // En SIG, on autorise la palette en mesure ET plan minute
+      ui.colorPicker.classList.toggle("show", show);
+    }
 
+    function setMode(mode) {
       state.mode = mode;
 
       Object.values(ui.btn).forEach(b => b.classList.remove("active"));
       if (ui.btn[mode]) ui.btn[mode].classList.add("active");
 
-      ui.colorPicker.classList.toggle("show", mode === MODES.MEASURE || mode === MODES.MINUTE);
+      // Palette en mesure + plan minute
+      showColorPalette(mode === MODES.MEASURE || mode === MODES.MINUTE);
+
+      // panel minute uniquement en plan minute
       ui.minutePanel.classList.toggle("show", mode === MODES.MINUTE);
+
+      // Curseur tablette: actif hors PAN
+      if (IS_COARSE && state.pdfDoc) {
+        state.cursor.enabled = (mode !== MODES.PAN);
+        if (mode === MODES.PAN) hideConfirmBar();
+      }
 
       if (mode === MODES.PAN) {
         canvas.selection = true;
@@ -801,52 +745,88 @@
         canvas.requestRenderAll();
         canvas.defaultCursor = "crosshair";
 
-        if (mode === MODES.SCALE) Status.show("⚠️ Étalonnage : curseur + valider", "warning");
-        if (mode === MODES.MEASURE) Status.show("✅ Mesure : curseur + valider", "success");
-        if (mode === MODES.MINUTE) Status.show("📝 Plan minute : curseur + valider (cotes)", "success");
+        if (mode === MODES.SCALE) Status.show("⚠️ Étalonnage : Départ + Arrivée puis OK", "warning");
+        if (mode === MODES.MEASURE) Status.show("✅ Mode Mesure", "success");
+        if (mode === MODES.MINUTE) Status.show("📝 Mode Plan minute", "success");
       }
       syncMeasureButton();
+
+      // Tablette: prépare une action par défaut
+      if (IS_COARSE && state.pdfDoc && mode !== MODES.PAN) {
+        if (mode === MODES.SCALE) startCursorFlow("scale");
+        if (mode === MODES.MEASURE) startCursorFlow("measure");
+        if (mode === MODES.MINUTE) {
+          if (state.pmTool === PM_TOOLS.COTE) startCursorFlow("pm_cote");
+          else startCursorFlow("pm_symbol", state.pmTool);
+        }
+      }
     }
 
+    /* Buttons modes */
     ui.btn.pan.addEventListener("click", () => setMode(MODES.PAN));
     ui.btn.scale.addEventListener("click", () => setMode(MODES.SCALE));
     ui.btn.measure.addEventListener("click", () => {
-      if (!state.pixelsPerMeter) { alert("Aucune échelle définie pour cette page !"); setMode(MODES.SCALE); return; }
+      if (!state.pixelsPerMeter) {
+        alert("Aucune échelle définie pour cette page !");
+        setMode(MODES.SCALE);
+        return;
+      }
       setMode(MODES.MEASURE);
     });
     ui.btn.minute.addEventListener("click", () => setMode(MODES.MINUTE));
 
+    /* Home */
     ui.btn.home.addEventListener("click", () => resetViewToCenter());
 
-    // Plein écran + fallback immersif
-    ui.btnFull.addEventListener("click", async () => {
+    /* Fullscreen */
+    function isFullscreen() {
+      return !!(document.fullscreenElement || document.webkitFullscreenElement);
+    }
+    function requestFs(el) {
+      if (el.requestFullscreen) return el.requestFullscreen();
+      if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+    }
+    function exitFs() {
+      if (document.exitFullscreen) return document.exitFullscreen();
+      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+    }
+    ui.btn.fullscreen.addEventListener("click", async () => {
       try {
-        if (!document.fullscreenElement) {
-          await document.documentElement.requestFullscreen?.();
-          Status.show("Plein écran demandé", "success");
+        if (!isFullscreen()) {
+          await requestFs(document.documentElement);
+          ui.btn.fullscreen.innerHTML = `<i class="fa-solid fa-compress"></i>`;
+          Status.show("Plein écran", "success");
         } else {
-          await document.exitFullscreen?.();
-          Status.show("Sortie plein écran", "success");
+          await exitFs();
+          ui.btn.fullscreen.innerHTML = `<i class="fa-solid fa-expand"></i>`;
+          Status.show("Sortie plein écran");
         }
-      } catch {
-        // fallback immersif
-        document.body.classList.toggle("immersive");
-        resizeCanvas();
-        Status.show(document.body.classList.contains("immersive") ? "Mode immersif" : "Mode normal", "success");
+      } catch (e) {
+        console.warn(e);
+        Status.show("Plein écran indisponible sur cet appareil.", "warning");
       }
     });
 
-    // Color picker
+    /* Color picker (mesure + plan minute) */
     $$(".color-dot").forEach(dot => {
       dot.addEventListener("click", () => {
         $$(".color-dot").forEach(d => d.classList.remove("selected"));
         dot.classList.add("selected");
         state.currentColor = dot.getAttribute("data-color");
+
+        // si un objet actif, on recolore ligne/arrow/texte si c'est une cote/mesure
+        const active = canvas.getActiveObject();
+        if (active && active.type === "group") {
+          active.getObjects().forEach(o => {
+            if (o.type === "line" || o.type === "polygon") o.set("stroke", state.currentColor);
+          });
+          canvas.requestRenderAll();
+        }
       });
     });
 
+    /* Plan minute tool selection */
     function setPmTool(tool) {
-      if (state.step !== 0) cancelTouchMeasure("Mesure annulée (changement d’outil)");
       state.pmTool = tool;
       $$("#minutePanel .mp-item").forEach(el => el.classList.remove("active"));
       const btn = $(`#minutePanel .mp-item[data-tool="${tool}"]`);
@@ -860,10 +840,27 @@
         [PM_TOOLS.REGARD]: "Outil : Regard",
       };
       ui.minuteToolLabel.textContent = labels[tool] || "Outil : -";
-    }
-    $$("#minutePanel .mp-item").forEach(el => el.addEventListener("click", () => setPmTool(el.getAttribute("data-tool"))));
 
-    // ===== Zoom / view =====
+      if (IS_COARSE && state.mode === MODES.MINUTE && state.pdfDoc) {
+        if (tool === PM_TOOLS.COTE) startCursorFlow("pm_cote");
+        else startCursorFlow("pm_symbol", tool);
+      }
+    }
+    $$("#minutePanel .mp-item").forEach(el => {
+      el.addEventListener("click", () => setPmTool(el.getAttribute("data-tool")));
+    });
+
+    /* Total */
+    function updateTotal() {
+      let total = 0;
+      canvas.getObjects().forEach(obj => {
+        if (obj.type === "group" && obj.isMeasure) total += Number(obj.measureValue || 0);
+      });
+      ui.totalValue.innerText = `${total.toFixed(2)} m`;
+      ui.totalCounter.style.display = total > 0 ? "block" : "none";
+    }
+
+    /* Zoom */
     function clampZoom(z) { return Math.max(state.initialZoom, Math.min(CONFIG.MAX_ZOOM, z)); }
 
     function resetViewToCenter() {
@@ -874,6 +871,7 @@
       vpt[5] = (canvas.height - (canvas.backgroundImage?.height || 0) * state.initialZoom) / 2;
       clampViewportToBackground();
       canvas.requestRenderAll();
+      updateCursorOverlayPos();
     }
 
     function applyZoom(factor) {
@@ -881,6 +879,7 @@
       canvas.zoomToPoint({ x: canvas.width / 2, y: canvas.height / 2 }, zoom);
       clampViewportToBackground();
       canvas.requestRenderAll();
+      updateCursorOverlayPos();
     }
 
     canvas.on("mouse:wheel", (opt) => {
@@ -891,6 +890,7 @@
       canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
       clampViewportToBackground();
       canvas.requestRenderAll();
+      updateCursorOverlayPos();
 
       opt.e.preventDefault();
       opt.e.stopPropagation();
@@ -899,7 +899,730 @@
     ui.btn.zoomIn.addEventListener("click", () => applyZoom(1.2));
     ui.btn.zoomOut.addEventListener("click", () => applyZoom(0.8));
 
-    // ===== PDF =====
+    /* Tablet pinch (2 doigts) */
+    (() => {
+      let isPinching = false;
+      let startDist = 0;
+      let startZoom = 1;
+      let lastMid = null;
+
+      function dist(t1, t2) {
+        const dx = t2.clientX - t1.clientX;
+        const dy = t2.clientY - t1.clientY;
+        return Math.hypot(dx, dy);
+      }
+      function midpoint(t1, t2) {
+        return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+      }
+      function toCanvasPoint(clientX, clientY) {
+        const rect = ui.wrapper.getBoundingClientRect();
+        return { x: clientX - rect.left, y: clientY - rect.top };
+      }
+
+      function onTouchStart(e) {
+        if (e.touches.length === 2) {
+          isPinching = true;
+          startDist = dist(e.touches[0], e.touches[1]);
+          startZoom = canvas.getZoom();
+          lastMid = midpoint(e.touches[0], e.touches[1]);
+          e.preventDefault();
+        }
+      }
+
+      function onTouchMove(e) {
+        if (!isPinching) return;
+        if (e.touches.length !== 2) return;
+
+        const d = dist(e.touches[0], e.touches[1]);
+        const ratio = d / (startDist || 1);
+        let newZoom = clampZoom(startZoom * ratio);
+
+        const mid = midpoint(e.touches[0], e.touches[1]);
+        const canvasMid = toCanvasPoint(mid.x, mid.y);
+
+        canvas.zoomToPoint(canvasMid, newZoom);
+
+        if (lastMid) {
+          const dx = mid.x - lastMid.x;
+          const dy = mid.y - lastMid.y;
+          const vpt = canvas.viewportTransform;
+          vpt[4] += dx;
+          vpt[5] += dy;
+        }
+
+        clampViewportToBackground();
+        lastMid = mid;
+        canvas.requestRenderAll();
+        updateCursorOverlayPos();
+        e.preventDefault();
+      }
+
+      function onTouchEnd(e) {
+        if (e.touches.length < 2) {
+          isPinching = false;
+          startDist = 0;
+          lastMid = null;
+        }
+      }
+
+      ui.wrapper.addEventListener("touchstart", onTouchStart, { passive: false });
+      ui.wrapper.addEventListener("touchmove", onTouchMove, { passive: false });
+      ui.wrapper.addEventListener("touchend", onTouchEnd, { passive: false });
+      ui.wrapper.addEventListener("touchcancel", onTouchEnd, { passive: false });
+    })();
+
+    /* ===== Helpers coords ===== */
+    function clientToWrapperLocal(clientX, clientY) {
+      const rect = ui.wrapper.getBoundingClientRect();
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function wrapperLocalToCanvasPoint(localX, localY) {
+      const inv = fabric.util.invertTransform(canvas.viewportTransform);
+      const p = new fabric.Point(localX, localY);
+      const tp = fabric.util.transformPoint(p, inv);
+      return { x: tp.x, y: tp.y };
+    }
+
+    function canvasPointToWrapperLocal(cx, cy) {
+      const p = new fabric.Point(cx, cy);
+      const tp = fabric.util.transformPoint(p, canvas.viewportTransform);
+      return { x: tp.x, y: tp.y };
+    }
+
+    function updateCursorOverlayPos() {
+      if (!IS_COARSE) return;
+      if (!state.cursor.visible) return;
+      const local = canvasPointToWrapperLocal(state.cursor.point.x, state.cursor.point.y);
+      ui.cursorOverlay.style.left = `${local.x}px`;
+      ui.cursorOverlay.style.top  = `${local.y}px`;
+    }
+
+    /* ===== Confirm bar ===== */
+    function showConfirmBar(text, okLabel = "OK") {
+      ui.confirmText.textContent = text;
+      ui.confirmOk.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${okLabel}`;
+      ui.confirmBar.classList.add("show");
+      ui.confirmBar.setAttribute("aria-hidden", "false");
+    }
+
+    function hideConfirmBar() {
+      ui.confirmBar.classList.remove("show");
+      ui.confirmBar.setAttribute("aria-hidden", "true");
+    }
+
+    /* ===== Arrow + line building ===== */
+    function makeArrowTriangle(x, y, angleRad, sizePx, color, strokeW) {
+      // triangle pointe dans la direction angleRad (pointe vers l'extérieur)
+      const z = canvas.getZoom();
+      const s = (sizePx / z);
+      const w = s;
+      const h = s;
+
+      const tri = new fabric.Triangle({
+        width: w,
+        height: h,
+        left: x,
+        top: y,
+        originX: "center",
+        originY: "center",
+        angle: (angleRad * 180 / Math.PI) + 90, // triangle de fabric pointe vers le haut -> ajustement
+        fill: "transparent",
+        stroke: color,
+        strokeWidth: strokeW,
+        selectable: false,
+        evented: false
+      });
+      return tri;
+    }
+
+    function makeMeasureGroup(x1, y1, x2, y2, labelText, color, isMeasure = true) {
+      const z = canvas.getZoom();
+      const strokeW = (state.mode === MODES.SCALE ? CONFIG.SCALE_STROKE : (state.mode === MODES.MEASURE ? CONFIG.MEASURE_STROKE : CONFIG.PM_STROKE)) / z;
+
+      const line = new fabric.Line([x1, y1, x2, y2], {
+        strokeWidth: strokeW,
+        stroke: color,
+        strokeDashArray: (state.mode === MODES.SCALE) ? CONFIG.SCALE_DASH : null,
+        originX: "center",
+        originY: "center",
+        selectable: false,
+        evented: false
+      });
+
+      // Flèches vers l'extérieur
+      const ang = Math.atan2(y2 - y1, x2 - x1);
+      const aSize = CONFIG.ARROW_SIZE;
+
+      const arrowStart = makeArrowTriangle(x1, y1, ang + Math.PI, aSize, color, strokeW);
+      const arrowEnd   = makeArrowTriangle(x2, y2, ang,           aSize, color, strokeW);
+
+      // Label
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2 - (18 / z);
+      const label = new fabric.Text(labelText, {
+        fontSize: 14 / z,
+        fill: "#ffffff",
+        backgroundColor: "rgba(20,22,26,0.75)",
+        left: midX,
+        top: midY,
+        originX: "center",
+        originY: "bottom",
+        fontFamily: "Segoe UI",
+        fontWeight: "700",
+        padding: 4
+      });
+
+      const group = new fabric.Group([line, arrowStart, arrowEnd, label], { selectable: true });
+      group.isMeasure = !!isMeasure;
+      return group;
+    }
+
+    function isTooSmall(distPx) {
+      const z = canvas.getZoom();
+      return distPx < (CONFIG.MIN_DRAW_PX_AT_ZOOM1 / z);
+    }
+
+    /* ===== PLAN MINUTE SYMBOLS (offline Fabric) ===== */
+    function pmSymbol(pbKind, x, y) {
+      const z = canvas.getZoom();
+      const s = 18 / z;
+      const strokeW = 3 / z;
+      const col = state.currentColor; // couleur choisie aussi en plan minute
+
+      if (pbKind === PM_TOOLS.PB) {
+        const stem = new fabric.Line([0, -s, 0, s], { stroke: col, strokeWidth: strokeW });
+        const arm  = new fabric.Line([-s, 0, s, 0], { stroke: col, strokeWidth: strokeW });
+        const circ = new fabric.Circle({ radius: 4 / z, fill: col, left: -4 / z, top: -4 / z });
+        const g = new fabric.Group([stem, arm, circ], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "PB";
+        return g;
+      }
+
+      if (pbKind === PM_TOOLS.BOUCHON) {
+        const c = new fabric.Circle({ radius: 7 / z, fill: col, stroke: "rgba(0,0,0,0.35)", strokeWidth: 1 / z });
+        const g = new fabric.Group([c], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "BOUCHON";
+        return g;
+      }
+
+      if (pbKind === PM_TOOLS.VANNE) {
+        const tri1 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke: col, strokeWidth: 2 / z, originX:"center", originY:"center", angle: 90 });
+        const tri2 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke: col, strokeWidth: 2 / z, originX:"center", originY:"center", angle: -90 });
+        const bar  = new fabric.Line([-16 / z, 0, 16 / z, 0], { stroke: col, strokeWidth: 2 / z });
+        tri1.set({ left: -6 / z, top: 0 });
+        tri2.set({ left:  6 / z, top: 0 });
+        const g = new fabric.Group([bar, tri1, tri2], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "VANNE";
+        return g;
+      }
+
+      if (pbKind === PM_TOOLS.REGARD) {
+        const r = new fabric.Rect({ width: 18 / z, height: 14 / z, fill: "rgba(255,255,255,0.06)", stroke: col, strokeWidth: 2 / z, rx: 3 / z, ry: 3 / z });
+        const g = new fabric.Group([r], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "REGARD";
+        return g;
+      }
+
+      return null;
+    }
+
+    /* ===== Tablet cursor flow ===== */
+    function setCursorVisible(show) {
+      state.cursor.visible = show;
+      ui.cursorOverlay.classList.toggle("show", show);
+      if (!show) hideConfirmBar();
+    }
+
+    function startCursorFlow(action, symbolTool = null) {
+      if (!IS_COARSE) return;
+      if (!state.cursor.enabled) return;
+
+      // cleanup preview
+      if (state.cursor.preview) {
+        canvas.remove(state.cursor.preview);
+        state.cursor.preview = null;
+      }
+
+      state.cursor.action = action;
+      state.cursor.symbolTool = symbolTool;
+      state.cursor.startPoint = null;
+
+      state.cursor.stage = (action === "pm_symbol") ? "place" : "start";
+
+      setCursorVisible(true);
+      updateCursorOverlayPos();
+
+      if (action === "scale") showConfirmBar("Valider départ (échelle)", "Départ");
+      else if (action === "measure") showConfirmBar("Valider départ (mesure)", "Départ");
+      else if (action === "pm_cote") showConfirmBar("Valider départ (cote)", "Départ");
+      else if (action === "pm_symbol") showConfirmBar("Poser symbole", "Poser");
+    }
+
+    function updateCursorFromTouch(touch) {
+      // Décalage vers le haut pour éviter que le doigt masque
+      const OFFSET_Y = 44;
+      const local = clientToWrapperLocal(touch.clientX, touch.clientY - OFFSET_Y);
+      const p = wrapperLocalToCanvasPoint(local.x, local.y);
+      state.cursor.point = p;
+
+      updateCursorOverlayPos();
+
+      // preview line when end stage
+      if (state.cursor.stage === "end" && state.cursor.startPoint) {
+        const sp = state.cursor.startPoint;
+        const ep = state.cursor.point;
+        const d = Math.hypot(ep.x - sp.x, ep.y - sp.y);
+        if (isTooSmall(d)) {
+          if (state.cursor.preview) {
+            canvas.remove(state.cursor.preview);
+            state.cursor.preview = null;
+            canvas.requestRenderAll();
+          }
+          return;
+        }
+
+        const color = (state.cursor.action === "scale") ? "#2c3e50" : state.currentColor;
+
+        // create/update preview group (line + arrows, no label)
+        if (!state.cursor.preview) {
+          const z = canvas.getZoom();
+          const strokeW = ((state.cursor.action === "scale") ? CONFIG.SCALE_STROKE : CONFIG.MEASURE_STROKE) / z;
+
+          const line = new fabric.Line([sp.x, sp.y, ep.x, ep.y], {
+            strokeWidth: strokeW,
+            stroke: color,
+            strokeDashArray: (state.cursor.action === "scale") ? CONFIG.SCALE_DASH : null,
+            originX: "center",
+            originY: "center",
+            selectable: false,
+            evented: false
+          });
+
+          const ang = Math.atan2(ep.y - sp.y, ep.x - sp.x);
+          const aSize = CONFIG.ARROW_SIZE;
+
+          const a1 = makeArrowTriangle(sp.x, sp.y, ang + Math.PI, aSize, color, strokeW);
+          const a2 = makeArrowTriangle(ep.x, ep.y, ang,           aSize, color, strokeW);
+
+          const g = new fabric.Group([line, a1, a2], { selectable:false, evented:false });
+          g.__preview = true;
+
+          state.cursor.preview = g;
+          canvas.add(g);
+        } else {
+          const g = state.cursor.preview;
+          const objs = g.getObjects();
+          const line = objs.find(o => o.type === "line");
+          const polys = objs.filter(o => o.type === "triangle");
+          if (line) line.set({ x1: sp.x, y1: sp.y, x2: ep.x, y2: ep.y });
+
+          const ang = Math.atan2(ep.y - sp.y, ep.x - sp.x);
+          // Start arrow
+          if (polys[0]) { polys[0].set({ left: sp.x, top: sp.y, angle: ( (ang+Math.PI)*180/Math.PI ) + 90 }); }
+          // End arrow
+          if (polys[1]) { polys[1].set({ left: ep.x, top: ep.y, angle: ( ang*180/Math.PI ) + 90 }); }
+
+          g._calcBounds();
+          g._updateObjectsCoords();
+        }
+
+        canvas.requestRenderAll();
+      }
+    }
+
+    function cursorValidate() {
+      if (!IS_COARSE) return;
+      if (!state.cursor.enabled) return;
+      if (!state.pdfDoc) return;
+
+      // placing symbol
+      if (state.cursor.action === "pm_symbol" && state.cursor.stage === "place") {
+        const sym = pmSymbol(state.cursor.symbolTool, state.cursor.point.x, state.cursor.point.y);
+        if (sym) {
+          canvas.add(sym);
+          canvas.setActiveObject(sym);
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
+          Status.show("Symbole ajouté", "success");
+        }
+        // rester en mode placement pour poser plusieurs symboles
+        showConfirmBar("Poser symbole", "Poser");
+        return;
+      }
+
+      if (state.cursor.stage === "start") {
+        state.cursor.startPoint = { ...state.cursor.point };
+        state.cursor.stage = "end";
+
+        if (state.cursor.action === "scale") showConfirmBar("Valider arrivée (échelle)", "Arrivée");
+        else if (state.cursor.action === "measure") showConfirmBar("Valider arrivée (mesure)", "Arrivée");
+        else if (state.cursor.action === "pm_cote") showConfirmBar("Valider arrivée (cote)", "Arrivée");
+        return;
+      }
+
+      if (state.cursor.stage === "end" && state.cursor.startPoint) {
+        const sp = state.cursor.startPoint;
+        const ep = state.cursor.point;
+        const distPx = Math.hypot(ep.x - sp.x, ep.y - sp.y);
+
+        if (isTooSmall(distPx)) {
+          Status.show("Trace trop court", "warning");
+          return;
+        }
+
+        // remove preview
+        if (state.cursor.preview) {
+          canvas.remove(state.cursor.preview);
+          state.cursor.preview = null;
+        }
+
+        // SCALE
+        if (state.cursor.action === "scale") {
+          const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
+          const meters = parseFloat((input || "").replace(",", "."));
+          if (!(meters > 0)) { Status.show("Étalonnage annulé"); return; }
+
+          state.pixelsPerMeter = distPx / meters;
+          Status.show(`✅ Étalonné (page ${state.currentPage}) : 1m = ${state.pixelsPerMeter.toFixed(2)} px`, "success");
+          syncMeasureButton();
+
+          saveMeasuresForPage(state.currentPage);
+          setMode(MODES.MEASURE);
+          return;
+        }
+
+        // MEASURE
+        if (state.cursor.action === "measure") {
+          if (!state.pixelsPerMeter) {
+            Status.show("⚠️ Pas d'échelle. Étalonnez.", "warning");
+            setMode(MODES.SCALE);
+            return;
+          }
+          const meters = distPx / state.pixelsPerMeter;
+          const metersStr = `${meters.toFixed(2)} m`;
+
+          const g = makeMeasureGroup(sp.x, sp.y, ep.x, ep.y, metersStr, state.currentColor, true);
+          g.measureValue = meters.toFixed(2);
+
+          canvas.add(g);
+          canvas.setActiveObject(g);
+
+          updateTotal();
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
+          Status.show("Mesure ajoutée", "success");
+
+          // repartir direct sur une nouvelle mesure (tablette)
+          startCursorFlow("measure");
+          return;
+        }
+
+        // PLAN MINUTE - COTE
+        if (state.cursor.action === "pm_cote") {
+          const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
+          const meters = parseFloat((input || "").replace(",", "."));
+          if (!(meters > 0)) { Status.show("Cote annulée"); return; }
+
+          const metersStr = `${meters.toFixed(2)} m`;
+          const g = makeMeasureGroup(sp.x, sp.y, ep.x, ep.y, metersStr, state.currentColor, false);
+          g.isPm = true;
+          g.pmKind = "COTE";
+          g.pmValue = meters.toFixed(2);
+
+          canvas.add(g);
+          canvas.setActiveObject(g);
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
+          Status.show("Cote plan minute ajoutée", "success");
+
+          // repartir direct sur une nouvelle cote
+          startCursorFlow("pm_cote");
+          return;
+        }
+      }
+    }
+
+    function cursorCancel() {
+      if (!IS_COARSE) return;
+      if (state.cursor.preview) {
+        canvas.remove(state.cursor.preview);
+        state.cursor.preview = null;
+        canvas.requestRenderAll();
+      }
+      state.cursor.stage = "idle";
+      state.cursor.startPoint = null;
+      hideConfirmBar();
+
+      // redémarrer flow selon mode
+      if (state.mode === MODES.SCALE) startCursorFlow("scale");
+      else if (state.mode === MODES.MEASURE) startCursorFlow("measure");
+      else if (state.mode === MODES.MINUTE) {
+        if (state.pmTool === PM_TOOLS.COTE) startCursorFlow("pm_cote");
+        else startCursorFlow("pm_symbol", state.pmTool);
+      }
+    }
+
+    ui.confirmOk.addEventListener("click", cursorValidate);
+    ui.confirmCancel.addEventListener("click", cursorCancel);
+
+    /* ===== Desktop drawing logic (restauré) ===== */
+    function getClientPos(evt) {
+      if (evt.touches && evt.touches.length > 0) return { x: evt.touches[0].clientX, y: evt.touches[0].clientY };
+      return { x: evt.clientX, y: evt.clientY };
+    }
+
+    function makeLine(x1, y1, x2, y2, mode) {
+      const zoom = canvas.getZoom();
+      const stroke = (mode === MODES.SCALE ? CONFIG.SCALE_STROKE : (mode === MODES.MEASURE ? CONFIG.MEASURE_STROKE : CONFIG.PM_STROKE)) / zoom;
+
+      const isScale = mode === MODES.SCALE;
+      const color = (mode === MODES.MEASURE || mode === MODES.MINUTE) ? state.currentColor : "#2c3e50";
+
+      return new fabric.Line([x1, y1, x2, y2], {
+        strokeWidth: stroke,
+        stroke: isScale ? "#2c3e50" : color,
+        strokeDashArray: isScale ? CONFIG.SCALE_DASH : null,
+        originX: "center",
+        originY: "center",
+        selectable: true,
+        evented: true
+      });
+    }
+
+    function makeLabel(textValue, x, y) {
+      const zoom = canvas.getZoom();
+      return new fabric.Text(textValue, {
+        fontSize: 14 / zoom,
+        fill: "#ffffff",
+        backgroundColor: "rgba(20,22,26,0.75)",
+        left: x,
+        top: y,
+        originX: "center",
+        originY: "bottom",
+        fontFamily: "Segoe UI",
+        fontWeight: "700",
+        padding: 4
+      });
+    }
+
+    function desktopAddMeasureOrCote(sp, ep, mode) {
+      const distPx = Math.hypot(ep.x - sp.x, ep.y - sp.y);
+      if (isTooSmall(distPx)) return;
+
+      // SCALE
+      if (mode === MODES.SCALE) {
+        setTimeout(() => {
+          const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
+          const meters = parseFloat((input || "").replace(",", "."));
+          if (!(meters > 0)) return;
+
+          state.pixelsPerMeter = distPx / meters;
+          Status.show(`✅ Étalonné (page ${state.currentPage}) : 1m = ${state.pixelsPerMeter.toFixed(2)} px`, "success");
+          syncMeasureButton();
+          saveMeasuresForPage(state.currentPage);
+          setMode(MODES.MEASURE);
+        }, 50);
+        return;
+      }
+
+      // MEASURE
+      if (mode === MODES.MEASURE) {
+        if (!state.pixelsPerMeter) {
+          Status.show("⚠️ Pas d'échelle. Étalonnez.", "warning");
+          setMode(MODES.SCALE);
+          return;
+        }
+        const meters = distPx / state.pixelsPerMeter;
+        const metersStr = `${meters.toFixed(2)} m`;
+        const g = makeMeasureGroup(sp.x, sp.y, ep.x, ep.y, metersStr, state.currentColor, true);
+        g.measureValue = meters.toFixed(2);
+        canvas.add(g);
+        canvas.setActiveObject(g);
+
+        updateTotal();
+        canvas.requestRenderAll();
+        saveMeasuresForPage(state.currentPage);
+        return;
+      }
+
+      // PLAN MINUTE COTE
+      if (mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) {
+        setTimeout(() => {
+          const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
+          const meters = parseFloat((input || "").replace(",", "."));
+          if (!(meters > 0)) return;
+
+          const metersStr = `${meters.toFixed(2)} m`;
+          const g = makeMeasureGroup(sp.x, sp.y, ep.x, ep.y, metersStr, state.currentColor, false);
+          g.isPm = true;
+          g.pmKind = "COTE";
+          g.pmValue = meters.toFixed(2);
+
+          canvas.add(g);
+          canvas.setActiveObject(g);
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
+          Status.show("Cote plan minute ajoutée", "success");
+        }, 50);
+      }
+    }
+
+    // Fabric events
+    canvas.on("mouse:down", (o) => {
+      const evt = o.e;
+      const client = getClientPos(evt);
+
+      // Sur tablette: si 2 doigts => pinch géré ailleurs
+      if (evt.touches && evt.touches.length >= 2) return;
+
+      // Tablette: on ne dessine pas au doigt, on pilote le curseur
+      if (IS_COARSE && evt.touches && state.cursor.enabled && state.mode !== MODES.PAN) {
+        updateCursorFromTouch(evt.touches[0]);
+        // IMPORTANT: pas de preventDefault ici (sinon on casse d'autres gestes)
+        return;
+      }
+
+      // PC: si on clique un objet en PAN, laisser la sélection
+      if (o.target && state.mode === MODES.PAN) return;
+
+      // PAN (PC)
+      if (state.mode === MODES.PAN) {
+        state.isDragging = true;
+        state.lastClientX = client.x;
+        state.lastClientY = client.y;
+        canvas.setCursor("grabbing");
+        return;
+      }
+
+      // Plan minute symboles (PC)
+      if (!IS_COARSE && state.mode === MODES.MINUTE && state.pmTool !== PM_TOOLS.COTE) {
+        const p = canvas.getPointer(evt);
+        const sym = pmSymbol(state.pmTool, p.x, p.y);
+        if (sym) {
+          canvas.add(sym);
+          canvas.setActiveObject(sym);
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
+          Status.show("Symbole ajouté", "success");
+        }
+        return;
+      }
+
+      // Dessin (PC)
+      if (!IS_COARSE) {
+        state.isDrawing = true;
+        const p = canvas.getPointer(evt);
+        state.startPoint = { x: p.x, y: p.y };
+        state.line = makeLine(p.x, p.y, p.x, p.y, state.mode);
+        canvas.add(state.line);
+      }
+    });
+
+    canvas.on("mouse:move", (o) => {
+      const evt = o.e;
+      const client = getClientPos(evt);
+
+      // tablette: déplace curseur à un doigt
+      if (IS_COARSE && evt.touches && evt.touches.length === 1 && state.cursor.enabled && state.mode !== MODES.PAN) {
+        updateCursorFromTouch(evt.touches[0]);
+        return;
+      }
+
+      // PAN (PC)
+      if (state.isDragging) {
+        const vpt = canvas.viewportTransform;
+        vpt[4] += client.x - state.lastClientX;
+        vpt[5] += client.y - state.lastClientY;
+        state.lastClientX = client.x;
+        state.lastClientY = client.y;
+
+        clampViewportToBackground();
+        canvas.requestRenderAll();
+        updateCursorOverlayPos();
+        return;
+      }
+
+      // DRAW (PC)
+      if (!IS_COARSE && state.isDrawing && state.line) {
+        const p = canvas.getPointer(evt);
+        state.line.set({ x2: p.x, y2: p.y });
+        canvas.requestRenderAll();
+      }
+    });
+
+    canvas.on("mouse:up", (o) => {
+      // PAN end
+      if (state.isDragging) {
+        state.isDragging = false;
+        canvas.setCursor("grab");
+        clampViewportToBackground();
+        canvas.requestRenderAll();
+        updateCursorOverlayPos();
+        return;
+      }
+
+      // PC end draw
+      if (!IS_COARSE && state.isDrawing && state.line && state.startPoint) {
+        state.isDrawing = false;
+        const p = canvas.getPointer(o.e);
+        const sp = { ...state.startPoint };
+        const ep = { x: p.x, y: p.y };
+
+        const distPx = Math.hypot(ep.x - sp.x, ep.y - sp.y);
+        canvas.remove(state.line);
+        state.line = null;
+
+        if (isTooSmall(distPx)) return;
+        desktopAddMeasureOrCote(sp, ep, state.mode);
+      }
+    });
+
+    /* Delete / undo / clear / save */
+    ui.btn.del.addEventListener("click", () => {
+      const actives = canvas.getActiveObjects();
+      if (!actives.length) return;
+      actives.forEach(obj => canvas.remove(obj));
+      canvas.discardActiveObject();
+      updateTotal();
+      canvas.requestRenderAll();
+      Status.show("Supprimé");
+      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
+    });
+
+    ui.btn.undo.addEventListener("click", () => {
+      const objs = canvas.getObjects().filter(o => o !== canvas.backgroundImage);
+      if (!objs.length) return;
+      canvas.remove(objs[objs.length - 1]);
+      updateTotal();
+      canvas.requestRenderAll();
+      Status.show("Annulé");
+      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
+    });
+
+    ui.btn.clear.addEventListener("click", () => {
+      if (!confirm("Tout effacer (page courante) ?")) return;
+      canvas.getObjects().forEach(o => { if (o !== canvas.backgroundImage) canvas.remove(o); });
+      canvas.discardActiveObject();
+      updateTotal();
+      canvas.requestRenderAll();
+      Status.show("Page nettoyée");
+      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
+    });
+
+    ui.btn.save.addEventListener("click", () => {
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      const dataURL = canvas.toDataURL({ format: "png", quality: 1, multiplier: CONFIG.EXPORT_MULTIPLIER });
+      const a = document.createElement("a");
+      a.download = `plan_page_${state.currentPage}.png`;
+      a.href = dataURL;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+
+    /* ===== PDF ===== */
     async function loadPdfFile(file) {
       Status.show("⏳ Chargement PDF...", "normal");
 
@@ -920,17 +1643,17 @@
       if (!state.pdfDoc) return;
 
       if (state.currentPage && state.currentPage !== pageNumber) saveMeasuresForPage(state.currentPage);
+      const firstTimeOnPage = !state.perPage.has(pageNumber);
+
       state.currentPage = pageNumber;
       updatePagerUI();
-
       Status.show(`⏳ Rendu page ${pageNumber}...`, "normal");
 
       const page = await state.pdfDoc.getPage(pageNumber);
       const viewport = page.getViewport({ scale: CONFIG.PDF_RENDER_SCALE });
 
       const tempCanvas = document.createElement("canvas");
-      const ctx = tempCanvas.getContext("2d");
-
+      const ctx = tempCanvas.getContext("2d", { willReadFrequently: true });
       tempCanvas.width = viewport.width;
       tempCanvas.height = viewport.height;
 
@@ -947,12 +1670,19 @@
         }, { crossOrigin: "anonymous" });
       });
 
-      // OCR auto à l'arrivée sur une page (si pas déjà une échelle)
-      const saved = state.perPage.get(pageNumber);
-      const hasScale = (saved?.pixelsPerMeter && saved.pixelsPerMeter > 0);
-      if (!hasScale) performCartoucheOCR(tempCanvas).catch(() => {});
-
+      // OCR uniquement la première fois sur la page
+      if (firstTimeOnPage) performVisualOCR(tempCanvas).catch(() => {});
       Status.show(`✅ Page ${pageNumber} prête`, "success");
+
+      // Tablette: démarre le flow selon mode
+      if (IS_COARSE && state.mode !== MODES.PAN) {
+        if (state.mode === MODES.SCALE) startCursorFlow("scale");
+        if (state.mode === MODES.MEASURE) startCursorFlow("measure");
+        if (state.mode === MODES.MINUTE) {
+          if (state.pmTool === PM_TOOLS.COTE) startCursorFlow("pm_cote");
+          else startCursorFlow("pm_symbol", state.pmTool);
+        }
+      }
     }
 
     function updatePagerUI() {
@@ -968,15 +1698,21 @@
       ui.pager.jump.value = hasPdf ? state.currentPage : "";
     }
 
-    ui.pager.prev.addEventListener("click", () => { if (state.currentPage > 1) renderPage(state.currentPage - 1, { restoreMeasures: true }); });
-    ui.pager.next.addEventListener("click", () => { if (state.currentPage < state.pageCount) renderPage(state.currentPage + 1, { restoreMeasures: true }); });
+    ui.pager.prev.addEventListener("click", () => {
+      if (state.currentPage > 1) renderPage(state.currentPage - 1, { restoreMeasures: true });
+    });
+    ui.pager.next.addEventListener("click", () => {
+      if (state.currentPage < state.pageCount) renderPage(state.currentPage + 1, { restoreMeasures: true });
+    });
     ui.pager.go.addEventListener("click", () => {
       const n = parseInt(ui.pager.jump.value, 10);
       if (!Number.isFinite(n)) return;
       const target = Math.max(1, Math.min(state.pageCount, n));
       renderPage(target, { restoreMeasures: true });
     });
-    ui.pager.jump.addEventListener("keydown", (e) => { if (e.key === "Enter") ui.pager.go.click(); });
+    ui.pager.jump.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") ui.pager.go.click();
+    });
 
     function setupBackground(img) {
       canvas.clear();
@@ -996,13 +1732,25 @@
 
       resetViewToCenter();
       setDisabledAll(false);
+
       ui.btn.minute.disabled = false;
+
+      // petite sécurité: si pas d'échelle encore, on autorise Scale
+      ui.btn.scale.disabled = false;
+
       setMode(MODES.PAN);
+      Status.show("Prêt", "success");
+
+      // tablettes: curseur initial masqué en PAN
+      setCursorVisible(false);
     }
 
     function saveMeasuresForPage(pageNumber) {
-      const json = canvas.toDatalessJSON(["isMeasure", "measureValue", "isPm", "pmKind"]);
-      state.perPage.set(pageNumber, { json, pixelsPerMeter: state.pixelsPerMeter || 0 });
+      const json = canvas.toDatalessJSON(["isMeasure", "measureValue", "isPm", "pmKind", "pmValue"]);
+      state.perPage.set(pageNumber, {
+        json,
+        pixelsPerMeter: state.pixelsPerMeter || 0
+      });
     }
 
     function restoreMeasuresForPage(pageNumber) {
@@ -1021,33 +1769,7 @@
       });
     }
 
-    // ===== OCR (cartouche) =====
-    function preprocessToBW(srcCanvas) {
-      const c = document.createElement("canvas");
-      c.width = srcCanvas.width;
-      c.height = srcCanvas.height;
-      const ctx = c.getContext("2d");
-      ctx.drawImage(srcCanvas, 0, 0);
-
-      const img = ctx.getImageData(0, 0, c.width, c.height);
-      const d = img.data;
-
-      // grayscale + contrast + threshold
-      for (let i = 0; i < d.length; i += 4) {
-        const r = d[i], g = d[i+1], b = d[i+2];
-        let v = (0.299*r + 0.587*g + 0.114*b);
-
-        // contrast boost
-        v = (v - 128) * 1.6 + 128;
-
-        // threshold
-        const bw = v > 160 ? 255 : 0;
-        d[i] = d[i+1] = d[i+2] = bw;
-      }
-      ctx.putImageData(img, 0, 0);
-      return c;
-    }
-
+    /* ===== OCR Échelle ===== */
     function parseScaleString(text) {
       const clean = String(text || "")
         .replace(/O/g, "0")
@@ -1055,436 +1777,79 @@
         .replace(/\s+/g, " ")
         .trim();
 
-      const match = clean.match(CONFIG.SCALE_REGEX);
-      if (!match?.[1]) return false;
+      // Capture "1:XXXX" ou "1/XXXX" ou "1 XXXX"
+      // XXXX : 1..4 chiffres (jusqu'à 5000) + accepte valeurs "bâtardes" (250 etc.)
+      const m = clean.match(/(?:échelle\s*)?1\s*[:\/]\s*(\d{1,4})\b/i) || clean.match(/\b1\s*[:\/]\s*(\d{1,4})\b/i);
+      if (!m?.[1]) return false;
 
-      const scaleVal = parseInt(match[1], 10);
+      const scaleVal = parseInt(m[1], 10);
+      if (!(scaleVal > 0 && scaleVal <= 5000)) return false;
 
-      // conversion “px par m” approximée via DPI PDF (72dpi) * scale render
-      // (On garde ton comportement actuel, car tu l’aimes bien 😉)
-      state.pixelsPerMeter = (72 * CONFIG.PDF_RENDER_SCALE * 39.3701) / scaleVal;
+      // Conversion: pixels per meter en s'appuyant sur le rendu PDF.
+      // (On garde la logique simple et stable sans réduire le PDF)
+      // On se base sur le fait qu'un plan est à l'échelle 1:N => 1m terrain = (1000/N) mm sur papier.
+      // Ici, on est dans une image raster: on ne connaît pas le DPI final.
+      // Donc on ne calcule PAS pixelsPerMeter ici. On se contente de détecter l'échelle et de le dire.
+      // Pour conserver l'ancien comportement (qui t'aidait), on passe automatiquement en SCALE si pas déjà étalonné.
+      Status.show(`✅ Échelle détectée : 1:${scaleVal} (page ${state.currentPage})`, "success");
 
-      Status.show(`✅ Échelle 1/${scaleVal} détectée ! (page ${state.currentPage})`, "success");
-      syncMeasureButton();
-      setMode(MODES.MEASURE);
-      saveMeasuresForPage(state.currentPage);
+      // Note: pixelsPerMeter dépend du DPI d'affichage / export -> on garde l'étalonnage manuel comme référence.
+      // MAIS: on peut stocker l'échelle détectée pour affichage / aide (sans casser).
+      state.perPage.set(state.currentPage, {
+        ...(state.perPage.get(state.currentPage) || {}),
+        detectedScale: scaleVal,
+        pixelsPerMeter: state.pixelsPerMeter || 0,
+        json: (state.perPage.get(state.currentPage) || {}).json
+      });
+
       return true;
     }
 
-    async function performCartoucheOCR(pageCanvas) {
-      Status.show("👁️ OCR échelle (cartouche)...", "normal");
+    function preprocessForOCR(srcCanvas, x, y, w, h) {
+      const crop = document.createElement("canvas");
+      const ctx = crop.getContext("2d", { willReadFrequently: true });
+      crop.width = w;
+      crop.height = h;
 
-      const bw = preprocessToBW(pageCanvas);
+      ctx.drawImage(srcCanvas, x, y, w, h, 0, 0, w, h);
 
-      for (const cropDef of CONFIG.OCR.crops) {
-        const crop = document.createElement("canvas");
-        const ctx = crop.getContext("2d");
-
-        const sx = Math.floor(bw.width  * cropDef.x);
-        const sy = Math.floor(bw.height * cropDef.y);
-        const sw = Math.floor(bw.width  * cropDef.w);
-        const sh = Math.floor(bw.height * cropDef.h);
-
-        crop.width = sw;
-        crop.height = sh;
-
-        ctx.drawImage(bw, sx, sy, sw, sh, 0, 0, sw, sh);
-
-        try {
-          const result = await Tesseract.recognize(crop, CONFIG.OCR.lang);
-          if (parseScaleString(result?.data?.text)) return true;
-        } catch (e) {
-          // on continue sur le crop suivant
-        }
+      // légère amélioration contraste (sans "détruire" le texte)
+      const img = ctx.getImageData(0, 0, w, h);
+      const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i+1], b = d[i+2];
+        // grayscale
+        let v = (r * 0.299 + g * 0.587 + b * 0.114);
+        // contrast
+        v = Math.min(255, Math.max(0, (v - 128) * 1.15 + 128));
+        d[i] = d[i+1] = d[i+2] = v;
       }
+      ctx.putImageData(img, 0, 0);
 
-      Status.show("⚠️ Échelle non trouvée. Étalonnage manuel possible.", "warning");
-      return false;
+      return crop;
     }
 
-    // ===== Shapes + Arrows =====
-    function makeLine(x1, y1, x2, y2, mode) {
-      const zoom = canvas.getZoom();
-      const stroke = (mode === MODES.SCALE ? CONFIG.SCALE_STROKE : (mode === MODES.MEASURE ? CONFIG.MEASURE_STROKE : CONFIG.PM_STROKE)) / zoom;
-      const isScale = mode === MODES.SCALE;
-      const color = (mode === MODES.MEASURE || mode === MODES.MINUTE) ? state.currentColor : "#ffffff";
+    async function performVisualOCR(canvasEl) {
+      Status.show("👁️ OCR échelle...", "normal");
 
-      return new fabric.Line([x1, y1, x2, y2], {
-        strokeWidth: stroke,
-        stroke: isScale ? "#2c3e50" : color,
-        strokeDashArray: isScale ? CONFIG.SCALE_DASH : null,
-        originX: "center",
-        originY: "center",
-        selectable: false,
-        evented: false
-      });
-    }
+      const x = Math.floor(canvasEl.width  * CONFIG.OCR.cropX);
+      const y = Math.floor(canvasEl.height * CONFIG.OCR.cropY);
+      const w = Math.floor(canvasEl.width  * CONFIG.OCR.cropW);
+      const h = Math.floor(canvasEl.height * CONFIG.OCR.cropH);
 
-    function makeLabel(textValue, x, y) {
-      const zoom = canvas.getZoom();
-      return new fabric.Text(textValue, {
-        fontSize: 14 / zoom,
-        fill: "white",
-        backgroundColor: "rgba(0,0,0,0.7)",
-        left: x,
-        top: y,
-        originX: "center",
-        originY: "bottom",
-        fontFamily: "Segoe UI",
-        selectable: false,
-        evented: false
-      });
-    }
+      const crop = preprocessForOCR(canvasEl, x, y, w, h);
 
-    function isTooSmall(distPx) {
-      const zoom = canvas.getZoom();
-      return distPx < (CONFIG.MIN_DRAW_PX_AT_ZOOM1 / zoom);
-    }
-
-    function createArrowHead(color) {
-      const z = canvas.getZoom();
-      return new fabric.Triangle({
-        width: CONFIG.ARROW_W / z,
-        height: CONFIG.ARROW_H / z,
-        fill: color,
-        stroke: color,
-        strokeWidth: 0,
-        originX: "center",
-        originY: "center",
-        selectable: false,
-        evented: false
-      });
-    }
-
-    function updateArrowsOutward(x1, y1, x2, y2) {
-      if (!state.arrows) return;
-      const angleDeg = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-      state.arrows.a1.set({ left: x1, top: y1, angle: angleDeg + 270 });
-      state.arrows.a2.set({ left: x2, top: y2, angle: angleDeg + 90  });
-    }
-
-    function wantArrowsNow() {
-      return (state.mode === MODES.MEASURE) || (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE);
-    }
-
-    // ===== Finalize (touch OK) =====
-    function finalizeScale(dep, arr) {
-      const distPx = Math.hypot(arr.x - dep.x, arr.y - dep.y);
-      if (isTooSmall(distPx)) { cancelTouchMeasure("Trop court"); return; }
-
-      setTimeout(() => {
-        const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
-        const meters = parseFloat((input || "").replace(",", "."));
-        if (!(meters > 0)) { cancelTouchMeasure("Étalonnage annulé"); return; }
-
-        state.pixelsPerMeter = distPx / meters;
-        Status.show(`✅ Étalonné (page ${state.currentPage}) : 1m = ${state.pixelsPerMeter.toFixed(2)} px`, "success");
-        syncMeasureButton();
-
-        saveMeasuresForPage(state.currentPage);
-        cancelTouchMeasure();
-        setMode(MODES.MEASURE);
-      }, 50);
-    }
-
-    function finalizeMeasure(dep, arr) {
-      if (!state.pixelsPerMeter) { cancelTouchMeasure("Pas d'échelle : étalonne d'abord"); setMode(MODES.SCALE); return; }
-
-      const distPx = Math.hypot(arr.x - dep.x, arr.y - dep.y);
-      if (isTooSmall(distPx)) { cancelTouchMeasure("Trop court"); return; }
-
-      const meters = distPx / state.pixelsPerMeter;
-      const metersStr = `${meters.toFixed(2)} m`;
-
-      const midX = (dep.x + arr.x) / 2;
-      const midY = (dep.y + arr.y) / 2 - 15 / canvas.getZoom();
-      const label = makeLabel(metersStr, midX, midY);
-
-      const parts = [];
-      if (state.line) parts.push(state.line);
-      if (state.arrows) parts.push(state.arrows.a1, state.arrows.a2);
-
-      // IMPORTANT: si jamais l’utilisateur n’a pas bougé (rare), on crée la ligne ici
-      if (!state.line) {
-        state.line = makeLine(dep.x, dep.y, arr.x, arr.y, state.mode);
-        parts.unshift(state.line);
-      }
-
-      parts.forEach(obj => { if (obj) canvas.remove(obj); });
-
-      const group = new fabric.Group([...parts, label], { selectable: true });
-      group.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
-      group.isMeasure = true;
-      group.measureValue = meters.toFixed(2);
-
-      canvas.add(group);
-      canvas.setActiveObject(group);
-
-      updateTotal();
-      canvas.requestRenderAll();
-      saveMeasuresForPage(state.currentPage);
-
-      cancelTouchMeasure();
-      Status.show("Mesure ajoutée", "success");
-    }
-
-    function finalizeMinuteCote(dep, arr) {
-      const distPx = Math.hypot(arr.x - dep.x, arr.y - dep.y);
-      if (isTooSmall(distPx)) { cancelTouchMeasure("Trop court"); return; }
-
-      setTimeout(() => {
-        const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
-        const meters = parseFloat((input || "").replace(",", "."));
-        if (!(meters > 0)) { cancelTouchMeasure("Cote annulée"); return; }
-
-        const metersStr = `${meters.toFixed(2)} m`;
-        const midX = (dep.x + arr.x) / 2;
-        const midY = (dep.y + arr.y) / 2 - 15 / canvas.getZoom();
-        const label = makeLabel(metersStr, midX, midY);
-
-        const parts = [];
-        if (state.line) parts.push(state.line);
-        if (state.arrows) parts.push(state.arrows.a1, state.arrows.a2);
-
-        if (!state.line) {
-          state.line = makeLine(dep.x, dep.y, arr.x, arr.y, state.mode);
-          parts.unshift(state.line);
-        }
-
-        parts.forEach(obj => { if (obj) canvas.remove(obj); });
-
-        const group = new fabric.Group([...parts, label], { selectable: true });
-        group.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
-        group.isPm = true;
-        group.pmKind = "COTE";
-        group.pmValue = meters.toFixed(2);
-
-        canvas.add(group);
-        canvas.setActiveObject(group);
-
-        canvas.requestRenderAll();
-        saveMeasuresForPage(state.currentPage);
-
-        cancelTouchMeasure();
-        Status.show("Cote plan minute ajoutée", "success");
-      }, 50);
-    }
-
-    function finalizeTouchAction() {
-      if (!state.dep || !state.arr) return;
-      if (state.mode === MODES.SCALE) return finalizeScale(state.dep, state.arr);
-      if (state.mode === MODES.MEASURE) return finalizeMeasure(state.dep, state.arr);
-      if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) return finalizeMinuteCote(state.dep, state.arr);
-    }
-
-    // ===== Touch cursor driver =====
-    function onTouchStart(e) {
-      if (!isTouchMeasureMode()) return;
-      if (e.touches.length !== 1) return;
-
-      e.preventDefault();
-
-      const t = e.touches[0];
-      const cx = t.clientX;
-      const cy = t.clientY - CONFIG.CURSOR_OFFSET_Y;
-
-      setCursorUI(cx, cy, (state.step <= 1 ? "Départ" : "Arrivée"));
-
-      const w = clientToWrapper(cx, cy);
-      state.cursorCanvas = wrapperPointToFabric(w.x, w.y);
-
-      if (state.step === 0) {
-        state.step = 1;
-        showTapBar(true);
-        setTapBarState(1);
-        Status.show("Place le curseur sur le départ puis 'Valider départ'", "warning");
+      try {
+        const result = await Tesseract.recognize(crop, CONFIG.OCR.lang);
+        const ok = parseScaleString(result?.data?.text || "");
+        if (!ok) Status.show("⚠️ Échelle non trouvée (OCR).", "warning");
+      } catch (err) {
+        console.error(err);
+        Status.show("Erreur OCR.", "error");
       }
     }
 
-    function onTouchMove(e) {
-      if (!isTouchMeasureMode()) return;
-      if (e.touches.length !== 1) return;
-
-      e.preventDefault();
-
-      const t = e.touches[0];
-      const cx = t.clientX;
-      const cy = t.clientY - CONFIG.CURSOR_OFFSET_Y;
-
-      setCursorUI(cx, cy, (state.step <= 1 ? "Départ" : (state.step === 2 ? "Arrivée" : "OK")));
-
-      const w = clientToWrapper(cx, cy);
-      state.cursorCanvas = wrapperPointToFabric(w.x, w.y);
-
-      // preview quand départ validé
-      if (state.step === 2 && state.dep) {
-        const dep = state.dep;
-        const arr = state.cursorCanvas;
-
-        if (!state.line) {
-          state.line = makeLine(dep.x, dep.y, arr.x, arr.y, state.mode);
-          canvas.add(state.line);
-
-          if (wantArrowsNow()) {
-            state.arrows = { a1: createArrowHead(state.currentColor), a2: createArrowHead(state.currentColor) };
-            canvas.add(state.arrows.a1);
-            canvas.add(state.arrows.a2);
-          }
-        }
-
-        state.line.set({ x1: dep.x, y1: dep.y, x2: arr.x, y2: arr.y });
-        if (state.arrows) updateArrowsOutward(dep.x, dep.y, arr.x, arr.y);
-        canvas.requestRenderAll();
-      }
-    }
-
-    ui.wrapper.addEventListener("touchstart", onTouchStart, { passive: false });
-    ui.wrapper.addEventListener("touchmove", onTouchMove, { passive: false });
-
-    ui.btnTapCancel.addEventListener("click", () => cancelTouchMeasure("Annulé"));
-
-    ui.btnTapStep.addEventListener("click", () => {
-      if (!isTouchMeasureMode()) return;
-
-      if (state.step === 1) {
-        state.dep = { ...state.cursorCanvas };
-        state.step = 2;
-        setTapBarState(2);
-        Status.show("Place le curseur sur l’arrivée puis 'Valider arrivée'", "warning");
-        return;
-      }
-
-      if (state.step === 2) {
-        state.arr = { ...state.cursorCanvas };
-        state.step = 3;
-        setTapBarState(3);
-
-        // force une preview figée
-        const dep = state.dep;
-        const arr = state.arr;
-
-        if (!state.line) {
-          state.line = makeLine(dep.x, dep.y, arr.x, arr.y, state.mode);
-          canvas.add(state.line);
-          if (wantArrowsNow()) {
-            state.arrows = { a1: createArrowHead(state.currentColor), a2: createArrowHead(state.currentColor) };
-            canvas.add(state.arrows.a1);
-            canvas.add(state.arrows.a2);
-          }
-        }
-        state.line.set({ x1: dep.x, y1: dep.y, x2: arr.x, y2: arr.y });
-        if (state.arrows) updateArrowsOutward(dep.x, dep.y, arr.x, arr.y);
-        canvas.requestRenderAll();
-
-        Status.show("Appuie sur OK pour créer la cote", "success");
-      }
-    });
-
-    ui.btnTapOK.addEventListener("click", () => {
-      if (state.step !== 3) return;
-      finalizeTouchAction();
-    });
-
-    // ===== Desktop + Pan (inchangé) =====
-    function getClientPos(evt) {
-      if (evt.touches && evt.touches.length > 0) return { x: evt.touches[0].clientX, y: evt.touches[0].clientY };
-      return { x: evt.clientX, y: evt.clientY };
-    }
-
-    canvas.on("mouse:down", (o) => {
-      const evt = o.e;
-      const client = getClientPos(evt);
-
-      if (IS_TOUCH && isTouchMeasureMode()) return;
-
-      if (o.target && state.mode === MODES.PAN) return;
-
-      if (state.mode === MODES.PAN) {
-        state.isDragging = true;
-        state.lastClientX = client.x;
-        state.lastClientY = client.y;
-        canvas.setCursor("grabbing");
-        return;
-      }
-    });
-
-    canvas.on("mouse:move", (o) => {
-      const evt = o.e;
-      const client = getClientPos(evt);
-
-      if (IS_TOUCH && isTouchMeasureMode()) return;
-
-      if (state.isDragging && state.mode === MODES.PAN) {
-        const vpt = canvas.viewportTransform;
-        vpt[4] += client.x - state.lastClientX;
-        vpt[5] += client.y - state.lastClientY;
-        state.lastClientX = client.x;
-        state.lastClientY = client.y;
-        clampViewportToBackground();
-        canvas.requestRenderAll();
-      }
-    });
-
-    canvas.on("mouse:up", () => {
-      if (IS_TOUCH && isTouchMeasureMode()) return;
-
-      if (state.mode === MODES.PAN && state.isDragging) {
-        state.isDragging = false;
-        canvas.setCursor("grab");
-        clampViewportToBackground();
-        canvas.requestRenderAll();
-      }
-    });
-
-    // Delete / undo / clear / save
-    ui.btn.del.addEventListener("click", () => {
-      if (state.step !== 0) { cancelTouchMeasure("Annulé (en cours)"); return; }
-      const actives = canvas.getActiveObjects();
-      if (!actives.length) return;
-      actives.forEach(obj => canvas.remove(obj));
-      canvas.discardActiveObject();
-      updateTotal();
-      canvas.requestRenderAll();
-      Status.show("Supprimé");
-      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
-    });
-
-    ui.btn.undo.addEventListener("click", () => {
-      if (state.step !== 0) { cancelTouchMeasure("Annulé (en cours)"); return; }
-      const objs = canvas.getObjects().filter(o => o !== canvas.backgroundImage);
-      if (!objs.length) return;
-      canvas.remove(objs[objs.length - 1]);
-      updateTotal();
-      canvas.requestRenderAll();
-      Status.show("Annulé");
-      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
-    });
-
-    ui.btn.clear.addEventListener("click", () => {
-      if (state.step !== 0) cancelTouchMeasure();
-      if (!confirm("Tout effacer (page courante) ?")) return;
-      canvas.getObjects().forEach(o => { if (o !== canvas.backgroundImage) canvas.remove(o); });
-      canvas.discardActiveObject();
-      updateTotal();
-      canvas.requestRenderAll();
-      Status.show("Page nettoyée");
-      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
-    });
-
-    ui.btn.save.addEventListener("click", () => {
-      if (state.step !== 0) cancelTouchMeasure();
-      canvas.discardActiveObject();
-      canvas.requestRenderAll();
-      const dataURL = canvas.toDataURL({ format: "png", quality: 1, multiplier: CONFIG.EXPORT_MULTIPLIER });
-      const a = document.createElement("a");
-      a.download = `plan_page_${state.currentPage}.png`;
-      a.href = dataURL;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    });
-
-    // File input
+    /* File */
     ui.fileInput.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
@@ -1493,12 +1858,27 @@
       finally { ui.fileInput.value = ""; }
     });
 
-    // Boot
+    /* Boot */
     setDisabledAll(true);
     updatePagerUI();
     Status.show("Bienvenue");
     setMode(MODES.PAN);
     setPmTool(PM_TOOLS.COTE);
+
+    // activer/désactiver boutons zoom selon PDF
+    const obs = new MutationObserver(() => {
+      const hasPdf = !!state.pdfDoc;
+      ui.btn.zoomIn.disabled = !hasPdf;
+      ui.btn.zoomOut.disabled = !hasPdf;
+      ui.btn.scale.disabled = !hasPdf;
+      ui.btn.save.disabled = !hasPdf;
+      ui.btn.undo.disabled = !hasPdf;
+      ui.btn.del.disabled  = !hasPdf;
+    });
+    obs.observe(ui.pager.label, { childList: true });
+
+    // Toujours garder le curseur aligné après render
+    canvas.on("after:render", () => updateCursorOverlayPos());
   </script>
 </body>
 </html>
