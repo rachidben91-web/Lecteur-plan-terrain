@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b1220" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Mesureur Réseaux - V2.1.2 (SIG Pro)</title>
+  <title>Mesureur Réseaux - V2.1.3 (SIG Pro)</title>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -448,7 +448,7 @@
     }
     .mp-hint b{ color: var(--text); }
 
-    /* ===== Touch cursor (offset crosshair) ===== */
+    /* ===== Touch cursor overlay (offset) ===== */
     #touchCursor{
       position:absolute;
       z-index:110;
@@ -479,21 +479,52 @@
       transform: translate(-50%,-50%);
       box-shadow: 0 0 0 2px rgba(0,0,0,.25);
     }
-    #touchHint{
+
+    /* ===== Confirm pad near cursor ===== */
+    #confirmPad{
       position:absolute;
-      z-index:111;
-      padding:6px 10px;
-      border-radius:999px;
-      background: rgba(8, 12, 22, .82);
-      border: 1px solid rgba(255,255,255,.14);
-      color: rgba(233,238,248,.9);
-      font-size:.78rem;
-      font-weight:1000;
-      pointer-events:none;
+      z-index:112;
       display:none;
-      transform: translate(-50%, -130%);
-      white-space:nowrap;
-      box-shadow: 0 10px 22px rgba(0,0,0,.35);
+      gap:8px;
+      padding:8px;
+      border-radius:16px;
+      background: rgba(8,12,22,.86);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow: 0 12px 28px rgba(0,0,0,.45);
+      backdrop-filter: blur(10px);
+      transform: translate(-50%, 14px);
+      pointer-events:auto;
+    }
+    #confirmPad .cbtn{
+      border:none;
+      cursor:pointer;
+      padding:10px 12px;
+      border-radius:14px;
+      font-weight:1000;
+      color: var(--text);
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.14);
+      display:flex;
+      align-items:center;
+      gap:8px;
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
+    }
+    #confirmPad .cbtn:active{ transform: scale(.98); }
+    #confirmPad .cbtn.ok{
+      background: rgba(46,211,168,.14);
+      border-color: rgba(46,211,168,.25);
+      color:#d8fff4;
+    }
+    #confirmPad .cbtn.end{
+      background: rgba(58,163,255,.14);
+      border-color: rgba(58,163,255,.25);
+      color:#d9eeff;
+    }
+    #confirmPad .cbtn.cancel{
+      background: rgba(255,107,107,.12);
+      border-color: rgba(255,107,107,.22);
+      color:#ffe0e0;
     }
 
     /* ===== Version ===== */
@@ -507,19 +538,6 @@
       color: var(--text);
       font-weight:1000;
       letter-spacing:.2px;
-    }
-
-    /* ===== Responsive ===== */
-    @media (max-width: 900px){
-      :root{
-        --frame-top: 78px;
-        --frame-left: 10px;
-        --frame-right: 10px;
-        --frame-bottom: 16px;
-      }
-      .pager .page-label{ min-width: 120px; }
-      .btn-icon{ width:56px; height:56px; font-size:1.2rem; }
-      #minutePanel{ min-width: 290px; }
     }
 
     /* Portrait compact (Option A) */
@@ -542,7 +560,7 @@
         <div class="logo"><i class="fa-solid fa-ruler-combined"></i></div>
         <div class="title">
           <div class="t1">Mesureur Réseaux</div>
-          <div class="t2">V2.1.2 • SIG Pro</div>
+          <div class="t2">V2.1.3 • SIG Pro</div>
         </div>
       </div>
 
@@ -623,9 +641,8 @@
     </div>
 
     <div class="mp-hint">
-      • <b>Cote</b> : trace une ligne → saisis la valeur terrain (m).<br>
-      • <b>PB/B/V/R</b> : clique pour poser le symbole.<br>
-      • Couleur : palette disponible (Mesure & Plan minute).
+      • <b>Cote</b> (tablette) : place la cible → <b>Départ OK</b> → vise → <b>Arrivée OK</b> (avec trait en live).<br>
+      • <b>PB/B/V/R</b> : clique pour poser le symbole (la cible sert d’aide de pointage).
     </div>
   </div>
 
@@ -650,11 +667,16 @@
     <button id="btnDelete" class="btn-icon btn-delete" disabled title="Supprimer"><i class="fa-solid fa-xmark"></i></button>
   </div>
 
-  <!-- Touch cursor overlay -->
+  <!-- Touch cursor + confirm pad -->
   <div id="touchCursor"><div class="dot"></div></div>
-  <div id="touchHint"></div>
 
-  <div id="versionLabel">V2.1.2 (SIG Pro)</div>
+  <div id="confirmPad">
+    <button id="btnConfirmStart" class="cbtn ok"><i class="fa-solid fa-location-dot"></i> Départ OK</button>
+    <button id="btnConfirmEnd" class="cbtn end" disabled><i class="fa-solid fa-flag-checkered"></i> Arrivée OK</button>
+    <button id="btnConfirmCancel" class="cbtn cancel"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <div id="versionLabel">V2.1.3 (SIG Pro)</div>
 
   <div id="appFrame"></div>
   <div id="canvas-wrapper"><canvas id="c"></canvas></div>
@@ -664,7 +686,7 @@
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
     const CONFIG = Object.freeze({
-      PDF_RENDER_SCALE: 3.0,       // ne pas réduire
+      PDF_RENDER_SCALE: 3.0,
       EXPORT_MULTIPLIER: 3,
       MAX_ZOOM: 20,
       MIN_DRAW_PX_AT_ZOOM1: 5,
@@ -684,8 +706,8 @@
         binarizeThreshold: 170,
       },
 
+      // 1:200, 1/200, 1  :  250, etc (up to 5000)
       SCALE_REGEX: /(?:echelle|échelle)?\s*1\s*[:\/.,\s]\s*(\d{2,5})\b/i,
-      OCR_DO_NOT_AUTO_SWITCH_TO_MEASURE: true,
 
       // Touch cursor offset (croix au dessus du doigt)
       TOUCH_OFFSET_X: 0,
@@ -725,7 +747,10 @@
       scaleBadge: $("#scaleBadge"),
 
       touchCursor: $("#touchCursor"),
-      touchHint: $("#touchHint"),
+      confirmPad: $("#confirmPad"),
+      confirmStart: $("#btnConfirmStart"),
+      confirmEnd: $("#btnConfirmEnd"),
+      confirmCancel: $("#btnConfirmCancel"),
 
       minutePanel: $("#minutePanel"),
       minuteToolLabel: $("#minuteToolLabel"),
@@ -753,6 +778,10 @@
         fullscreen: $("#btnFullscreen"),
       }
     };
+
+    const isTouchDevice = (() => {
+      return (("ontouchstart" in window) || (navigator.maxTouchPoints > 0));
+    })();
 
     function setDisabledAll(disabled) {
       Object.values(ui.btn).forEach(b => b.disabled = disabled);
@@ -786,14 +815,8 @@
       currentColor: "#ff6b6b",
 
       isDragging: false,
-      isDrawing: false,
       lastClientX: 0,
       lastClientY: 0,
-
-      line: null,
-      arrowA: null,
-      arrowB: null,
-      startPoint: null,
 
       pdfDoc: null,
       pageCount: 0,
@@ -801,15 +824,18 @@
 
       perPage: new Map(),
 
-      // touch cursor
-      isTouchActive: false,
-      lastPointerClient: null,   // {x,y} on screen
-      lastPointerCanvas: null,   // {x,y} on fabric canvas coords
+      // ===== Tablet targeting workflow =====
+      cursorClient: null,     // {x,y} finger pos
+      cursorCanvas: null,     // {x,y} where crosshair targets (offset)
+      targetingActive: false, // when confirm pad is open
+      targetingStage: "idle", // idle | armed_start | armed_end
+      targetStart: null,      // {x,y} in canvas coords
+      previewLine: null,      // fabric.Line (ghost)
     };
 
     const canvas = new fabric.Canvas("c", { selection: true, preserveObjectStacking: true });
 
-    /* ====== Portrait compact handling ====== */
+    /* ===== Portrait compact handling ===== */
     function updateOrientationCompact() {
       const isPortrait = window.innerHeight > window.innerWidth;
       document.body.classList.toggle("portrait-compact", isPortrait);
@@ -871,58 +897,7 @@
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
-    function setMode(mode) {
-      state.mode = mode;
-
-      Object.values(ui.btn).forEach(b => b.classList.remove("active"));
-      if (ui.btn[mode]) ui.btn[mode].classList.add("active");
-
-      // palette: Mesure + Plan minute
-      ui.colorPicker.classList.toggle("show", mode === MODES.MEASURE || mode === MODES.MINUTE);
-
-      // panel minute uniquement en plan minute
-      ui.minutePanel.classList.toggle("show", mode === MODES.MINUTE);
-
-      // touch cursor: only useful in measure/minute/scale (not pan)
-      const showCursor = (mode === MODES.MEASURE || mode === MODES.MINUTE || mode === MODES.SCALE);
-      if (!showCursor) hideTouchCursor();
-
-      if (mode === MODES.PAN) {
-        canvas.selection = true;
-        canvas.forEachObject(o => o.selectable = true);
-        canvas.defaultCursor = "grab";
-        if (state.pdfDoc) Status.show("Mode Déplacement");
-      } else {
-        canvas.selection = false;
-        canvas.forEachObject(o => o.selectable = false);
-        canvas.discardActiveObject();
-        canvas.requestRenderAll();
-        canvas.defaultCursor = "crosshair";
-
-        if (mode === MODES.SCALE) Status.show("⚠️ Étalonnage : Tracez une cote connue", "warning");
-        if (mode === MODES.MEASURE) Status.show("✅ Mode Mesure", "success");
-        if (mode === MODES.MINUTE) Status.show("📝 Mode Plan minute", "success");
-      }
-      syncMeasureButton();
-    }
-
-    /* Buttons modes */
-    ui.btn.pan.addEventListener("click", () => setMode(MODES.PAN));
-    ui.btn.scale.addEventListener("click", () => setMode(MODES.SCALE));
-    ui.btn.measure.addEventListener("click", () => {
-      if (!(state.pixelsPerMeter > 0)) {
-        alert("Aucune échelle définie pour cette page !");
-        setMode(MODES.SCALE);
-        return;
-      }
-      setMode(MODES.MEASURE);
-    });
-    ui.btn.minute.addEventListener("click", () => setMode(MODES.MINUTE));
-
-    /* Home */
-    ui.btn.home.addEventListener("click", () => resetViewToCenter());
-
-    /* Fullscreen */
+    /* ===== Fullscreen ===== */
     async function toggleFullscreen() {
       try {
         const el = document.documentElement;
@@ -947,31 +922,86 @@
       }
     });
 
-    /* Color picker */
-    $$(".color-dot").forEach(dot => {
-      dot.addEventListener("click", () => {
-        $$(".color-dot").forEach(d => d.classList.remove("selected"));
-        dot.classList.add("selected");
-        state.currentColor = dot.getAttribute("data-color");
+    /* ===== Mode handling ===== */
+    function shouldUseTargetingWorkflow() {
+      // Only on touch device + only for "line" actions where finger hides precision:
+      // - Scale
+      // - Measure
+      // - Plan minute COTE
+      if (!isTouchDevice) return false;
+      if (state.mode === MODES.SCALE) return true;
+      if (state.mode === MODES.MEASURE) return true;
+      if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) return true;
+      return false;
+    }
 
-        const active = canvas.getActiveObject();
-        if (active && active.type === "group") {
-          const lineObj = active.getObjects().find(o => o.type === "line");
-          if (lineObj) {
-            lineObj.set("stroke", state.currentColor);
-          }
-          // recolor arrowheads too (triangles)
-          active.getObjects().forEach(o => {
-            if (o.type === "triangle") o.set("fill", state.currentColor);
-          });
-          canvas.requestRenderAll();
-          saveMeasuresForPage(state.currentPage);
-        }
-      });
+    function cancelTargeting() {
+      state.targetingActive = false;
+      state.targetingStage = "idle";
+      state.targetStart = null;
+
+      if (state.previewLine) {
+        canvas.remove(state.previewLine);
+        state.previewLine = null;
+      }
+
+      ui.confirmPad.style.display = "none";
+      ui.confirmStart.disabled = false;
+      ui.confirmEnd.disabled = true;
+
+      ui.touchCursor.style.display = "none";
+      canvas.requestRenderAll();
+    }
+
+    function setMode(mode) {
+      // leaving modes => cancel targeting to avoid leftovers
+      if (state.mode !== mode) cancelTargeting();
+
+      state.mode = mode;
+
+      Object.values(ui.btn).forEach(b => b.classList.remove("active"));
+      if (ui.btn[mode]) ui.btn[mode].classList.add("active");
+
+      ui.colorPicker.classList.toggle("show", mode === MODES.MEASURE || mode === MODES.MINUTE);
+      ui.minutePanel.classList.toggle("show", mode === MODES.MINUTE);
+
+      if (mode === MODES.PAN) {
+        canvas.selection = true;
+        canvas.forEachObject(o => o.selectable = true);
+        canvas.defaultCursor = "grab";
+        if (state.pdfDoc) Status.show("Mode Déplacement");
+      } else {
+        canvas.selection = false;
+        canvas.forEachObject(o => o.selectable = false);
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
+        canvas.defaultCursor = "crosshair";
+
+        if (mode === MODES.SCALE) Status.show("⚠️ Étalonnage : place cible → Départ OK → vise → Arrivée OK", "warning");
+        if (mode === MODES.MEASURE) Status.show("✅ Mode Mesure : place cible → Départ OK → vise → Arrivée OK", "success");
+        if (mode === MODES.MINUTE) Status.show("📝 Mode Plan minute", "success");
+      }
+      syncMeasureButton();
+    }
+
+    ui.btn.pan.addEventListener("click", () => setMode(MODES.PAN));
+    ui.btn.scale.addEventListener("click", () => setMode(MODES.SCALE));
+    ui.btn.measure.addEventListener("click", () => {
+      if (!(state.pixelsPerMeter > 0)) {
+        alert("Aucune échelle définie pour cette page !");
+        setMode(MODES.SCALE);
+        return;
+      }
+      setMode(MODES.MEASURE);
     });
+    ui.btn.minute.addEventListener("click", () => setMode(MODES.MINUTE));
+    ui.btn.home.addEventListener("click", () => resetViewToCenter());
 
-    /* Plan minute tool selection */
+    /* ===== Plan minute tool selection ===== */
     function setPmTool(tool) {
+      // switching tool => cancel targeting if needed
+      cancelTargeting();
+
       state.pmTool = tool;
       $$("#minutePanel .mp-item").forEach(el => el.classList.remove("active"));
       const btn = $(`#minutePanel .mp-item[data-tool="${tool}"]`);
@@ -990,7 +1020,29 @@
       el.addEventListener("click", () => setPmTool(el.getAttribute("data-tool")));
     });
 
-    /* Total */
+    /* ===== Color picker ===== */
+    $$(".color-dot").forEach(dot => {
+      dot.addEventListener("click", () => {
+        $$(".color-dot").forEach(d => d.classList.remove("selected"));
+        dot.classList.add("selected");
+        state.currentColor = dot.getAttribute("data-color");
+
+        const active = canvas.getActiveObject();
+        if (active && active.type === "group") {
+          const lineObj = active.getObjects().find(o => o.type === "line");
+          if (lineObj) lineObj.set("stroke", state.currentColor);
+          active.getObjects().forEach(o => { if (o.type === "triangle") o.set("fill", state.currentColor); });
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
+        }
+        if (state.previewLine) {
+          state.previewLine.set("stroke", state.currentColor);
+          canvas.requestRenderAll();
+        }
+      });
+    });
+
+    /* ===== Total ===== */
     function updateTotal() {
       let total = 0;
       canvas.getObjects().forEach(obj => {
@@ -1000,7 +1052,7 @@
       ui.totalCounter.style.display = total > 0 ? "block" : "none";
     }
 
-    /* Zoom */
+    /* ===== Zoom ===== */
     function clampZoom(z) {
       return Math.max(state.initialZoom, Math.min(CONFIG.MAX_ZOOM, z));
     }
@@ -1026,11 +1078,9 @@
       let zoom = canvas.getZoom();
       zoom *= 0.999 ** opt.e.deltaY;
       zoom = clampZoom(zoom);
-
       canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
       clampViewportToBackground();
       canvas.requestRenderAll();
-
       opt.e.preventDefault();
       opt.e.stopPropagation();
     });
@@ -1038,7 +1088,7 @@
     ui.btn.zoomIn.addEventListener("click", () => applyZoom(1.2));
     ui.btn.zoomOut.addEventListener("click", () => applyZoom(0.8));
 
-    /* Tablet pinch */
+    /* ===== Pinch Zoom (keep) ===== */
     (() => {
       let isPinching = false;
       let startDist = 0;
@@ -1060,6 +1110,9 @@
 
       function onTouchStart(e) {
         if (e.touches.length === 2) {
+          // pinch => cancel targeting UI to avoid conflicts
+          cancelTargeting();
+
           isPinching = true;
           startDist = dist(e.touches[0], e.touches[1]);
           startZoom = canvas.getZoom();
@@ -1109,51 +1162,563 @@
       ui.wrapper.addEventListener("touchcancel", onTouchEnd, { passive: false });
     })();
 
-    /* ===== Touch cursor (offset crosshair) ===== */
-    function showTouchCursor() {
+    /* ===== Cursor + Confirm Pad positioning ===== */
+    function showCursorAndPad(clientX, clientY) {
       ui.touchCursor.style.display = "block";
-      ui.touchHint.style.display = "block";
-    }
-    function hideTouchCursor() {
-      ui.touchCursor.style.display = "none";
-      ui.touchHint.style.display = "none";
-      state.isTouchActive = false;
-      state.lastPointerClient = null;
-      state.lastPointerCanvas = null;
-    }
-    function setTouchHint(text) {
-      ui.touchHint.textContent = text || "";
-    }
-    function updateTouchCursorAtClient(clientX, clientY) {
-      // offset upward so finger does not hide the target
-      const x = clientX + CONFIG.TOUCH_OFFSET_X;
-      const y = clientY + CONFIG.TOUCH_OFFSET_Y;
+      ui.touchCursor.style.left = `${clientX + CONFIG.TOUCH_OFFSET_X}px`;
+      ui.touchCursor.style.top  = `${clientY + CONFIG.TOUCH_OFFSET_Y}px`;
 
-      ui.touchCursor.style.left = `${x}px`;
-      ui.touchCursor.style.top = `${y}px`;
-
-      ui.touchHint.style.left = `${x}px`;
-      ui.touchHint.style.top = `${y}px`;
+      ui.confirmPad.style.display = "flex";
+      ui.confirmPad.style.left = `${clientX + CONFIG.TOUCH_OFFSET_X}px`;
+      ui.confirmPad.style.top  = `${clientY + CONFIG.TOUCH_OFFSET_Y}px`;
     }
-    function clientToCanvasPoint(clientX, clientY) {
+
+    function updateCursorPoint(evt) {
+      const client = getClientPos(evt);
+      state.cursorClient = client;
+
       const rect = ui.wrapper.getBoundingClientRect();
-      const x = clientX - rect.left + CONFIG.TOUCH_OFFSET_X;
-      const y = clientY - rect.top + CONFIG.TOUCH_OFFSET_Y;
-      return { x, y };
+      // cursor position in wrapper coords with offset
+      const x = (client.x - rect.left) + CONFIG.TOUCH_OFFSET_X;
+      const y = (client.y - rect.top)  + CONFIG.TOUCH_OFFSET_Y;
+
+      // If the finger is outside the wrapper, clamp a bit (avoid NaN)
+      state.cursorCanvas = { x: Math.max(0, Math.min(ui.wrapper.clientWidth, x)), y: Math.max(0, Math.min(ui.wrapper.clientHeight, y)) };
+
+      // Visual
+      showCursorAndPad(client.x, client.y);
+
+      // Update preview line if in armed_end
+      if (state.targetingStage === "armed_end" && state.previewLine && state.targetStart) {
+        state.previewLine.set({ x2: state.cursorCanvas.x, y2: state.cursorCanvas.y });
+        canvas.requestRenderAll();
+      }
     }
 
-    // Provide "virtual" pointer event object for Fabric (so it uses our offset point)
-    function makeVirtualEventFrom(origEvt, clientX, clientY) {
-      // Fabric uses offsetX/offsetY for mouse wheel; for pointer it uses getPointer with clientX/Y and canvas bounds.
-      // We'll set clientX/clientY to offset position.
-      const ve = Object.assign({}, origEvt || {});
-      ve.clientX = clientX + CONFIG.TOUCH_OFFSET_X;
-      ve.clientY = clientY + CONFIG.TOUCH_OFFSET_Y;
-      return ve;
+    function openTargetingIfNeeded() {
+      if (!shouldUseTargetingWorkflow()) return;
+      if (!state.pdfDoc) return;
+
+      state.targetingActive = true;
+
+      if (state.targetingStage === "idle") {
+        state.targetingStage = "armed_start";
+        ui.confirmStart.disabled = false;
+        ui.confirmEnd.disabled = true;
+      }
     }
+
+    /* ===== Confirm Pad Buttons ===== */
+    ui.confirmCancel.addEventListener("click", () => {
+      cancelTargeting();
+      Status.show("Annulé");
+    });
+
+    ui.confirmStart.addEventListener("click", () => {
+      if (!state.cursorCanvas) return;
+      openTargetingIfNeeded();
+      if (state.targetingStage !== "armed_start") return;
+
+      // Lock start point at the crosshair location (NOT the finger)
+      state.targetStart = { x: state.cursorCanvas.x, y: state.cursorCanvas.y };
+      state.targetingStage = "armed_end";
+
+      // Create ghost line (preview)
+      if (state.previewLine) canvas.remove(state.previewLine);
+      const z = canvas.getZoom();
+      const sw = (state.mode === MODES.SCALE ? CONFIG.SCALE_STROKE : (state.mode === MODES.MEASURE ? CONFIG.MEASURE_STROKE : CONFIG.PM_STROKE)) / z;
+
+      state.previewLine = new fabric.Line([state.targetStart.x, state.targetStart.y, state.targetStart.x, state.targetStart.y], {
+        strokeWidth: sw,
+        stroke: state.currentColor,
+        strokeDashArray: [8 / z, 6 / z],
+        selectable: false,
+        evented: false
+      });
+      canvas.add(state.previewLine);
+      canvas.requestRenderAll();
+
+      ui.confirmStart.disabled = true;
+      ui.confirmEnd.disabled = false;
+      Status.show("Départ OK. Vise l’arrivée (trait en live).", "success");
+    });
+
+    ui.confirmEnd.addEventListener("click", () => {
+      if (!state.targetStart || !state.cursorCanvas) return;
+      if (state.targetingStage !== "armed_end") return;
+
+      const p1 = state.targetStart;
+      const p2 = { x: state.cursorCanvas.x, y: state.cursorCanvas.y };
+
+      const distPx = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      if (distPx < (CONFIG.MIN_DRAW_PX_AT_ZOOM1 / canvas.getZoom())) {
+        Status.show("Trop court. Repositionne l’arrivée.", "warning");
+        return;
+      }
+
+      // Remove preview
+      if (state.previewLine) {
+        canvas.remove(state.previewLine);
+        state.previewLine = null;
+      }
+
+      // Commit depending on mode
+      if (state.mode === MODES.SCALE) {
+        const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
+        const meters = parseFloat((input || "").replace(",", "."));
+        if (!(meters > 0)) {
+          Status.show("Étalonnage annulé.", "warning");
+          cancelTargeting();
+          return;
+        }
+        state.pixelsPerMeter = distPx / meters;
+        state.lastDetectedScale = null;
+        syncMeasureButton();
+
+        // Create a visible dimension with arrows + label
+        const label = `${meters.toFixed(2)} m`;
+        const g = buildDimensionGroupWithArrows(p1, p2, label, false, false);
+        canvas.add(g);
+        canvas.setActiveObject(g);
+
+        Status.show("✅ Étalonné. Mesurer activé.", "success");
+        saveMeasuresForPage(state.currentPage);
+        setMode(MODES.MEASURE);
+        cancelTargeting();
+        return;
+      }
+
+      if (state.mode === MODES.MEASURE) {
+        if (!(state.pixelsPerMeter > 0)) {
+          Status.show("⚠️ Pas d'échelle. Passe en étalonnage.", "warning");
+          setMode(MODES.SCALE);
+          cancelTargeting();
+          return;
+        }
+        const meters = distPx / state.pixelsPerMeter;
+        const label = `${meters.toFixed(2)} m`;
+
+        const g = buildDimensionGroupWithArrows(p1, p2, label, true, false);
+        g.measureValue = meters.toFixed(2);
+        canvas.add(g);
+        canvas.setActiveObject(g);
+
+        updateTotal();
+        canvas.requestRenderAll();
+        saveMeasuresForPage(state.currentPage);
+        Status.show("Mesure ajoutée", "success");
+        cancelTargeting();
+        return;
+      }
+
+      if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) {
+        const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
+        const meters = parseFloat((input || "").replace(",", "."));
+        if (!(meters > 0)) {
+          Status.show("Cote annulée", "warning");
+          cancelTargeting();
+          return;
+        }
+        const label = `${meters.toFixed(2)} m`;
+        const g = buildDimensionGroupWithArrows(p1, p2, label, false, true);
+        g.pmValue = meters.toFixed(2);
+
+        canvas.add(g);
+        canvas.setActiveObject(g);
+        canvas.requestRenderAll();
+        saveMeasuresForPage(state.currentPage);
+        Status.show("Cote plan minute ajoutée", "success");
+        cancelTargeting();
+        return;
+      }
+
+      cancelTargeting();
+    });
+
+    /* ===== Wrapper touch: show cursor and allow positioning BEFORE tracing ===== */
+    ui.wrapper.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1 && shouldUseTargetingWorkflow()) {
+        openTargetingIfNeeded();
+        updateCursorPoint(e);
+        e.preventDefault();
+      }
+    }, { passive:false });
+
+    ui.wrapper.addEventListener("touchmove", (e) => {
+      if (e.touches.length === 1 && shouldUseTargetingWorkflow()) {
+        updateCursorPoint(e);
+        e.preventDefault();
+      }
+    }, { passive:false });
+
+    ui.wrapper.addEventListener("touchend", () => {
+      // keep targeting open until user confirms/cancels
+      // (so lifting finger doesn’t “lose” the point)
+    }, { passive:true });
+
+    ui.wrapper.addEventListener("touchcancel", () => {}, { passive:true });
+
+    /* ===== Fabric interactions ===== */
+    canvas.on("mouse:down", (o) => {
+      const evt = o.e;
+
+      // If tablet targeting workflow is enabled, DO NOT start drawing on touch
+      if (evt.touches && evt.touches.length === 1 && shouldUseTargetingWorkflow()) {
+        // just ensure cursor is visible/updated; drawing starts via "Départ OK"
+        openTargetingIfNeeded();
+        updateCursorPoint(evt);
+        return;
+      }
+
+      // PAN normal
+      if (o.target && state.mode === MODES.PAN) return;
+
+      if (state.mode === MODES.PAN) {
+        const client = getClientPos(evt);
+        state.isDragging = true;
+        state.lastClientX = client.x;
+        state.lastClientY = client.y;
+        canvas.setCursor("grabbing");
+        return;
+      }
+
+      // Plan minute symbols (non-cote): click/tap places symbol immediately
+      if (state.mode === MODES.MINUTE && state.pmTool !== PM_TOOLS.COTE) {
+        const p = canvas.getPointer(evt);
+        const sym = pmSymbol(state.pmTool, p.x, p.y);
+        if (sym) {
+          canvas.add(sym);
+          canvas.setActiveObject(sym);
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
+          Status.show("Symbole ajouté", "success");
+        }
+        return;
+      }
+
+      // Desktop drawing behavior (mouse)
+      if (evt.touches && evt.touches.length >= 2) return;
+
+      // If not touch-targeting workflow: allow classic draw for mouse devices
+      state.isDrawing = true;
+      const p = canvas.getPointer(evt);
+      state.startPoint = { x: p.x, y: p.y };
+      state.line = makeLine(p.x, p.y, p.x, p.y, state.mode);
+      canvas.add(state.line);
+    });
+
+    canvas.on("mouse:move", (o) => {
+      const evt = o.e;
+
+      // If in touch-targeting: cursor updated by wrapper listeners; nothing to do here.
+      if (evt.touches && evt.touches.length === 1 && shouldUseTargetingWorkflow()) return;
+
+      if (state.isDragging) {
+        const client = getClientPos(evt);
+        const vpt = canvas.viewportTransform;
+        vpt[4] += client.x - state.lastClientX;
+        vpt[5] += client.y - state.lastClientY;
+        state.lastClientX = client.x;
+        state.lastClientY = client.y;
+
+        clampViewportToBackground();
+        canvas.requestRenderAll();
+        return;
+      }
+
+      if (state.isDrawing && state.line) {
+        const p = canvas.getPointer(evt);
+        state.line.set({ x2: p.x, y2: p.y });
+        canvas.requestRenderAll();
+      }
+    });
+
+    canvas.on("mouse:up", (o) => {
+      const evt = o.e;
+
+      if (state.isDragging) {
+        state.isDragging = false;
+        canvas.setCursor("grab");
+        clampViewportToBackground();
+        canvas.requestRenderAll();
+        return;
+      }
+
+      // Touch-targeting workflow commits via buttons, not mouse:up
+      if (evt.touches && shouldUseTargetingWorkflow()) return;
+
+      if (!state.isDrawing || !state.line || !state.startPoint) return;
+      state.isDrawing = false;
+
+      const p = canvas.getPointer(evt);
+      const distPx = Math.hypot(p.x - state.startPoint.x, p.y - state.startPoint.y);
+      if (distPx < (CONFIG.MIN_DRAW_PX_AT_ZOOM1 / canvas.getZoom())) {
+        canvas.remove(state.line);
+        state.line = null;
+        return;
+      }
+
+      // Desktop/Mouse commit logic
+      if (state.mode === MODES.SCALE) {
+        setTimeout(() => {
+          const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
+          const meters = parseFloat((input || "").replace(",", "."));
+          if (!(meters > 0)) { canvas.remove(state.line); state.line = null; return; }
+          state.pixelsPerMeter = distPx / meters;
+          state.lastDetectedScale = null;
+          syncMeasureButton();
+
+          const label = `${meters.toFixed(2)} m`;
+          const g = buildDimensionGroupWithArrows(state.startPoint, p, label, false, false);
+          canvas.remove(state.line);
+          canvas.add(g);
+          canvas.setActiveObject(g);
+          state.line = null;
+
+          Status.show("✅ Étalonné. Mesurer activé.", "success");
+          saveMeasuresForPage(state.currentPage);
+          setMode(MODES.MEASURE);
+        }, 50);
+        return;
+      }
+
+      if (state.mode === MODES.MEASURE) {
+        if (!(state.pixelsPerMeter > 0)) {
+          Status.show("⚠️ Pas d'échelle. Étalonnez.", "warning");
+          canvas.remove(state.line);
+          state.line = null;
+          setMode(MODES.SCALE);
+          return;
+        }
+
+        const meters = distPx / state.pixelsPerMeter;
+        const label = `${meters.toFixed(2)} m`;
+        const g = buildDimensionGroupWithArrows(state.startPoint, p, label, true, false);
+        g.measureValue = meters.toFixed(2);
+
+        canvas.remove(state.line);
+        canvas.add(g);
+        canvas.setActiveObject(g);
+        state.line = null;
+
+        updateTotal();
+        canvas.requestRenderAll();
+        saveMeasuresForPage(state.currentPage);
+        return;
+      }
+
+      if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) {
+        setTimeout(() => {
+          const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
+          const meters = parseFloat((input || "").replace(",", "."));
+          if (!(meters > 0)) { canvas.remove(state.line); state.line = null; return; }
+
+          const label = `${meters.toFixed(2)} m`;
+          const g = buildDimensionGroupWithArrows(state.startPoint, p, label, false, true);
+          g.pmValue = meters.toFixed(2);
+
+          canvas.remove(state.line);
+          canvas.add(g);
+          canvas.setActiveObject(g);
+          state.line = null;
+
+          canvas.requestRenderAll();
+          saveMeasuresForPage(state.currentPage);
+          Status.show("Cote plan minute ajoutée", "success");
+        }, 50);
+      }
+    });
+
+    /* ===== Dimension helpers (arrows outward) ===== */
+    function makeArrowHead(x, y, angleRad, color) {
+      const z = canvas.getZoom();
+      const len = CONFIG.ARROW_LENGTH_PX / z;
+      const w = CONFIG.ARROW_WIDTH_PX / z;
+      return new fabric.Triangle({
+        width: w,
+        height: len,
+        fill: color,
+        originX: "center",
+        originY: "center",
+        left: x,
+        top: y,
+        angle: (angleRad * 180 / Math.PI) + 90,
+        selectable: false,
+        evented: false
+      });
+    }
+
+    function makeLabel(textValue, x, y) {
+      const zoom = canvas.getZoom();
+      return new fabric.Text(textValue, {
+        fontSize: 14 / zoom,
+        fill: "#ffffff",
+        backgroundColor: "rgba(0,0,0,0.55)",
+        left: x,
+        top: y,
+        originX: "center",
+        originY: "bottom",
+        fontFamily: "Segoe UI",
+        fontWeight: "900"
+      });
+    }
+
+    function buildDimensionGroupWithArrows(p1, p2, labelText, isMeasure, isPlanMinute) {
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const angle = Math.atan2(dy, dx);
+
+      const z = canvas.getZoom();
+      const sw = (state.mode === MODES.SCALE ? CONFIG.SCALE_STROKE : (state.mode === MODES.MEASURE ? CONFIG.MEASURE_STROKE : CONFIG.PM_STROKE)) / z;
+
+      const lineColor = (state.mode === MODES.SCALE) ? "#ffffff" : state.currentColor;
+      const line = new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
+        strokeWidth: sw,
+        stroke: lineColor,
+        strokeDashArray: (state.mode === MODES.SCALE) ? CONFIG.SCALE_DASH : null,
+        selectable: false,
+        evented: false
+      });
+
+      // Arrows outward
+      const a1 = makeArrowHead(p1.x, p1.y, angle + Math.PI, lineColor);
+      const a2 = makeArrowHead(p2.x, p2.y, angle, lineColor);
+
+      const midX = (p1.x + p2.x) / 2;
+      const midY = (p1.y + p2.y) / 2 - 15 / z;
+      const label = makeLabel(labelText, midX, midY);
+
+      const group = new fabric.Group([line, a1, a2, label], { selectable: true });
+
+      if (isMeasure) group.isMeasure = true;
+      if (isPlanMinute) { group.isPm = true; group.pmKind = "COTE"; }
+
+      return group;
+    }
+
+    function makeLine(x1, y1, x2, y2, mode) {
+      const zoom = canvas.getZoom();
+      const stroke = (mode === MODES.SCALE ? CONFIG.SCALE_STROKE : (mode === MODES.MEASURE ? CONFIG.MEASURE_STROKE : CONFIG.PM_STROKE)) / zoom;
+      const isScale = mode === MODES.SCALE;
+      const color = (mode === MODES.MEASURE || mode === MODES.MINUTE) ? state.currentColor : "#ffffff";
+
+      return new fabric.Line([x1, y1, x2, y2], {
+        strokeWidth: stroke,
+        stroke: isScale ? "#20314f" : color,
+        strokeDashArray: isScale ? CONFIG.SCALE_DASH : null,
+        originX: "center",
+        originY: "center",
+        selectable: true,
+        evented: true
+      });
+    }
+
+    /* ===== Plan minute symbols ===== */
+    function pmSymbol(kind, x, y) {
+      const z = canvas.getZoom();
+      const s = 18 / z;
+      const stroke = state.currentColor;
+      const sw = 3 / z;
+
+      if (kind === PM_TOOLS.PB) {
+        const stem = new fabric.Line([0, -s, 0, s], { stroke, strokeWidth: sw });
+        const arm  = new fabric.Line([-s, 0, s, 0], { stroke, strokeWidth: sw });
+        const circ = new fabric.Circle({ radius: 4 / z, fill: stroke, left: -4 / z, top: -4 / z });
+        const g = new fabric.Group([stem, arm, circ], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "PB";
+        return g;
+      }
+
+      if (kind === PM_TOOLS.BOUCHON) {
+        const c = new fabric.Circle({
+          radius: 7 / z,
+          fill: "rgba(255,255,255,0.08)",
+          stroke,
+          strokeWidth: 2 / z
+        });
+        const g = new fabric.Group([c], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "BOUCHON";
+        return g;
+      }
+
+      if (kind === PM_TOOLS.VANNE) {
+        const tri1 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke, strokeWidth: 2 / z, originX:"center", originY:"center", angle: 90 });
+        const tri2 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke, strokeWidth: 2 / z, originX:"center", originY:"center", angle: -90 });
+        const bar  = new fabric.Line([-16 / z, 0, 16 / z, 0], { stroke, strokeWidth: 2 / z });
+        tri1.set({ left: -6 / z, top: 0 });
+        tri2.set({ left:  6 / z, top: 0 });
+        const g = new fabric.Group([bar, tri1, tri2], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "VANNE";
+        return g;
+      }
+
+      if (kind === PM_TOOLS.REGARD) {
+        const r = new fabric.Rect({
+          width: 18 / z, height: 14 / z,
+          fill: "rgba(255,255,255,0.06)",
+          stroke,
+          strokeWidth: 2 / z,
+          rx: 3 / z, ry: 3 / z
+        });
+        const g = new fabric.Group([r], { left:x, top:y, originX:"center", originY:"center" });
+        g.isPm = true; g.pmKind = "REGARD";
+        return g;
+      }
+
+      return null;
+    }
+
+    /* ===== Delete / undo / clear / save ===== */
+    ui.btn.del.addEventListener("click", () => {
+      cancelTargeting();
+      const actives = canvas.getActiveObjects();
+      if (!actives.length) return;
+      actives.forEach(obj => canvas.remove(obj));
+      canvas.discardActiveObject();
+      updateTotal();
+      canvas.requestRenderAll();
+      Status.show("Supprimé");
+      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
+    });
+
+    ui.btn.undo.addEventListener("click", () => {
+      cancelTargeting();
+      const objs = canvas.getObjects().filter(o => o !== canvas.backgroundImage);
+      if (!objs.length) return;
+      canvas.remove(objs[objs.length - 1]);
+      updateTotal();
+      canvas.requestRenderAll();
+      Status.show("Annulé");
+      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
+    });
+
+    ui.btn.clear.addEventListener("click", () => {
+      cancelTargeting();
+      if (!confirm("Tout effacer (page courante) ?")) return;
+      canvas.getObjects().forEach(o => { if (o !== canvas.backgroundImage) canvas.remove(o); });
+      canvas.discardActiveObject();
+      updateTotal();
+      canvas.requestRenderAll();
+      Status.show("Page nettoyée");
+      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
+    });
+
+    ui.btn.save.addEventListener("click", () => {
+      cancelTargeting();
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      const dataURL = canvas.toDataURL({ format: "png", quality: 1, multiplier: CONFIG.EXPORT_MULTIPLIER });
+      const a = document.createElement("a");
+      a.download = `plan_page_${state.currentPage}.png`;
+      a.href = dataURL;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
 
     /* ===== PDF ===== */
     async function loadPdfFile(file) {
+      cancelTargeting();
       Status.show("⏳ Chargement PDF...", "normal");
 
       const buffer = await file.arrayBuffer();
@@ -1221,12 +1786,15 @@
     }
 
     ui.pager.prev.addEventListener("click", () => {
+      cancelTargeting();
       if (state.currentPage > 1) renderPage(state.currentPage - 1, { restoreMeasures: true });
     });
     ui.pager.next.addEventListener("click", () => {
+      cancelTargeting();
       if (state.currentPage < state.pageCount) renderPage(state.currentPage + 1, { restoreMeasures: true });
     });
     ui.pager.go.addEventListener("click", () => {
+      cancelTargeting();
       const n = parseInt(ui.pager.jump.value, 10);
       if (!Number.isFinite(n)) return;
       const target = Math.max(1, Math.min(state.pageCount, n));
@@ -1375,439 +1943,13 @@
         saveMeasuresForPage(state.currentPage);
 
         Status.show(`✅ Échelle : 1:${scaleVal} (Mesurer activé)`, "success");
-
-        if (!CONFIG.OCR_DO_NOT_AUTO_SWITCH_TO_MEASURE) setMode(MODES.MEASURE);
-
       } catch (err) {
         console.error(err);
         Status.show("Erreur OCR.", "error");
       }
     }
 
-    /* ===== Shapes ===== */
-    function isTooSmall(distPx) {
-      const zoom = canvas.getZoom();
-      return distPx < (CONFIG.MIN_DRAW_PX_AT_ZOOM1 / zoom);
-    }
-
-    function makeLine(x1, y1, x2, y2, mode) {
-      const zoom = canvas.getZoom();
-      const stroke = (mode === MODES.SCALE ? CONFIG.SCALE_STROKE : (mode === MODES.MEASURE ? CONFIG.MEASURE_STROKE : CONFIG.PM_STROKE)) / zoom;
-
-      const isScale = mode === MODES.SCALE;
-      const color = (mode === MODES.MEASURE || mode === MODES.MINUTE) ? state.currentColor : "#ffffff";
-
-      return new fabric.Line([x1, y1, x2, y2], {
-        strokeWidth: stroke,
-        stroke: isScale ? "#20314f" : color,
-        strokeDashArray: isScale ? CONFIG.SCALE_DASH : null,
-        originX: "center",
-        originY: "center",
-        selectable: true,
-        evented: true
-      });
-    }
-
-    function makeLabel(textValue, x, y) {
-      const zoom = canvas.getZoom();
-      return new fabric.Text(textValue, {
-        fontSize: 14 / zoom,
-        fill: "#ffffff",
-        backgroundColor: "rgba(0,0,0,0.55)",
-        left: x,
-        top: y,
-        originX: "center",
-        originY: "bottom",
-        fontFamily: "Segoe UI",
-        fontWeight: "900"
-      });
-    }
-
-    function makeArrowHead(x, y, angleRad, color) {
-      const z = canvas.getZoom();
-      const len = CONFIG.ARROW_LENGTH_PX / z;
-      const w = CONFIG.ARROW_WIDTH_PX / z;
-
-      // Fabric triangle points "up" by default, we rotate it
-      const tri = new fabric.Triangle({
-        width: w,
-        height: len,
-        fill: color,
-        originX: "center",
-        originY: "center",
-        left: x,
-        top: y,
-        angle: (angleRad * 180 / Math.PI) + 90, // align with line direction
-        selectable: false,
-        evented: false
-      });
-      return tri;
-    }
-
-    function buildDimensionGroup(line, p1, p2, labelText, isMeasure, isPlanMinute) {
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      const angle = Math.atan2(dy, dx);
-
-      // Arrows OUTWARD:
-      // start arrow points opposite to the line (angle + PI)
-      // end arrow points along the line (angle)
-      const color = line.stroke || state.currentColor;
-      const a1 = makeArrowHead(p1.x, p1.y, angle + Math.PI, color);
-      const a2 = makeArrowHead(p2.x, p2.y, angle, color);
-
-      const midX = (p1.x + p2.x) / 2;
-      const midY = (p1.y + p2.y) / 2 - 15 / canvas.getZoom();
-      const label = makeLabel(labelText, midX, midY);
-
-      const group = new fabric.Group([line, a1, a2, label], { selectable: true });
-      if (isMeasure) {
-        group.isMeasure = true;
-      }
-      if (isPlanMinute) {
-        group.isPm = true;
-        group.pmKind = "COTE";
-      }
-      return group;
-    }
-
-    /* ===== Plan minute symbols ===== */
-    function pmSymbol(kind, x, y) {
-      const z = canvas.getZoom();
-      const s = 18 / z;
-
-      const stroke = state.currentColor;
-      const sw = 3 / z;
-
-      if (kind === PM_TOOLS.PB) {
-        const stem = new fabric.Line([0, -s, 0, s], { stroke, strokeWidth: sw });
-        const arm  = new fabric.Line([-s, 0, s, 0], { stroke, strokeWidth: sw });
-        const circ = new fabric.Circle({ radius: 4 / z, fill: stroke, left: -4 / z, top: -4 / z });
-        const g = new fabric.Group([stem, arm, circ], { left:x, top:y, originX:"center", originY:"center" });
-        g.isPm = true; g.pmKind = "PB";
-        return g;
-      }
-
-      if (kind === PM_TOOLS.BOUCHON) {
-        const c = new fabric.Circle({
-          radius: 7 / z,
-          fill: "rgba(255,255,255,0.08)",
-          stroke,
-          strokeWidth: 2 / z
-        });
-        const g = new fabric.Group([c], { left:x, top:y, originX:"center", originY:"center" });
-        g.isPm = true; g.pmKind = "BOUCHON";
-        return g;
-      }
-
-      if (kind === PM_TOOLS.VANNE) {
-        const tri1 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke, strokeWidth: 2 / z, originX:"center", originY:"center", angle: 90 });
-        const tri2 = new fabric.Triangle({ width: 14 / z, height: 12 / z, fill: "transparent", stroke, strokeWidth: 2 / z, originX:"center", originY:"center", angle: -90 });
-        const bar  = new fabric.Line([-16 / z, 0, 16 / z, 0], { stroke, strokeWidth: 2 / z });
-        tri1.set({ left: -6 / z, top: 0 });
-        tri2.set({ left:  6 / z, top: 0 });
-        const g = new fabric.Group([bar, tri1, tri2], { left:x, top:y, originX:"center", originY:"center" });
-        g.isPm = true; g.pmKind = "VANNE";
-        return g;
-      }
-
-      if (kind === PM_TOOLS.REGARD) {
-        const r = new fabric.Rect({
-          width: 18 / z, height: 14 / z,
-          fill: "rgba(255,255,255,0.06)",
-          stroke,
-          strokeWidth: 2 / z,
-          rx: 3 / z, ry: 3 / z
-        });
-        const g = new fabric.Group([r], { left:x, top:y, originX:"center", originY:"center" });
-        g.isPm = true; g.pmKind = "REGARD";
-        return g;
-      }
-
-      return null;
-    }
-
-    /* ===== Interactions (with touch offset cursor) ===== */
-    function getPointerWithOffset(evt) {
-      // We create a virtual event so fabric.getPointer uses offset clientX/Y
-      const client = getClientPos(evt);
-      const ve = makeVirtualEventFrom(evt, client.x, client.y);
-      return canvas.getPointer(ve);
-    }
-
-    // Update touch cursor on pointer movement (when in drawing modes)
-    function maybeUpdateCursor(evt) {
-      if (!(state.mode === MODES.MEASURE || state.mode === MODES.MINUTE || state.mode === MODES.SCALE)) return;
-      const client = getClientPos(evt);
-      state.lastPointerClient = client;
-      state.lastPointerCanvas = getPointerWithOffset(evt);
-
-      // show cursor (only for touch interactions)
-      if (evt.touches && evt.touches.length === 1) {
-        showTouchCursor();
-        updateTouchCursorAtClient(client.x, client.y);
-      }
-    }
-
-    // Attach listeners to wrapper for consistent cursor behavior
-    ui.wrapper.addEventListener("touchstart", (e) => {
-      if (e.touches.length === 1) {
-        state.isTouchActive = true;
-        maybeUpdateCursor(e);
-        setTouchHint(
-          (state.mode === MODES.SCALE) ? "Visez (croix) puis tracez" :
-          (state.mode === MODES.MEASURE) ? "Visez (croix) puis tracez" :
-          (state.mode === MODES.MINUTE) ? "Visez (croix) puis tracez/posez" : ""
-        );
-      } else {
-        hideTouchCursor(); // pinch etc.
-      }
-    }, { passive:false });
-
-    ui.wrapper.addEventListener("touchmove", (e) => {
-      if (e.touches.length === 1) {
-        maybeUpdateCursor(e);
-        // do not prevent default here always (we handle in fabric too), but keep responsive
-      }
-    }, { passive:false });
-
-    ui.wrapper.addEventListener("touchend", () => {
-      setTouchHint("");
-      // keep cursor hidden after finishing
-      hideTouchCursor();
-    }, { passive:true });
-
-    ui.wrapper.addEventListener("touchcancel", () => {
-      setTouchHint("");
-      hideTouchCursor();
-    }, { passive:true });
-
-    canvas.on("mouse:down", (o) => {
-      const evt = o.e;
-
-      // Ignore if pinch
-      if (evt.touches && evt.touches.length >= 2) return;
-
-      // Update cursor (so start point is accurate)
-      maybeUpdateCursor(evt);
-
-      if (o.target && state.mode === MODES.PAN) return;
-
-      // PAN
-      if (state.mode === MODES.PAN) {
-        const client = getClientPos(evt);
-        state.isDragging = true;
-        state.lastClientX = client.x;
-        state.lastClientY = client.y;
-        canvas.setCursor("grabbing");
-        return;
-      }
-
-      // Plan minute : placement symbole au clic (use offset pointer)
-      if (state.mode === MODES.MINUTE && state.pmTool !== PM_TOOLS.COTE) {
-        const p = getPointerWithOffset(evt);
-        const sym = pmSymbol(state.pmTool, p.x, p.y);
-        if (sym) {
-          canvas.add(sym);
-          canvas.setActiveObject(sym);
-          canvas.requestRenderAll();
-          saveMeasuresForPage(state.currentPage);
-          Status.show("Symbole ajouté", "success");
-        }
-        return;
-      }
-
-      // DRAW line (scale / measure / plan minute cote)
-      state.isDrawing = true;
-      const p = getPointerWithOffset(evt);
-      state.startPoint = { x: p.x, y: p.y };
-      state.line = makeLine(p.x, p.y, p.x, p.y, state.mode);
-      canvas.add(state.line);
-    });
-
-    canvas.on("mouse:move", (o) => {
-      const evt = o.e;
-
-      // Update cursor for touch
-      if (evt.touches && evt.touches.length === 1) {
-        maybeUpdateCursor(evt);
-      }
-
-      if (state.isDragging) {
-        const client = getClientPos(evt);
-        const vpt = canvas.viewportTransform;
-        vpt[4] += client.x - state.lastClientX;
-        vpt[5] += client.y - state.lastClientY;
-        state.lastClientX = client.x;
-        state.lastClientY = client.y;
-
-        clampViewportToBackground();
-        canvas.requestRenderAll();
-        return;
-      }
-
-      if (state.isDrawing && state.line) {
-        const p = getPointerWithOffset(evt);
-        state.line.set({ x2: p.x, y2: p.y });
-        canvas.requestRenderAll();
-      }
-    });
-
-    canvas.on("mouse:up", (o) => {
-      const evt = o.e;
-
-      if (state.isDragging) {
-        state.isDragging = false;
-        canvas.setCursor("grab");
-        clampViewportToBackground();
-        canvas.requestRenderAll();
-        return;
-      }
-
-      if (!state.isDrawing || !state.line || !state.startPoint) return;
-      state.isDrawing = false;
-
-      const p = getPointerWithOffset(evt);
-      const distPx = Math.hypot(p.x - state.startPoint.x, p.y - state.startPoint.y);
-
-      if (isTooSmall(distPx)) {
-        canvas.remove(state.line);
-        state.line = null;
-        return;
-      }
-
-      // SCALE
-      if (state.mode === MODES.SCALE) {
-        setTimeout(() => {
-          const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
-          const meters = parseFloat((input || "").replace(",", "."));
-          if (!(meters > 0)) {
-            canvas.remove(state.line);
-            state.line = null;
-            return;
-          }
-
-          state.pixelsPerMeter = distPx / meters;
-          state.lastDetectedScale = null;
-          syncMeasureButton();
-
-          // build group with arrows outward + label for visual (optional)
-          const metersStr = `${meters.toFixed(2)} m`;
-          const group = buildDimensionGroup(state.line, state.startPoint, p, metersStr, false, false);
-
-          canvas.remove(state.line);
-          canvas.add(group);
-          canvas.setActiveObject(group);
-          state.line = null;
-
-          Status.show(`✅ Étalonné (page ${state.currentPage})`, "success");
-          setMode(MODES.MEASURE);
-          saveMeasuresForPage(state.currentPage);
-        }, 50);
-        return;
-      }
-
-      // MEASURE
-      if (state.mode === MODES.MEASURE) {
-        if (!(state.pixelsPerMeter > 0)) {
-          Status.show("⚠️ Pas d'échelle pour cette page. Étalonnez.", "warning");
-          canvas.remove(state.line);
-          state.line = null;
-          setMode(MODES.SCALE);
-          return;
-        }
-
-        const meters = distPx / state.pixelsPerMeter;
-        const metersStr = `${meters.toFixed(2)} m`;
-
-        const group = buildDimensionGroup(state.line, state.startPoint, p, metersStr, true, false);
-        group.measureValue = meters.toFixed(2);
-
-        canvas.remove(state.line);
-        canvas.add(group);
-        canvas.setActiveObject(group);
-        state.line = null;
-
-        updateTotal();
-        canvas.requestRenderAll();
-        saveMeasuresForPage(state.currentPage);
-        return;
-      }
-
-      // PLAN MINUTE - COTE
-      if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) {
-        setTimeout(() => {
-          const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
-          const meters = parseFloat((input || "").replace(",", "."));
-          if (!(meters > 0)) {
-            canvas.remove(state.line);
-            state.line = null;
-            return;
-          }
-
-          const metersStr = `${meters.toFixed(2)} m`;
-          state.line.set({ stroke: state.currentColor, strokeDashArray: null });
-
-          const group = buildDimensionGroup(state.line, state.startPoint, p, metersStr, false, true);
-          group.pmValue = meters.toFixed(2);
-
-          canvas.remove(state.line);
-          canvas.add(group);
-          canvas.setActiveObject(group);
-          state.line = null;
-
-          canvas.requestRenderAll();
-          saveMeasuresForPage(state.currentPage);
-          Status.show("Cote plan minute ajoutée", "success");
-        }, 50);
-      }
-    });
-
-    /* Delete / undo / clear / save */
-    ui.btn.del.addEventListener("click", () => {
-      const actives = canvas.getActiveObjects();
-      if (!actives.length) return;
-      actives.forEach(obj => canvas.remove(obj));
-      canvas.discardActiveObject();
-      updateTotal();
-      canvas.requestRenderAll();
-      Status.show("Supprimé");
-      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
-    });
-
-    ui.btn.undo.addEventListener("click", () => {
-      const objs = canvas.getObjects().filter(o => o !== canvas.backgroundImage);
-      if (!objs.length) return;
-      canvas.remove(objs[objs.length - 1]);
-      updateTotal();
-      canvas.requestRenderAll();
-      Status.show("Annulé");
-      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
-    });
-
-    ui.btn.clear.addEventListener("click", () => {
-      if (!confirm("Tout effacer (page courante) ?")) return;
-      canvas.getObjects().forEach(o => { if (o !== canvas.backgroundImage) canvas.remove(o); });
-      canvas.discardActiveObject();
-      updateTotal();
-      canvas.requestRenderAll();
-      Status.show("Page nettoyée");
-      if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
-    });
-
-    ui.btn.save.addEventListener("click", () => {
-      canvas.discardActiveObject();
-      canvas.requestRenderAll();
-      const dataURL = canvas.toDataURL({ format: "png", quality: 1, multiplier: CONFIG.EXPORT_MULTIPLIER });
-      const a = document.createElement("a");
-      a.download = `plan_page_${state.currentPage}.png`;
-      a.href = dataURL;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    });
-
-    /* File */
+    /* ===== File input ===== */
     ui.fileInput.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
@@ -1816,14 +1958,13 @@
       finally { ui.fileInput.value = ""; }
     });
 
-    /* Boot */
+    /* ===== Boot ===== */
     setDisabledAll(true);
     updatePagerUI();
     Status.show("Bienvenue");
     setMode(MODES.PAN);
     setPmTool(PM_TOOLS.COTE);
     updateScaleIndicator();
-
   </script>
 </body>
 </html>
