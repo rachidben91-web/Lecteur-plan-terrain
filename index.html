@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>GRDF – Mesures Terrain – V2.1.5</title>
+  <title>GRDF – Mesures Terrain (SIG Pro) – V2.1.6</title>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -14,20 +14,23 @@
   <style>
     :root{
       --bg:#0b1220;
-      --panel: rgba(20, 30, 45, .78);
-      --panel2: rgba(12, 18, 30, .72);
+      --panel: rgba(10, 14, 22, .78);
+      --panel2: rgba(8, 10, 14, .70);
       --stroke: rgba(255,255,255,.12);
       --stroke2: rgba(255,255,255,.18);
       --text:#e9f1ff;
       --muted: rgba(233,241,255,.72);
       --accent:#3aa0ff;
 
-      /* Cadre */
       --frame-top: 72px;
       --frame-left: 12px;
       --frame-right: 12px;
       --frame-bottom: 18px;
       --frame-radius: 16px;
+
+      /* UI fixed positions */
+      --dock-bottom: 16px;
+      --confirmpad-bottom: 92px; /* juste au-dessus du dock */
     }
 
     *{ box-sizing:border-box; }
@@ -43,7 +46,6 @@
       touch-action:none;
     }
 
-    /* Top bar */
     .topbar{
       position:fixed;
       left:0; right:0; top:0;
@@ -64,6 +66,13 @@
       box-shadow: 0 12px 30px rgba(0,0,0,.35);
       backdrop-filter: blur(10px);
       border-radius: 16px;
+    }
+
+    /* +++ Lisibilité renforcée pour certains blocs +++ */
+    .glass.readable{
+      background: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.38));
+      border-color: rgba(255,255,255,.14);
+      box-shadow: 0 14px 36px rgba(0,0,0,.45);
     }
 
     .brand{
@@ -105,7 +114,6 @@
       font-weight:700;
     }
 
-    /* Pager */
     .pager{
       display:flex;
       align-items:center;
@@ -143,7 +151,6 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* Buttons */
     .btn{
       height:42px;
       padding:0 14px;
@@ -188,7 +195,6 @@
       padding:10px;
     }
 
-    /* Status bubble */
     #statusBubble{
       position:fixed;
       top:74px;
@@ -196,7 +202,7 @@
       transform:translateX(-50%) translateY(-6px);
       padding:10px 18px;
       border-radius: 999px;
-      background: rgba(0,0,0,.55);
+      background: rgba(0,0,0,.62);
       border:1px solid var(--stroke);
       box-shadow: 0 10px 25px rgba(0,0,0,.25);
       backdrop-filter: blur(10px);
@@ -211,7 +217,6 @@
     #statusBubble.warning{ border-color: rgba(241,196,15,.35); color:#fff2b8; }
     #statusBubble.error{ border-color: rgba(231,76,60,.35); color:#ffd7d2; }
 
-    /* Frame + canvas */
     #appFrame{
       position:absolute;
       top:var(--frame-top);
@@ -240,12 +245,12 @@
       overscroll-behavior:none;
     }
 
-    /* Bottom dock */
+    /* Dock */
     .dock{
       position:fixed;
       left:50%;
       transform: translateX(-50%);
-      bottom: 16px;
+      bottom: var(--dock-bottom);
       z-index:120;
       padding:10px 12px;
       display:flex;
@@ -320,7 +325,7 @@
       transform: scale(1.06);
     }
 
-    /* Mini panel "Plan minute" */
+    /* Plan minute panel */
     #minutePanel{
       position:absolute;
       left: calc(var(--frame-left) + 14px);
@@ -371,7 +376,7 @@
       line-height:1.28rem;
     }
 
-    /* Scale badge */
+    /* Scale box */
     #scaleBox{
       position:fixed;
       right: 16px;
@@ -408,7 +413,7 @@
       color:#bff7ea;
     }
 
-    /* Touch cursor + confirm pad */
+    /* Touch cursor */
     #touchCursor{
       position:fixed;
       left:0; top:0;
@@ -433,11 +438,12 @@
       border: 1px solid rgba(0,0,0,.35);
     }
 
+    /* Confirm pad FIXE au-dessus du dock */
     #confirmPad{
       position:fixed;
       left:50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
+      bottom: var(--confirmpad-bottom);
+      transform: translateX(-50%);
       z-index:210;
       display:none;
       gap:10px;
@@ -451,7 +457,7 @@
       height:52px;
       border-radius: 18px;
       border:1px solid var(--stroke);
-      background: rgba(0,0,0,.28);
+      background: rgba(0,0,0,.32);
       color: var(--text);
       font-weight:1000;
       display:flex;
@@ -466,20 +472,19 @@
     .cbtn:hover:not(:disabled){ transform: translateY(-1px); background: rgba(255,255,255,.07); border-color: var(--stroke2); }
     .cbtn:disabled{ opacity:.45; cursor:not-allowed; }
     .cbtn.ok{
-      background: rgba(46,211,168,.14);
-      border-color: rgba(46,211,168,.28);
+      background: rgba(46,211,168,.16);
+      border-color: rgba(46,211,168,.30);
     }
     .cbtn.end{
-      background: rgba(58,160,255,.14);
-      border-color: rgba(58,160,255,.28);
+      background: rgba(58,160,255,.16);
+      border-color: rgba(58,160,255,.30);
     }
     .cbtn.cancel{
-      background: rgba(231,76,60,.14);
-      border-color: rgba(231,76,60,.28);
+      background: rgba(231,76,60,.16);
+      border-color: rgba(231,76,60,.30);
       padding:0 18px;
     }
 
-    /* Version label */
     #versionLabel{
       position:fixed;
       right: 12px;
@@ -491,12 +496,12 @@
       letter-spacing:.2px;
     }
 
-    /* Responsive */
     @media (max-width: 900px){
       :root{ --frame-top: 68px; --frame-left: 10px; --frame-right: 10px; --frame-bottom: 14px; }
       .brand{ min-width: 190px; }
       .pager{ min-width: 280px; }
       .btn-icon{ width:56px; height:56px; border-radius: 18px; }
+      :root{ --confirmpad-bottom: 98px; }
     }
     @media (max-width: 650px){
       .pager{ display:none; }
@@ -504,21 +509,20 @@
       .brand{ min-width: 150px; padding:10px; }
       .brand .title .t1{ font-size:.98rem; }
       .brand .title .t2{ font-size:.78rem; }
+      :root{ --confirmpad-bottom: 102px; }
     }
   </style>
 </head>
 
 <body>
-  <!-- Topbar -->
   <div class="topbar">
     <div class="brand glass">
       <div class="logo" title="Logo">
-        <!-- Ton logo : garde le nom de fichier grdf-logo.png dans le repo -->
         <img src="grdf-logo.png" alt="GRDF">
       </div>
       <div class="title">
         <div class="t1">GRDF – Mesures Terrain</div>
-        <div class="t2" id="subTitle">V2.1.5</div>
+        <div class="t2" id="subTitle">SIG Pro • V2.1.6</div>
       </div>
     </div>
 
@@ -554,8 +558,8 @@
 
   <div id="statusBubble" class="glass">Bienvenue</div>
 
-  <!-- Scale box -->
-  <div id="scaleBox" class="glass">
+  <!-- Scale box: lisible -->
+  <div id="scaleBox" class="glass readable">
     <div class="row1">
       <span>ÉCHELLE</span>
       <span style="opacity:.7"><i class="fa-solid fa-minus"></i></span>
@@ -566,7 +570,6 @@
     </div>
   </div>
 
-  <!-- Plan minute panel -->
   <div id="minutePanel" class="glass">
     <div class="mp-title">
       <span><i class="fa-solid fa-file-pen"></i> Plan minute</span>
@@ -587,8 +590,8 @@
     </div>
   </div>
 
-  <!-- Color picker (Mesure + Plan minute cote) -->
-  <div id="colorPicker" class="glass">
+  <!-- Color picker -->
+  <div id="colorPicker" class="glass readable">
     <div class="dot sel" style="background:#e74c3c;" data-color="#e74c3c" title="Rouge"></div>
     <div class="dot" style="background:#f1c40f;" data-color="#f1c40f" title="Jaune"></div>
     <div class="dot" style="background:#3aa0ff;" data-color="#3aa0ff" title="Bleu"></div>
@@ -597,8 +600,8 @@
     <div class="dot" style="background:#ffffff;" data-color="#ffffff" title="Blanc"></div>
   </div>
 
-  <!-- Bottom dock -->
-  <div class="dock glass">
+  <!-- Dock: lisible -->
+  <div class="dock glass readable">
     <button id="btnPan" class="btn-icon active" title="Déplacer"><i class="fa-solid fa-hand"></i></button>
     <button id="btnHome" class="btn-icon" title="Recentrer"><i class="fa-solid fa-house"></i></button>
 
@@ -610,9 +613,7 @@
     <div class="divider"></div>
 
     <button id="btnScale" class="btn-icon" disabled title="Étalonnage"><i class="fa-solid fa-ruler-horizontal"></i></button>
-    <!-- icône Mesure = mètre ruban -->
     <button id="btnMeasure" class="btn-icon" disabled title="Mesurer"><i class="fa-solid fa-tape"></i></button>
-    <!-- icône Plan minute = feuille + stylo -->
     <button id="btnMinute" class="btn-icon" disabled title="Plan minute"><i class="fa-solid fa-file-pen"></i></button>
 
     <div class="divider"></div>
@@ -621,33 +622,26 @@
     <button id="btnDelete" class="btn-icon btn-delete" disabled title="Supprimer"><i class="fa-solid fa-xmark"></i></button>
   </div>
 
-  <!-- Touch cursor + confirm pad -->
   <div id="touchCursor"><div class="dot"></div></div>
-  <div id="confirmPad" class="glass">
+
+  <!-- Confirm pad: lisible + fixe -->
+  <div id="confirmPad" class="glass readable">
     <button id="btnConfirmStart" class="cbtn ok"><i class="fa-solid fa-location-dot"></i> Départ OK</button>
     <button id="btnConfirmEnd" class="cbtn end" disabled><i class="fa-solid fa-flag-checkered"></i> Arrivée OK</button>
     <button id="btnConfirmCancel" class="cbtn cancel" title="Annuler"><i class="fa-solid fa-xmark"></i></button>
   </div>
 
-  <div id="versionLabel">V2.1.5 (SIG Pro)</div>
+  <div id="versionLabel">V2.1.6 (SIG Pro)</div>
 
   <div id="appFrame"></div>
   <div id="canvas-wrapper"><canvas id="c"></canvas></div>
 
   <script>
-    /* ============================================================
-       GRDF – Mesures Terrain (SIG Pro) – V2.1.5
-       - OCR échelle (1:XXXX jusqu'à 5000+ / valeurs “batardes”)
-       - Mesure + Plan minute
-       - Plein écran
-       - Tablette: curseur ciblé (centre de #touchCursor) => tracé aligné
-       ============================================================ */
-
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
     const CONFIG = Object.freeze({
-      PDF_RENDER_SCALE: 3.0,         // ne pas réduire
+      PDF_RENDER_SCALE: 3.0,
       EXPORT_MULTIPLIER: 3,
       MAX_ZOOM: 20,
       MIN_DRAW_PX_AT_ZOOM1: 5,
@@ -656,9 +650,15 @@
       SCALE_DASH: [10, 5],
       PM_STROKE: 3,
       STATUS_MS: 3000,
-      OCR: { cropWidthRatio: 0.42, cropHeightRatio: 0.42, lang: "eng" }, // zone cartouche (gauche/haut)
-      // accepte 1:200, 1/200, 1.200, 1,200, 1 : 250, etc. jusqu'à 99999
-      SCALE_REGEX: /1\s*[:\/.,]\s*([1-9]\d{1,4})\b/
+      OCR: { cropWidthRatio: 0.42, cropHeightRatio: 0.42, lang: "eng" },
+      SCALE_REGEX: /1\s*[:\/.,]\s*([1-9]\d{1,4})\b/,
+
+      /* Flèches */
+      ARROW: {
+        length: 14,        // px @ zoom=1
+        width: 12,         // px @ zoom=1
+        inset: 1.5         // petit recul pour éviter chevauchement
+      }
     });
 
     const MODES = Object.freeze({
@@ -707,7 +707,6 @@
       btnDelete: $("#btnDelete"),
 
       colorPicker: $("#colorPicker"),
-
       minutePanel: $("#minutePanel"),
       minuteToolLabel: $("#minuteToolLabel"),
 
@@ -751,11 +750,14 @@
 
       perPage: new Map(),
 
-      // Touch cursor workflow (tablette)
       cursorActive: false,
-      cursorPhase: "idle", // idle | start | end
-      startPoint: null,    // fabric coords
-      previewLine: null,   // fabric.Line
+      cursorPhase: "idle",
+      startPoint: null,
+      previewLine: null,
+
+      _pcDrawing: false,
+      _pcStart: null,
+      _pcLine: null
     };
 
     const canvas = new fabric.Canvas("c", { selection: true, preserveObjectStacking: true });
@@ -771,7 +773,6 @@
 
     function syncMeasureButton() {
       ui.btnMeasure.disabled = !(state.pixelsPerMeter > 0);
-      // Badge échelle
       if (state.pixelsPerMeter > 0) {
         ui.scaleBadge.classList.add("ok");
         ui.scaleText.textContent = "Détectée";
@@ -844,13 +845,9 @@
       if (mode === MODES.MEASURE) ui.btnMeasure.classList.add("active");
       if (mode === MODES.MINUTE) ui.btnMinute.classList.add("active");
 
-      // Color palette visible en MEASURE et MINUTE (pour cotes minute)
       ui.colorPicker.classList.toggle("show", mode === MODES.MEASURE || mode === MODES.MINUTE);
-
-      // Panel minute visible seulement en MINUTE
       ui.minutePanel.classList.toggle("show", mode === MODES.MINUTE);
 
-      // Sélection objets
       if (mode === MODES.PAN) {
         canvas.selection = true;
         canvas.forEachObject(o => o.selectable = true);
@@ -868,13 +865,11 @@
         if (mode === MODES.MINUTE) Status.show("📝 Mode Plan minute", "success");
       }
 
-      // Si on quitte MEASURE/MINUTE, on coupe le workflow curseur tablette
       if (mode === MODES.PAN || mode === MODES.SCALE) cancelCursorFlow();
 
       syncMeasureButton();
     }
 
-    /* ===== Fullscreen ===== */
     function requestFullScreen() {
       const el = document.documentElement;
       if (el.requestFullscreen) return el.requestFullscreen();
@@ -894,19 +889,21 @@
       } catch (e) {}
     });
 
-    /* ===== Color picker ===== */
     $$("#colorPicker .dot").forEach(dot => {
       dot.addEventListener("click", () => {
         $$("#colorPicker .dot").forEach(d => d.classList.remove("sel"));
         dot.classList.add("sel");
         state.currentColor = dot.getAttribute("data-color");
 
-        // Si un objet sélectionné (PC), on recolore si c'est une mesure
         const active = canvas.getActiveObject();
         if (active && active.type === "group") {
           const lineObj = active.getObjects().find(o => o.type === "line");
           if (lineObj) {
             lineObj.set("stroke", state.currentColor);
+            // recolorer aussi les flèches si présentes
+            active.getObjects().forEach(o => {
+              if (o.type === "triangle") o.set("fill", state.currentColor);
+            });
             canvas.requestRenderAll();
             saveMeasuresForPage(state.currentPage);
           }
@@ -914,7 +911,6 @@
       });
     });
 
-    /* ===== Plan minute tool ===== */
     function setPmTool(tool) {
       state.pmTool = tool;
       $$("#minutePanel .mp-item").forEach(el => el.classList.remove("active"));
@@ -934,16 +930,18 @@
       el.addEventListener("click", () => setPmTool(el.getAttribute("data-tool")));
     });
 
-    /* ===== Shapes ===== */
     function isTooSmall(distPx) {
       const zoom = canvas.getZoom();
       return distPx < (CONFIG.MIN_DRAW_PX_AT_ZOOM1 / zoom);
     }
 
+    function lineAngleDeg(x1,y1,x2,y2){
+      return Math.atan2(y2-y1, x2-x1) * 180 / Math.PI;
+    }
+
     function makeLine(x1, y1, x2, y2, mode) {
       const zoom = canvas.getZoom();
       const stroke = (mode === MODES.SCALE ? CONFIG.SCALE_STROKE : (mode === MODES.MEASURE ? CONFIG.MEASURE_STROKE : CONFIG.PM_STROKE)) / zoom;
-
       const isScale = mode === MODES.SCALE;
       const color = (mode === MODES.MEASURE || mode === MODES.MINUTE) ? state.currentColor : "#ffffff";
 
@@ -958,12 +956,49 @@
       });
     }
 
+    function makeArrowHead(x, y, angleDeg, color) {
+      const z = canvas.getZoom();
+      const w = CONFIG.ARROW.width / z;
+      const h = CONFIG.ARROW.length / z;
+      return new fabric.Triangle({
+        left: x,
+        top: y,
+        originX: "center",
+        originY: "center",
+        width: w,
+        height: h,
+        angle: angleDeg,
+        fill: color,
+        selectable: false,
+        evented: false
+      });
+    }
+
+    // Flèches vers l’extérieur (start: angle+180, end: angle)
+    function makeOutwardArrows(x1,y1,x2,y2,color) {
+      const ang = lineAngleDeg(x1,y1,x2,y2);
+      const z = canvas.getZoom();
+      const inset = CONFIG.ARROW.inset / z;
+
+      // petit recul le long de la ligne pour éviter recouvrir l’extrémité
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.hypot(dx,dy) || 1;
+      const ux = dx/len, uy = dy/len;
+
+      const sx = x1 - ux*inset, sy = y1 - uy*inset;
+      const ex = x2 + ux*inset, ey = y2 + uy*inset;
+
+      const aEnd = makeArrowHead(ex, ey, ang, color);
+      const aStart = makeArrowHead(sx, sy, ang + 180, color);
+      return [aStart, aEnd];
+    }
+
     function makeLabel(textValue, x, y) {
       const zoom = canvas.getZoom();
       return new fabric.Text(textValue, {
         fontSize: 14 / zoom,
         fill: "white",
-        backgroundColor: "rgba(0,0,0,0.70)",
+        backgroundColor: "rgba(0,0,0,0.72)",
         left: x,
         top: y,
         originX: "center",
@@ -972,7 +1007,6 @@
       });
     }
 
-    /* ===== Plan minute symbols ===== */
     function pmSymbol(pbKind, x, y) {
       const z = canvas.getZoom();
       const s = 18 / z;
@@ -1010,7 +1044,6 @@
       return null;
     }
 
-    /* ===== Per-page save/restore ===== */
     function saveMeasuresForPage(pageNumber) {
       const json = canvas.toDatalessJSON(["isMeasure","measureValue","isPm","pmKind","pmValue"]);
       state.perPage.set(pageNumber, {
@@ -1035,7 +1068,6 @@
       });
     }
 
-    /* ===== PDF load/render ===== */
     async function loadPdfFile(file) {
       Status.show("⏳ Chargement PDF...");
       const buffer = await file.arrayBuffer();
@@ -1081,7 +1113,6 @@
         }, { crossOrigin: "anonymous" });
       });
 
-      // OCR auto
       await performVisualOCR(tempCanvas).catch(() => {});
       Status.show(`✅ Page ${pageNumber} prête`, "success");
     }
@@ -1141,7 +1172,6 @@
       if (e.key === "Enter") ui.btnGoPage.click();
     });
 
-    /* ===== OCR Scale ===== */
     function parseScaleString(text) {
       const clean = String(text || "")
         .replace(/[Oo]/g, "0")
@@ -1153,20 +1183,11 @@
       const scaleVal = parseInt(match[1], 10);
       if (!(scaleVal > 0)) return false;
 
-      // Conversion "px par m" approx (même logique que ta version qui marchait)
-      // 72 dpi * scale_render * pouces/m
       state.pixelsPerMeter = (72 * CONFIG.PDF_RENDER_SCALE * 39.3701) / scaleVal;
 
       Status.show(`✅ Échelle 1/${scaleVal} détectée !`, "success");
       syncMeasureButton();
-
-      // IMPORTANT: activer immédiatement la mesure si on est sur page courante
       saveMeasuresForPage(state.currentPage);
-
-      // On ne force pas forcément le mode, mais on autorise le bouton
-      // (si tu veux auto passer en mesure, décommente la ligne suivante)
-      // setMode(MODES.MEASURE);
-
       return true;
     }
 
@@ -1175,7 +1196,6 @@
       const crop = document.createElement("canvas");
       const ctx = crop.getContext("2d", { willReadFrequently: true });
 
-      // Crop zone cartouche (haut/gauche) – stable sur tes plans
       const w = Math.floor(canvasEl.width * CONFIG.OCR.cropWidthRatio);
       const h = Math.floor(canvasEl.height * CONFIG.OCR.cropHeightRatio);
 
@@ -1194,7 +1214,6 @@
       }
     }
 
-    /* ===== UI buttons ===== */
     ui.btnPan.addEventListener("click", () => setMode(MODES.PAN));
     ui.btnScale.addEventListener("click", () => setMode(MODES.SCALE));
     ui.btnMeasure.addEventListener("click", () => {
@@ -1211,7 +1230,6 @@
     ui.btnZoomIn.addEventListener("click", () => applyZoom(1.2));
     ui.btnZoomOut.addEventListener("click", () => applyZoom(0.8));
 
-    /* Mouse wheel zoom */
     canvas.on("mouse:wheel", (opt) => {
       let zoom = canvas.getZoom();
       zoom *= 0.999 ** opt.e.deltaY;
@@ -1223,7 +1241,6 @@
       opt.e.stopPropagation();
     });
 
-    /* Tablet pinch zoom */
     (() => {
       let isPinching = false;
       let startDist = 0;
@@ -1291,7 +1308,6 @@
       ui.wrapper.addEventListener("touchcancel", onTouchEnd, { passive: false });
     })();
 
-    /* ===== File input ===== */
     ui.fileInput.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
@@ -1300,7 +1316,6 @@
       finally { ui.fileInput.value = ""; }
     });
 
-    /* ===== Clear / save / undo / delete ===== */
     ui.btnClear.addEventListener("click", () => {
       if (!confirm("Tout effacer (page courante) ?")) return;
       canvas.getObjects().forEach(o => { if (o !== canvas.backgroundImage) canvas.remove(o); });
@@ -1341,10 +1356,7 @@
       if (state.pdfDoc) saveMeasuresForPage(state.currentPage);
     });
 
-    /* ============================================================
-       CORRECTION POINTAGE TABLETTE (centre de la cible)
-       ============================================================ */
-
+    /* ====== CURSOR & CONFIRM WORKFLOW ====== */
     function showCursorAt(clientX, clientY) {
       ui.touchCursor.style.display = "block";
       ui.touchCursor.style.transform = `translate(${clientX - 27}px, ${clientY - 27}px)`;
@@ -1360,7 +1372,6 @@
       return { x: r.left + r.width/2, y: r.top + r.height/2 };
     }
 
-    // Convertit un point "client" (écran) vers coordonnées Fabric (avec zoom/pan)
     function clientToFabricPoint(clientX, clientY) {
       const rect = ui.wrapper.getBoundingClientRect();
       const xCanvas = clientX - rect.left;
@@ -1372,7 +1383,6 @@
       return { x: p.x, y: p.y };
     }
 
-    // Point Fabric basé SUR LA CIBLE (centre), pas sur le doigt
     function getTargetFabricPoint() {
       const c = cursorCenterClient();
       return clientToFabricPoint(c.x, c.y);
@@ -1389,7 +1399,6 @@
 
       ui.confirmPad.classList.add("show");
       ui.btnConfirmEnd.disabled = true;
-
       Status.show("Place la cible, puis Départ OK", "success");
     }
 
@@ -1419,7 +1428,6 @@
 
       ui.btnConfirmEnd.disabled = false;
 
-      // Crée le trait "live" qui suivra la cible (arrivée)
       if (state.previewLine) canvas.remove(state.previewLine);
       state.previewLine = makeLine(p.x, p.y, p.x, p.y, state.mode);
       state.previewLine.selectable = false;
@@ -1443,27 +1451,22 @@
         return;
       }
 
-      // Supprime le trait live
       if (state.previewLine) {
         canvas.remove(state.previewLine);
         state.previewLine = null;
       }
 
-      // Selon le mode, on finalise
       if (state.mode === MODES.SCALE) {
         const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
         const meters = parseFloat((input || "").replace(",", "."));
-        if (!(meters > 0)) {
-          cancelCursorFlow();
-          return;
-        }
+        if (!(meters > 0)) { cancelCursorFlow(); return; }
+
         state.pixelsPerMeter = distPx / meters;
         syncMeasureButton();
         Status.show(`✅ Étalonné : 1m = ${state.pixelsPerMeter.toFixed(2)} px`, "success");
         saveMeasuresForPage(state.currentPage);
 
         cancelCursorFlow();
-        // Optionnel : passer direct en mesure
         setMode(MODES.MEASURE);
         return;
       }
@@ -1480,11 +1483,13 @@
         const metersStr = `${meters.toFixed(2)} m`;
 
         const line = makeLine(start.x, start.y, end.x, end.y, MODES.MEASURE);
+        const [aStart, aEnd] = makeOutwardArrows(start.x, start.y, end.x, end.y, state.currentColor);
+
         const midX = (start.x + end.x) / 2;
         const midY = (start.y + end.y) / 2 - 15 / canvas.getZoom();
-
         const label = makeLabel(metersStr, midX, midY);
-        const group = new fabric.Group([line, label], { selectable: true });
+
+        const group = new fabric.Group([line, aStart, aEnd, label], { selectable: true });
         group.isMeasure = true;
         group.measureValue = meters.toFixed(2);
 
@@ -1501,19 +1506,18 @@
       if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) {
         const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
         const meters = parseFloat((input || "").replace(",", "."));
-        if (!(meters > 0)) {
-          cancelCursorFlow();
-          return;
-        }
+        if (!(meters > 0)) { cancelCursorFlow(); return; }
 
         const metersStr = `${meters.toFixed(2)} m`;
 
         const line = makeLine(start.x, start.y, end.x, end.y, MODES.MINUTE);
+        const [aStart, aEnd] = makeOutwardArrows(start.x, start.y, end.x, end.y, state.currentColor);
+
         const midX = (start.x + end.x) / 2;
         const midY = (start.y + end.y) / 2 - 15 / canvas.getZoom();
-
         const label = makeLabel(metersStr, midX, midY);
-        const group = new fabric.Group([line, label], { selectable:true });
+
+        const group = new fabric.Group([line, aStart, aEnd, label], { selectable:true });
         group.isPm = true;
         group.pmKind = "COTE";
         group.pmValue = meters.toFixed(2);
@@ -1528,11 +1532,9 @@
         return;
       }
 
-      // Plan minute symbole : on ne passe pas ici (car symbole = clic direct)
       cancelCursorFlow();
     });
 
-    /* Mise à jour du trait live (arrivée) : suit EXACTEMENT le centre de la cible */
     function updateLiveLineToTarget() {
       if (!state.cursorActive) return;
       if (state.cursorPhase !== "end") return;
@@ -1543,24 +1545,17 @@
       canvas.requestRenderAll();
     }
 
-    /* ============================================================
-       INTERACTIONS (PC + tablette)
-       ============================================================ */
-
     function getClientPos(evt) {
       if (evt.touches && evt.touches.length > 0) return { x: evt.touches[0].clientX, y: evt.touches[0].clientY };
       return { x: evt.clientX, y: evt.clientY };
     }
 
-    // Mouse down
     canvas.on("mouse:down", (o) => {
       const evt = o.e;
       const client = getClientPos(evt);
 
-      // Si on clique un objet et mode PAN : on laisse la sélection
       if (o.target && state.mode === MODES.PAN) return;
 
-      // PAN drag
       if (state.mode === MODES.PAN) {
         state.isDragging = true;
         state.lastClientX = client.x;
@@ -1569,12 +1564,10 @@
         return;
       }
 
-      // Tablette : on utilise workflow curseur (MEASURE / SCALE / MINUTE cote)
       const tablet = isTabletTouchDevice();
       const wantsCursorFlow =
         tablet && (state.mode === MODES.MEASURE || state.mode === MODES.SCALE || (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE));
 
-      // Plan minute symbole (clic direct) : reste au clic (pas workflow)
       if (state.mode === MODES.MINUTE && state.pmTool !== PM_TOOLS.COTE) {
         const p = canvas.getPointer(evt);
         const sym = pmSymbol(state.pmTool, p.x, p.y);
@@ -1589,27 +1582,15 @@
       }
 
       if (wantsCursorFlow) {
-        // Active curseur si pas déjà
         if (!state.cursorActive) startCursorFlow();
-
-        // Place la cible là où est le doigt
         showCursorAt(client.x, client.y);
-
-        // Place le confirm pad à côté (léger offset pour ne pas cacher)
-        ui.confirmPad.style.left = `${Math.min(window.innerWidth - 10, Math.max(10, client.x + 140))}px`;
-        ui.confirmPad.style.top  = `${Math.min(window.innerHeight - 10, Math.max(10, client.y + 10))}px`;
-        ui.confirmPad.style.transform = "translate(-50%, -50%)";
-
         updateLiveLineToTarget();
         evt.preventDefault?.();
         return;
       }
 
-      // PC : tracé direct (drag) classique (scale/measure/minute cote)
-      // (si multi-touch -> ignore)
       if (evt.touches && evt.touches.length >= 2) return;
 
-      // On démarre un tracé direct PC
       state._pcDrawing = true;
       const p = canvas.getPointer(evt);
       state._pcStart = { x: p.x, y: p.y };
@@ -1617,12 +1598,10 @@
       canvas.add(state._pcLine);
     });
 
-    // Mouse move
     canvas.on("mouse:move", (o) => {
       const evt = o.e;
       const client = getClientPos(evt);
 
-      // PAN drag
       if (state.isDragging) {
         const vpt = canvas.viewportTransform;
         vpt[4] += client.x - state.lastClientX;
@@ -1634,14 +1613,12 @@
         return;
       }
 
-      // Curseur tablette : suit le doigt + update live line
       if (state.cursorActive) {
         showCursorAt(client.x, client.y);
         updateLiveLineToTarget();
         return;
       }
 
-      // PC line preview
       if (state._pcDrawing && state._pcLine) {
         const p = canvas.getPointer(evt);
         state._pcLine.set({ x2: p.x, y2: p.y });
@@ -1649,7 +1626,6 @@
       }
     });
 
-    // Mouse up
     canvas.on("mouse:up", (o) => {
       if (state.isDragging) {
         state.isDragging = false;
@@ -1659,10 +1635,8 @@
         return;
       }
 
-      // Tablette : on finalise via boutons OK => rien ici
       if (state.cursorActive) return;
 
-      // PC finalize
       if (!state._pcDrawing || !state._pcLine || !state._pcStart) return;
       state._pcDrawing = false;
 
@@ -1675,7 +1649,6 @@
         return;
       }
 
-      // SCALE
       if (state.mode === MODES.SCALE) {
         setTimeout(() => {
           const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
@@ -1698,7 +1671,6 @@
         return;
       }
 
-      // MEASURE
       if (state.mode === MODES.MEASURE) {
         if (!(state.pixelsPerMeter > 0)) {
           Status.show("⚠️ Pas d'échelle. Étalonne.", "warning");
@@ -1711,11 +1683,13 @@
         const meters = distPx / state.pixelsPerMeter;
         const metersStr = `${meters.toFixed(2)} m`;
 
+        const [aStart, aEnd] = makeOutwardArrows(state._pcStart.x, state._pcStart.y, p.x, p.y, state.currentColor);
+
         const midX = (state._pcStart.x + p.x) / 2;
         const midY = (state._pcStart.y + p.y) / 2 - 15 / canvas.getZoom();
 
         const label = makeLabel(metersStr, midX, midY);
-        const group = new fabric.Group([state._pcLine, label], { selectable:true });
+        const group = new fabric.Group([state._pcLine, aStart, aEnd, label], { selectable:true });
         group.isMeasure = true;
         group.measureValue = meters.toFixed(2);
 
@@ -1729,7 +1703,6 @@
         return;
       }
 
-      // MINUTE COTE
       if (state.mode === MODES.MINUTE && state.pmTool === PM_TOOLS.COTE) {
         setTimeout(() => {
           const input = prompt("Cote terrain (m) ? (ex: 0.80)", "1.00");
@@ -1741,11 +1714,13 @@
           }
 
           const metersStr = `${meters.toFixed(2)} m`;
+          const [aStart, aEnd] = makeOutwardArrows(state._pcStart.x, state._pcStart.y, p.x, p.y, state.currentColor);
+
           const midX = (state._pcStart.x + p.x) / 2;
           const midY = (state._pcStart.y + p.y) / 2 - 15 / canvas.getZoom();
 
           const label = makeLabel(metersStr, midX, midY);
-          const group = new fabric.Group([state._pcLine, label], { selectable:true });
+          const group = new fabric.Group([state._pcLine, aStart, aEnd, label], { selectable:true });
           group.isPm = true;
           group.pmKind = "COTE";
           group.pmValue = meters.toFixed(2);
@@ -1771,4 +1746,3 @@
   </script>
 </body>
 </html>
-
