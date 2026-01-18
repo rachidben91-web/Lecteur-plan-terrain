@@ -1,1597 +1,263 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Mesures Terrain - V2.1.7</title>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0e17">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <title>Mesures Terrain - GRDF BDSN</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  
+  <!-- External Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-
-  <style>
-    :root{
-      --bg:#0f1624;
-      --panel:rgba(20, 30, 48, 0.82);
-      --panel-2:rgba(12, 18, 30, 0.70);
-      --stroke:rgba(255,255,255,0.12);
-      --text:#eaf1ff;
-      --muted:rgba(234,241,255,0.72);
-      --accent:#34c3ff;
-
-      --frame-top:72px;
-      --frame-left:12px;
-      --frame-right:12px;
-      --frame-bottom:18px;
-      --frame-radius:16px;
-    }
-
-    *{ box-sizing:border-box; }
-    body{
-      margin:0; padding:0;
-      width:100vw; height:100vh;
-      overflow:hidden;
-      background:radial-gradient(1200px 700px at 50% 0%, rgba(52,195,255,0.12), transparent 60%),
-                 radial-gradient(900px 600px at 10% 20%, rgba(0,255,160,0.06), transparent 60%),
-                 var(--bg);
-      color:var(--text);
-      font-family: "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
-      touch-action:none;
-    }
-
-    /* ===== TOP BAR ===== */
-    .top-bar{
-      position:absolute; inset:0 0 auto 0;
-      height:64px;
-      display:flex;
-      align-items:center;
-      gap:14px;
-      padding:10px 12px;
-      z-index:80;
-      pointer-events:none;
-    }
-
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:10px 12px;
-      border-radius:16px;
-      background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-      border:1px solid var(--stroke);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 12px 28px rgba(0,0,0,0.32);
-      pointer-events:auto;
-      min-width: 240px;
-    }
-
-    .brand .logo{
-      width:48px; height:48px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      border-radius:14px;
-      background:rgba(255,255,255,0.04);
-      border:1px solid rgba(255,255,255,0.10);
-      overflow:hidden;
-    }
-    .brand .logo img{
-      height:44px;
-      width:auto;
-      display:block;
-    }
-
-    .brand .title{
-      display:flex; flex-direction:column;
-      line-height:1.06;
-      gap:2px;
-    }
-    .brand .title .t1{
-      font-weight:900;
-      letter-spacing:0.3px;
-      font-size:1.02rem;
-    }
-    .brand .title .t2{
-      font-size:0.82rem;
-      color:var(--muted);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .mid-wrap{
-      flex:1;
-      display:flex;
-      justify-content:center;
-      pointer-events:none;
-    }
-
-    .pager{
-      pointer-events:auto;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 10px;
-      border-radius:16px;
-      background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-      border:1px solid var(--stroke);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 12px 28px rgba(0,0,0,0.28);
-      max-width: 520px;
-    }
-    .pager .page-label{
-      min-width:96px;
-      text-align:center;
-      color:var(--muted);
-      font-size:0.9rem;
-      font-variant-numeric: tabular-nums;
-      padding:0 6px;
-    }
-    .pager button{
-      width:42px; height:42px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.10);
-      background:rgba(255,255,255,0.06);
-      color:var(--text);
-      cursor:pointer;
-      display:flex; align-items:center; justify-content:center;
-      transition: transform .15s, background .2s;
-    }
-    .pager button:hover:not(:disabled){ transform:scale(1.05); background:rgba(255,255,255,0.12); }
-    .pager button:disabled{ opacity:.35; cursor:not-allowed; }
-    .pager input{
-      width:64px;
-      height:42px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.10);
-      background:rgba(0,0,0,0.18);
-      color:var(--text);
-      text-align:center;
-      outline:none;
-      font-size:0.95rem;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .top-actions{
-      pointer-events:auto;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:flex-end;
-    }
-
-    .btn{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      height:44px;
-      padding:0 12px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,0.10);
-      background:linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
-      color:var(--text);
-      cursor:pointer;
-      font-weight:700;
-      letter-spacing:0.2px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 12px 28px rgba(0,0,0,0.26);
-      transition: transform .15s, background .2s;
-      user-select:none;
-    }
-    .btn:hover{ transform:scale(1.03); background:rgba(255,255,255,0.10); }
-    .btn:disabled{ opacity:.35; cursor:not-allowed; transform:none; }
-    .btn-danger{
-      background:linear-gradient(180deg, rgba(231,76,60,0.22), rgba(231,76,60,0.10));
-      border-color: rgba(231,76,60,0.30);
-    }
-
-    /* ===== STATUS ===== */
-    #statusBubble{
-      position:absolute;
-      top:76px;
-      left:50%;
-      transform:translateX(-50%);
-      background:rgba(0,0,0,0.55);
-      border:1px solid rgba(255,255,255,0.16);
-      border-radius:999px;
-      padding:10px 18px;
-      z-index:90;
-      pointer-events:none;
-      opacity:0;
-      transition: opacity .2s ease;
-      color:var(--text);
-      font-weight:800;
-    }
-    #statusBubble.visible{ opacity:1; }
-
-    /* ===== SCALE BADGE ===== */
-    #scaleBadge{
-      position:absolute;
-      top:78px;
-      right:14px;
-      z-index:85;
-      width:220px;
-      background:var(--panel);
-      border:1px solid rgba(255,255,255,0.12);
-      border-radius:16px;
-      padding:10px 12px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 14px 30px rgba(0,0,0,0.30);
-      pointer-events:none;
-    }
-    #scaleBadge .h{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      font-weight:900;
-      letter-spacing:0.6px;
-      font-size:0.78rem;
-      color:var(--muted);
-      text-transform:uppercase;
-      margin-bottom:8px;
-    }
-    #scaleBadge .v{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:10px 10px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.10);
-      background:rgba(0,0,0,0.18);
-      font-weight:900;
-      letter-spacing:0.2px;
-      font-variant-numeric: tabular-nums;
-    }
-    #scaleBadge .pill{
-      width:10px; height:10px; border-radius:50%;
-      background:#f1c40f;
-      box-shadow:0 0 14px rgba(241,196,15,0.45);
-    }
-    #scaleBadge.ok .pill{ background:#2ecc71; box-shadow:0 0 14px rgba(46,204,113,0.45); }
-
-    /* ===== FRAME + CANVAS ===== */
-    #appFrame{
-      position:absolute;
-      top:var(--frame-top);
-      left:var(--frame-left);
-      right:var(--frame-right);
-      bottom:var(--frame-bottom);
-      border-radius:var(--frame-radius);
-      pointer-events:none;
-      z-index:10;
-      border:3px solid rgba(255,255,255,0.14);
-      box-shadow:
-        0 0 0 1px rgba(0,0,0,0.55) inset,
-        0 0 22px rgba(52,195,255,0.12),
-        0 14px 35px rgba(0,0,0,0.45);
-    }
-    #canvas-wrapper{
-      position:absolute;
-      top:var(--frame-top);
-      left:var(--frame-left);
-      right:var(--frame-right);
-      bottom:var(--frame-bottom);
-      border-radius:var(--frame-radius);
-      overflow:hidden;
-      background:#111827;
-      z-index:1;
-      overscroll-behavior:none;
-    }
-
-    /* ===== BOTTOM DOCK ===== */
-    .bottom-dock{
-      position:absolute;
-      bottom:22px;
-      left:50%;
-      transform:translateX(-50%);
-      z-index:80;
-      background:var(--panel);
-      border:1px solid rgba(255,255,255,0.12);
-      border-radius:999px;
-      padding:10px 14px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      box-shadow: 0 18px 40px rgba(0,0,0,0.36);
-      backdrop-filter: blur(12px);
-    }
-    .btn-icon{
-      width:54px; height:54px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,0.10);
-      background:rgba(255,255,255,0.06);
-      color:var(--text);
-      cursor:pointer;
-      display:flex; align-items:center; justify-content:center;
-      font-size:1.12rem;
-      transition: transform .15s, background .2s;
-      user-select:none;
-    }
-    .btn-icon:hover:not(:disabled){ transform:scale(1.08); background:rgba(255,255,255,0.12); }
-    .btn-icon:disabled{ opacity:.35; cursor:not-allowed; }
-    .btn-icon.active{
-      background:rgba(52,195,255,0.20);
-      border-color:rgba(52,195,255,0.35);
-      box-shadow:0 0 18px rgba(52,195,255,0.22);
-    }
-    .divider{ width:1px; height:26px; background:rgba(255,255,255,0.18); margin:0 4px; }
-    .btn-undo{ color:#f1c40f; }
-    .btn-del{ color:#e74c3c; }
-
-    /* ===== COLOR PALETTE (measure) ===== */
-    #colorPicker{
-      position:absolute;
-      left:50%;
-      transform:translateX(-50%);
-      bottom:92px;
-      z-index:79;
-      display:flex;
-      gap:10px;
-      padding:10px 12px;
-      border-radius:999px;
-      background:var(--panel);
-      border:1px solid rgba(255,255,255,0.12);
-      backdrop-filter: blur(12px);
-      box-shadow: 0 18px 40px rgba(0,0,0,0.32);
-      opacity:0;
-      pointer-events:none;
-      transition: opacity .15s ease;
-    }
-    #colorPicker.show{ opacity:1; pointer-events:auto; }
-    .color-dot{
-      width:28px; height:28px;
-      border-radius:999px;
-      border:2px solid rgba(255,255,255,0.22);
-      cursor:pointer;
-      transition: transform .15s, border-color .15s;
-    }
-    .color-dot:hover{ transform:scale(1.15); }
-    .color-dot.selected{ border-color:#fff; box-shadow:0 0 12px rgba(255,255,255,0.18); }
-
-    /* ===== TOUCH CURSOR + CONFIRM PAD ===== */
-    #touchCursor{
-      position:fixed;
-      left:-9999px;
-      top:-9999px;
-      width:46px;
-      height:46px;
-      z-index:200;
-      pointer-events:none;
-      display:none;
-      transform: translate(-50%, -50%);
-    }
-    #touchCursor.show{ display:block; }
-    #touchCursor .ring{
-      width:46px; height:46px;
-      border-radius:999px;
-      border:3px solid rgba(52,195,255,0.85);
-      box-shadow:0 0 22px rgba(52,195,255,0.35);
-      position:absolute; left:0; top:0;
-      background:rgba(52,195,255,0.08);
-      backdrop-filter: blur(4px);
-    }
-    #touchCursor .crossH, #touchCursor .crossV{
-      position:absolute;
-      background:rgba(234,241,255,0.92);
-      box-shadow:0 0 10px rgba(0,0,0,0.35);
-    }
-    #touchCursor .crossH{ width:28px; height:2px; left:9px; top:22px; border-radius:2px; }
-    #touchCursor .crossV{ width:2px; height:28px; left:22px; top:9px; border-radius:2px; }
-
-    #confirmPad{
-      position:absolute;
-      left:50%;
-      transform:translateX(-50%);
-      bottom:92px; /* juste au-dessus du dock */
-      z-index:199;
-      display:none;
-      gap:10px;
-      align-items:center;
-      padding:10px 12px;
-      background:var(--panel);
-      border:1px solid rgba(255,255,255,0.12);
-      border-radius:18px;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 18px 40px rgba(0,0,0,0.36);
-    }
-    #confirmPad.show{ display:flex; }
-
-    .cbtn{
-      border:none;
-      border-radius:14px;
-      height:46px;
-      padding:0 14px;
-      color:var(--text);
-      font-weight:900;
-      letter-spacing:0.2px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      cursor:pointer;
-      user-select:none;
-      border:1px solid rgba(255,255,255,0.12);
-      background:rgba(255,255,255,0.06);
-      transition: transform .12s, background .2s;
-      white-space:nowrap;
-    }
-    .cbtn:hover{ transform:scale(1.02); background:rgba(255,255,255,0.10); }
-    .cbtn.ok{ background:rgba(46,204,113,0.16); border-color:rgba(46,204,113,0.25); }
-    .cbtn.end{ background:rgba(52,195,255,0.12); border-color:rgba(52,195,255,0.25); }
-    .cbtn.cancel{ background:rgba(231,76,60,0.14); border-color:rgba(231,76,60,0.25); }
-
-    #versionLabel{
-      position:fixed;
-      bottom:6px;
-      right:10px;
-      z-index:210;
-      font-size:0.74rem;
-      opacity:0.35;
-      color:var(--muted);
-      font-variant-numeric: tabular-nums;
-    }
-
-    @media (max-width: 720px){
-      .brand{ min-width: 210px; }
-      .brand .logo{ width:46px; height:46px; }
-      .brand .logo img{ height:42px; }
-      .pager .page-label{ min-width:84px; }
-      #scaleBadge{ width:200px; }
-      .btn-icon{ width:56px; height:56px; }
-    }
-    @media (max-width: 560px){
-      :root{
-        --frame-top: 70px;
-        --frame-left: 10px;
-        --frame-right: 10px;
-        --frame-bottom: 14px;
-        --frame-radius: 14px;
-      }
-      .pager input{ width:58px; }
-      .btn{ height:42px; padding:0 10px; }
-      .brand .title .t2{ font-size:0.78rem; }
-      #scaleBadge{ top:74px; right:10px; }
-    }
-  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- App Styles -->
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
-  <!-- TOP BAR -->
-  <div class="top-bar">
-    <div class="brand">
-      <div class="logo">
-        <!-- ⚠️ Chemin sensible à la casse -->
-        <img src="assets/logo-grdf-bdsn.png" alt="GRDF" onerror="this.style.display='none'">
+  <!-- ===== TOP BAR ===== -->
+  <header class="top-bar">
+    <!-- Brand -->
+    <div class="brand glass-card glass-card--elevated">
+      <div class="brand__logo">
+        <img src="assets/logo-grdf-bdsn.png" alt="GRDF BDSN" onerror="this.parentElement.innerHTML='<i class=\'fa-solid fa-ruler-combined\' style=\'font-size:1.5rem;color:var(--accent)\'></i>'">
       </div>
-      <div class="title">
-        <div class="t1">Mesures Terrain</div>
-        <div class="t2" id="brandVersion">V2.1.7</div>
-      </div>
-    </div>
-
-    <div class="mid-wrap">
-      <div class="pager" title="Navigation PDF">
-        <button id="btnPrevPage" disabled><i class="fa-solid fa-chevron-left"></i></button>
-        <div class="page-label" id="pageLabel">Page - / -</div>
-        <button id="btnNextPage" disabled><i class="fa-solid fa-chevron-right"></i></button>
-
-        <input id="pageJump" type="number" min="1" step="1" placeholder="N°" disabled />
-        <button id="btnGoPage" disabled title="Aller"><i class="fa-solid fa-arrow-right-to-bracket"></i></button>
+      <div class="brand__text">
+        <div class="brand__title">Mesures Terrain</div>
+        <div class="brand__version" id="brandVersion">v3.0.0</div>
       </div>
     </div>
-
+    
+    <!-- Pager -->
+    <nav class="pager glass-card glass-card--elevated" aria-label="Navigation des pages">
+      <button id="btnPrevPage" class="btn btn--icon" disabled aria-label="Page précédente">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      
+      <span class="pager__label" id="pageLabel">Page — / —</span>
+      
+      <button id="btnNextPage" class="btn btn--icon" disabled aria-label="Page suivante">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      
+      <input 
+        type="number" 
+        id="pageJump" 
+        class="pager__input" 
+        min="1" 
+        step="1" 
+        placeholder="N°" 
+        disabled
+        aria-label="Aller à la page"
+      >
+      
+      <button id="btnGoPage" class="btn btn--icon" disabled aria-label="Aller à la page">
+        <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </nav>
+    
+    <!-- Actions -->
     <div class="top-actions">
-      <label for="fileInput" class="btn" title="Ouvrir un PDF">
-        <i class="fa-solid fa-folder-open"></i><span>Ouvrir</span>
+      <label for="fileInput" class="btn glass-card--elevated" tabindex="0">
+        <i class="fa-solid fa-folder-open"></i>
+        <span>Ouvrir</span>
       </label>
-      <input type="file" id="fileInput" accept=".pdf" style="display:none;" />
-
-      <button id="btnFullscreen" class="btn" title="Plein écran">
-        <i class="fa-solid fa-expand"></i><span>Plein écran</span>
+      <input type="file" id="fileInput" accept=".pdf" class="sr-only">
+      
+      <button id="btnFullscreen" class="btn btn--icon glass-card--elevated" aria-label="Plein écran">
+        <i class="fa-solid fa-expand"></i>
       </button>
-
-      <button id="btnSave" class="btn" disabled title="Exporter PNG">
-        <i class="fa-solid fa-floppy-disk"></i><span>PNG</span>
+      
+      <button id="btnSave" class="btn glass-card--elevated" disabled aria-label="Exporter en PNG">
+        <i class="fa-solid fa-download"></i>
+        <span>PNG</span>
       </button>
-
-      <button id="btnClear" class="btn btn-danger" title="Tout effacer (page courante)">
-        <i class="fa-solid fa-trash"></i><span>Effacer</span>
+      
+      <button id="btnClear" class="btn btn--danger glass-card--elevated" aria-label="Tout effacer">
+        <i class="fa-solid fa-trash"></i>
       </button>
     </div>
+  </header>
+  
+  <!-- ===== STATUS BUBBLE ===== -->
+  <div id="statusBubble" class="status-bubble" role="status" aria-live="polite">
+    Bienvenue
   </div>
-
-  <div id="statusBubble">Bienvenue</div>
-
-  <!-- SCALE BADGE -->
-  <div id="scaleBadge">
-    <div class="h">
-      <span>Échelle</span>
-      <span id="scaleMini">—</span>
+  
+  <!-- ===== SCALE BADGE ===== -->
+  <aside id="scaleBadge" class="scale-badge glass-card">
+    <div class="scale-badge__header">
+      <span class="scale-badge__title">Échelle</span>
+      <span class="scale-badge__mini" id="scaleMini">—</span>
     </div>
-    <div class="v">
-      <span class="pill"></span>
-      <span id="scaleValue">Non détectée</span>
+    <div class="scale-badge__value">
+      <div class="scale-badge__indicator"></div>
+      <span class="scale-badge__text" id="scaleValue">Non détectée</span>
+    </div>
+  </aside>
+  
+  <!-- ===== COLOR PALETTE ===== -->
+  <div id="colorPicker" class="color-palette glass-card" role="radiogroup" aria-label="Couleur du tracé">
+    <button 
+      class="color-dot color-dot--selected" 
+      style="background: var(--color-elec);" 
+      data-color="#ff5252" 
+      title="Électricité (Rouge)"
+      role="radio"
+      aria-checked="true"
+    ></button>
+    <button 
+      class="color-dot" 
+      style="background: var(--color-gaz);" 
+      data-color="#ffab00" 
+      title="Gaz (Jaune)"
+      role="radio"
+      aria-checked="false"
+    ></button>
+    <button 
+      class="color-dot" 
+      style="background: var(--color-eau);" 
+      data-color="#00b0ff" 
+      title="Eau (Bleu)"
+      role="radio"
+      aria-checked="false"
+    ></button>
+    <button 
+      class="color-dot" 
+      style="background: var(--color-telecom);" 
+      data-color="#00e676" 
+      title="Télécom (Vert)"
+      role="radio"
+      aria-checked="false"
+    ></button>
+    <button 
+      class="color-dot" 
+      style="background: var(--color-fibre);" 
+      data-color="#e040fb" 
+      title="Fibre (Violet)"
+      role="radio"
+      aria-checked="false"
+    ></button>
+  </div>
+  
+  <!-- ===== BOTTOM DOCK ===== -->
+  <nav class="bottom-dock glass-card glass-card--elevated" aria-label="Outils">
+    <button id="btnPan" class="btn btn--icon-lg btn--active" title="Déplacer" aria-pressed="true">
+      <i class="fa-solid fa-hand"></i>
+    </button>
+    
+    <button id="btnHome" class="btn btn--icon-lg" title="Recentrer" aria-label="Recentrer la vue">
+      <i class="fa-solid fa-crosshairs"></i>
+    </button>
+    
+    <div class="dock-divider" role="separator"></div>
+    
+    <button id="btnZoomOut" class="btn btn--icon-lg" disabled title="Zoom -" aria-label="Dézoomer">
+      <i class="fa-solid fa-minus"></i>
+    </button>
+    
+    <button id="btnZoomIn" class="btn btn--icon-lg" disabled title="Zoom +" aria-label="Zoomer">
+      <i class="fa-solid fa-plus"></i>
+    </button>
+    
+    <div class="dock-divider" role="separator"></div>
+    
+    <button id="btnScale" class="btn btn--icon-lg btn--warning" disabled title="Étalonnage">
+      <i class="fa-solid fa-ruler"></i>
+    </button>
+    
+    <button id="btnMeasure" class="btn btn--icon-lg btn--success" disabled title="Mesurer">
+      <i class="fa-solid fa-pen-ruler"></i>
+    </button>
+    
+    <div class="dock-divider" role="separator"></div>
+    
+    <button id="btnUndo" class="btn btn--icon-lg btn--warning" disabled title="Annuler dernier" aria-label="Annuler">
+      <i class="fa-solid fa-rotate-left"></i>
+    </button>
+    
+    <button id="btnDelete" class="btn btn--icon-lg btn--danger" disabled title="Supprimer sélection" aria-label="Supprimer">
+      <i class="fa-solid fa-eraser"></i>
+    </button>
+  </nav>
+  
+  <!-- ===== TOUCH CURSOR ===== -->
+  <div id="touchCursor" class="touch-cursor" aria-hidden="true">
+    <div class="touch-cursor__ring"></div>
+    <div class="touch-cursor__cross-h"></div>
+    <div class="touch-cursor__cross-v"></div>
+  </div>
+  
+  <!-- ===== CONFIRM PAD (Touch) ===== -->
+  <div id="confirmPad" class="confirm-pad glass-card">
+    <button id="btnConfirmStart" class="confirm-btn confirm-btn--start">
+      <i class="fa-solid fa-location-dot"></i>
+      <span>Départ OK</span>
+    </button>
+    
+    <button id="btnConfirmEnd" class="confirm-btn confirm-btn--end" disabled>
+      <i class="fa-solid fa-flag-checkered"></i>
+      <span>Arrivée OK</span>
+    </button>
+    
+    <button id="btnConfirmCancel" class="confirm-btn confirm-btn--cancel" aria-label="Annuler">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+  
+  <!-- ===== MODAL (Saisie mètres) ===== -->
+  <div id="modalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <h2 class="modal__title" id="modalTitle">Distance en mètres</h2>
+      
+      <div class="modal__input-group">
+        <label for="modalInput" class="modal__label">Entrez la distance réelle</label>
+        <input 
+          type="number" 
+          id="modalInput" 
+          class="modal__input" 
+          step="0.01" 
+          min="0.01" 
+          placeholder="1.00"
+          inputmode="decimal"
+        >
+        <p class="modal__hint">Exemple : 1.50 pour 1m50</p>
+      </div>
+      
+      <div class="modal__actions">
+        <button id="modalCancel" class="btn btn--danger">Annuler</button>
+        <button id="modalConfirm" class="btn btn--primary">Valider</button>
+      </div>
     </div>
   </div>
-
-  <!-- COLOR PALETTE -->
-  <div id="colorPicker">
-    <div class="color-dot selected" style="background:#e74c3c;" data-color="#e74c3c" title="Rouge"></div>
-    <div class="color-dot" style="background:#f1c40f;" data-color="#f1c40f" title="Jaune"></div>
-    <div class="color-dot" style="background:#3498db;" data-color="#3498db" title="Bleu"></div>
-    <div class="color-dot" style="background:#2ecc71;" data-color="#2ecc71" title="Vert"></div>
-    <div class="color-dot" style="background:#9b59b6;" data-color="#9b59b6" title="Violet"></div>
-    <div class="color-dot" style="background:#ffffff;" data-color="#ffffff" title="Blanc"></div>
-  </div>
-
-  <!-- BOTTOM DOCK -->
-  <div class="bottom-dock">
-    <button id="btnPan" class="btn-icon active" title="Déplacer"><i class="fa-solid fa-hand"></i></button>
-    <button id="btnHome" class="btn-icon" title="Recentrer"><i class="fa-solid fa-house"></i></button>
-
-    <div class="divider"></div>
-
-    <button id="btnZoomOut" class="btn-icon" disabled title="Zoom -"><i class="fa-solid fa-minus"></i></button>
-    <button id="btnZoomIn" class="btn-icon" disabled title="Zoom +"><i class="fa-solid fa-plus"></i></button>
-
-    <div class="divider"></div>
-
-    <button id="btnScale" class="btn-icon" disabled title="Étalonnage"><i class="fa-solid fa-ruler-horizontal"></i></button>
-    <button id="btnMeasure" class="btn-icon" disabled title="Mesurer"><i class="fa-solid fa-tape"></i></button>
-
-    <div class="divider"></div>
-
-    <button id="btnUndo" class="btn-icon btn-undo" disabled title="Annuler"><i class="fa-solid fa-rotate-left"></i></button>
-    <button id="btnDelete" class="btn-icon btn-del" disabled title="Supprimer"><i class="fa-solid fa-xmark"></i></button>
-  </div>
-
-  <!-- Touch cursor + confirm pad -->
-  <div id="touchCursor">
-    <div class="ring"></div>
-    <div class="crossH"></div>
-    <div class="crossV"></div>
-  </div>
-
-  <div id="confirmPad">
-    <button id="btnConfirmStart" class="cbtn ok"><i class="fa-solid fa-location-dot"></i> Départ OK</button>
-    <button id="btnConfirmEnd" class="cbtn end" disabled><i class="fa-solid fa-flag-checkered"></i> Arrivée OK</button>
-    <button id="btnConfirmCancel" class="cbtn cancel"><i class="fa-solid fa-xmark"></i></button>
-  </div>
-
-  <div id="versionLabel">V2.1.7</div>
-
-  <div id="appFrame"></div>
-  <div id="canvas-wrapper"><canvas id="c"></canvas></div>
-
-  <script>
-    /* ============================================================
-       Mesures Terrain - V2.1.7
-       - OCR échelle (1:XX à 1:5000, valeurs "batardes" ok ex 250)
-       - Mesure / Étalonnage avec flèches
-       - Sur tablette: mire décalée au-dessus du doigt, tracé basé sur mire
-       - Plan minute retiré temporairement
-       ============================================================ */
-
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-
-    const CONFIG = Object.freeze({
-      VERSION: "2.1.7",
-      PDF_RENDER_SCALE: 3.0,     // ne pas réduire le PDF
-      EXPORT_MULTIPLIER: 3,
-      MAX_ZOOM: 20,
-      MIN_DRAW_PX_AT_ZOOM1: 5,
-      MEASURE_STROKE: 3,
-      SCALE_STROKE: 3,
-      SCALE_DASH: [10, 5],
-      STATUS_MS: 2500,
-
-      // OCR: on vise la zone cartouche côté gauche (où est l'échelle)
-      OCR: {
-        lang: "eng",
-        cropLeftW: 0.52,     // 52% largeur à gauche
-        cropTopH: 0.60,      // 60% hauteur en haut
-      },
-
-      // capture "1:200", "1/500", "1 : 2500", etc. (2 à 5 chiffres)
-      SCALE_REGEX: /1\s*[:\/.,]\s*([0-9]{2,5})\b/
-    });
-
-    const MODES = Object.freeze({
-      PAN: "pan",
-      SCALE: "scale",
-      MEASURE: "measure"
-    });
-
-    const $ = (sel) => document.querySelector(sel);
-    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
-
-    const ui = {
-      wrapper: $("#canvas-wrapper"),
-      fileInput: $("#fileInput"),
-      statusBubble: $("#statusBubble"),
-
-      scaleBadge: $("#scaleBadge"),
-      scaleValue: $("#scaleValue"),
-      scaleMini: $("#scaleMini"),
-
-      colorPicker: $("#colorPicker"),
-
-      touchCursor: $("#touchCursor"),
-      confirmPad: $("#confirmPad"),
-      btnConfirmStart: $("#btnConfirmStart"),
-      btnConfirmEnd: $("#btnConfirmEnd"),
-      btnConfirmCancel: $("#btnConfirmCancel"),
-
-      pager: {
-        prev: $("#btnPrevPage"),
-        next: $("#btnNextPage"),
-        label: $("#pageLabel"),
-        jump: $("#pageJump"),
-        go: $("#btnGoPage"),
-      },
-
-      btn: {
-        pan: $("#btnPan"),
-        home: $("#btnHome"),
-        scale: $("#btnScale"),
-        measure: $("#btnMeasure"),
-        zoomIn: $("#btnZoomIn"),
-        zoomOut: $("#btnZoomOut"),
-        undo: $("#btnUndo"),
-        del: $("#btnDelete"),
-        clear: $("#btnClear"),
-        save: $("#btnSave"),
-        fullscreen: $("#btnFullscreen"),
-      }
-    };
-
-    $("#brandVersion").textContent = "V" + CONFIG.VERSION;
-    $("#versionLabel").textContent = "V" + CONFIG.VERSION;
-
-    const Status = (() => {
-      let timer;
-      function show(message) {
-        ui.statusBubble.textContent = message;
-        ui.statusBubble.classList.add("visible");
-        clearTimeout(timer);
-        timer = setTimeout(() => ui.statusBubble.classList.remove("visible"), CONFIG.STATUS_MS);
-      }
-      return { show };
-    })();
-
-    const state = {
-      mode: MODES.PAN,
-
-      // page scale
-      pixelsPerMeter: 0,
-      detectedScale: null,
-
-      // zoom
-      initialZoom: 0.05,
-
-      // measure color
-      currentColor: "#e74c3c",
-
-      // pdf
-      pdfDoc: null,
-      pageCount: 0,
-      currentPage: 1,
-      perPage: new Map(),
-
-      // pan drag
-      isDragging: false,
-      lastClientX: 0,
-      lastClientY: 0,
-
-      // touch targeting flow
-      isTouch: false,
-      cursorClientX: 0,
-      cursorClientY: 0,
-      cursorOffsetY: -70,   // ✅ mire au-dessus du doigt
-      cursorOffsetX: 0,
-
-      pickStartCanvas: null,
-      picking: false,
-
-      // preview
-      previewLine: null
-    };
-
-    const canvas = new fabric.Canvas("c", { selection: true, preserveObjectStacking: true });
-
-    function setDisabledAll(disabled) {
-      Object.values(ui.btn).forEach(b => b.disabled = disabled);
-      ui.btn.clear.disabled = false;
-      ui.btn.fullscreen.disabled = false;
-    }
-
-    function setScaleBadge(scaleVal) {
-      if (!scaleVal) {
-        ui.scaleBadge.classList.remove("ok");
-        ui.scaleValue.textContent = "Non détectée";
-        ui.scaleMini.textContent = "—";
-        return;
-      }
-      ui.scaleBadge.classList.add("ok");
-      ui.scaleValue.textContent = `1:${scaleVal}`;
-      ui.scaleMini.textContent = `1:${scaleVal}`;
-    }
-
-    function updateMeasureAvailability() {
-      ui.btn.measure.disabled = !(state.pixelsPerMeter > 0);
-      ui.btn.save.disabled = !state.pdfDoc;
-      ui.btn.zoomIn.disabled = !state.pdfDoc;
-      ui.btn.zoomOut.disabled = !state.pdfDoc;
-      ui.btn.scale.disabled = !state.pdfDoc;
-      ui.btn.undo.disabled = !state.pdfDoc;
-      ui.btn.del.disabled = !state.pdfDoc;
-    }
-
-    function setMode(mode) {
-      state.mode = mode;
-      Object.values(ui.btn).forEach(b => b.classList.remove("active"));
-      if (ui.btn[mode]) ui.btn[mode].classList.add("active");
-
-      ui.colorPicker.classList.toggle("show", mode === MODES.MEASURE);
-
-      // tablet picking UI only for SCALE/MEASURE
-      const showPick = (mode === MODES.SCALE || mode === MODES.MEASURE);
-      ui.confirmPad.classList.toggle("show", showPick && state.isTouch);
-      if (!showPick) resetPicking();
-
-      if (mode === MODES.PAN) {
-        canvas.selection = true;
-        canvas.forEachObject(o => o.selectable = true);
-        canvas.defaultCursor = "grab";
-        if (state.pdfDoc) Status.show("Mode Déplacement");
-      } else {
-        canvas.selection = false;
-        canvas.forEachObject(o => o.selectable = false);
-        canvas.discardActiveObject();
-        canvas.requestRenderAll();
-        canvas.defaultCursor = "crosshair";
-
-        if (mode === MODES.SCALE) Status.show("Étalonnage : cible → Départ OK → cible → Arrivée OK");
-        if (mode === MODES.MEASURE) Status.show("Mesure : cible → Départ OK → cible → Arrivée OK");
-      }
-      updateMeasureAvailability();
-    }
-
-    /* Resize */
-    function clampViewportToBackground() {
-      const bg = canvas.backgroundImage;
-      if (!bg) return;
-
-      const zoom = canvas.getZoom();
-      const contentW = bg.width * zoom;
-      const contentH = bg.height * zoom;
-
-      const vpt = canvas.viewportTransform;
-
-      if (contentW <= canvas.width) vpt[4] = (canvas.width - contentW) / 2;
-      else {
-        const minX = canvas.width - contentW;
-        const maxX = 0;
-        vpt[4] = Math.min(maxX, Math.max(minX, vpt[4]));
-      }
-
-      if (contentH <= canvas.height) vpt[5] = (canvas.height - contentH) / 2;
-      else {
-        const minY = canvas.height - contentH;
-        const maxY = 0;
-        vpt[5] = Math.min(maxY, Math.max(minY, vpt[5]));
-      }
-    }
-
-    function resizeCanvas() {
-      canvas.setWidth(ui.wrapper.clientWidth);
-      canvas.setHeight(ui.wrapper.clientHeight);
-      clampViewportToBackground();
-      canvas.requestRenderAll();
-    }
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
-
-    /* Zoom */
-    function clampZoom(z) {
-      return Math.max(state.initialZoom, Math.min(CONFIG.MAX_ZOOM, z));
-    }
-
-    function resetViewToCenter() {
-      canvas.setZoom(state.initialZoom);
-      const vpt = canvas.viewportTransform;
-      vpt[0] = state.initialZoom; vpt[3] = state.initialZoom;
-      vpt[4] = (canvas.width - (canvas.backgroundImage?.width || 0) * state.initialZoom) / 2;
-      vpt[5] = (canvas.height - (canvas.backgroundImage?.height || 0) * state.initialZoom) / 2;
-      clampViewportToBackground();
-      canvas.requestRenderAll();
-    }
-
-    function applyZoom(factor) {
-      const zoom = clampZoom(canvas.getZoom() * factor);
-      canvas.zoomToPoint({ x: canvas.width / 2, y: canvas.height / 2 }, zoom);
-      clampViewportToBackground();
-      canvas.requestRenderAll();
-    }
-
-    canvas.on("mouse:wheel", (opt) => {
-      if (!state.pdfDoc) return;
-      let zoom = canvas.getZoom();
-      zoom *= 0.999 ** opt.e.deltaY;
-      zoom = clampZoom(zoom);
-      canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
-      clampViewportToBackground();
-      canvas.requestRenderAll();
-      opt.e.preventDefault();
-      opt.e.stopPropagation();
-    });
-
-    ui.btn.zoomIn.addEventListener("click", () => applyZoom(1.2));
-    ui.btn.zoomOut.addEventListener("click", () => applyZoom(0.8));
-
-    /* Fullscreen */
-    ui.btn.fullscreen.addEventListener("click", async () => {
-      const el = document.documentElement;
-      try{
-        if (!document.fullscreenElement) {
-          if (el.requestFullscreen) await el.requestFullscreen();
-        } else {
-          if (document.exitFullscreen) await document.exitFullscreen();
-        }
-      }catch(e){
-        // Edge tablette parfois bloque : pas grave
-        Status.show("Plein écran indisponible sur ce navigateur");
-      }
-    });
-
-    /* Buttons */
-    ui.btn.pan.addEventListener("click", () => setMode(MODES.PAN));
-    ui.btn.scale.addEventListener("click", () => setMode(MODES.SCALE));
-    ui.btn.measure.addEventListener("click", () => {
-      if (!(state.pixelsPerMeter > 0)) {
-        alert("Aucune échelle définie pour cette page. Passez par Étalonnage.");
-        setMode(MODES.SCALE);
-        return;
-      }
-      setMode(MODES.MEASURE);
-    });
-
-    ui.btn.home.addEventListener("click", () => resetViewToCenter());
-
-    /* Color picker */
-    $$(".color-dot").forEach(dot => {
-      dot.addEventListener("click", () => {
-        $$(".color-dot").forEach(d => d.classList.remove("selected"));
-        dot.classList.add("selected");
-        state.currentColor = dot.getAttribute("data-color");
-      });
-    });
-
-    /* ===== Helpers: coordinate mapping ===== */
-    function clientToCanvasPoint(clientX, clientY) {
-      const rect = ui.wrapper.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const y = clientY - rect.top;
-      // convert screen->canvas accounting for zoom/pan (vpt)
-      const pt = new fabric.Point(x, y);
-      const inv = fabric.util.invertTransform(canvas.viewportTransform);
-      const p2 = fabric.util.transformPoint(pt, inv);
-      return { x: p2.x, y: p2.y };
-    }
-
-    /* ===== Touch cursor display ===== */
-    function showCursorAt(clientX, clientY) {
-      const x = clientX + state.cursorOffsetX;
-      const y = clientY + state.cursorOffsetY;
-
-      state.cursorClientX = x;
-      state.cursorClientY = y;
-
-      ui.touchCursor.classList.add("show");
-      ui.touchCursor.style.left = x + "px";
-      ui.touchCursor.style.top = y + "px";
-    }
-
-    function hideCursor() {
-      ui.touchCursor.classList.remove("show");
-      ui.touchCursor.style.left = "-9999px";
-      ui.touchCursor.style.top = "-9999px";
-    }
-
-    function resetPicking() {
-      state.picking = false;
-      state.pickStartCanvas = null;
-      ui.btnConfirmEnd.disabled = true;
-      if (state.previewLine) {
-        canvas.remove(state.previewLine);
-        state.previewLine = null;
-        canvas.requestRenderAll();
-      }
-      hideCursor();
-    }
-
-    /* ===== Preview line (tablet) ===== */
-    function makePreviewLine(p1, p2, mode) {
-      const zoom = canvas.getZoom();
-      const stroke = ((mode === MODES.SCALE) ? CONFIG.SCALE_STROKE : CONFIG.MEASURE_STROKE) / zoom;
-      const color = (mode === MODES.MEASURE) ? state.currentColor : "#2c3e50";
-
-      return new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
-        strokeWidth: stroke,
-        stroke: color,
-        strokeDashArray: (mode === MODES.SCALE) ? CONFIG.SCALE_DASH : null,
-        selectable: false,
-        evented: false
-      });
-    }
-
-    function updatePreviewToCursor() {
-      if (!state.picking || !state.pickStartCanvas) return;
-      const end = clientToCanvasPoint(state.cursorClientX, state.cursorClientY);
-
-      if (!state.previewLine) {
-        state.previewLine = makePreviewLine(state.pickStartCanvas, end, state.mode);
-        canvas.add(state.previewLine);
-      } else {
-        state.previewLine.set({ x2: end.x, y2: end.y });
-      }
-      canvas.requestRenderAll();
-    }
-
-    /* ===== Arrows + Label for final measure ===== */
-    function makeArrowTriangle(size, fill) {
-      return new fabric.Triangle({
-        width: size,
-        height: size,
-        fill,
-        originX: "center",
-        originY: "center",
-        selectable: false,
-        evented: false
-      });
-    }
-
-    function makeLabel(textValue, x, y) {
-      const zoom = canvas.getZoom();
-      return new fabric.Text(textValue, {
-        fontSize: 14 / zoom,
-        fill: "#ffffff",
-        backgroundColor: "rgba(0,0,0,0.65)",
-        left: x,
-        top: y,
-        originX: "center",
-        originY: "bottom",
-        fontFamily: "Segoe UI",
-        selectable: false,
-        evented: false
-      });
-    }
-
-    function buildArrowedMeasure(p1, p2, labelText, mode) {
-      const zoom = canvas.getZoom();
-      const strokeW = ((mode === MODES.SCALE) ? CONFIG.SCALE_STROKE : CONFIG.MEASURE_STROKE) / zoom;
-
-      const color = (mode === MODES.MEASURE) ? state.currentColor : "#2c3e50";
-      const dashed = (mode === MODES.SCALE) ? CONFIG.SCALE_DASH : null;
-
-      const line = new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
-        strokeWidth: strokeW,
-        stroke: color,
-        strokeDashArray: dashed,
-        selectable: false,
-        evented: false
-      });
-
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      const ang = Math.atan2(dy, dx) * 180 / Math.PI;
-
-      // arrow size scales with zoom
-      const arrowSize = Math.max(10 / zoom, 6);
-
-      // outward arrows: start arrow points to start (ang+180), end arrow points to end (ang)
-      const triStart = makeArrowTriangle(arrowSize, color);
-      triStart.set({ left: p1.x, top: p1.y, angle: ang + 180 });
-
-      const triEnd = makeArrowTriangle(arrowSize, color);
-      triEnd.set({ left: p2.x, top: p2.y, angle: ang });
-
-      const midX = (p1.x + p2.x) / 2;
-      const midY = (p1.y + p2.y) / 2 - (18 / zoom);
-      const label = makeLabel(labelText, midX, midY);
-
-      const group = new fabric.Group([line, triStart, triEnd, label], { selectable: true });
-      group.isMeasure = (mode === MODES.MEASURE);
-      group.isScale = (mode === MODES.SCALE);
-      group.measureValue = group.isMeasure ? labelText.replace(" m","") : null;
-
-      return group;
-    }
-
-    function isTooSmall(distPx) {
-      const zoom = canvas.getZoom();
-      return distPx < (CONFIG.MIN_DRAW_PX_AT_ZOOM1 / zoom);
-    }
-
-    /* ===== Mouse interactions (PC) ===== */
-    canvas.on("mouse:down", (o) => {
-      if (!state.pdfDoc) return;
-
-      // if touch device, we handle via touch events
-      if (state.isTouch) return;
-
-      const evt = o.e;
-      // PAN drag
-      if (state.mode === MODES.PAN) {
-        if (o.target) return;
-        state.isDragging = true;
-        state.lastClientX = evt.clientX;
-        state.lastClientY = evt.clientY;
-        canvas.setCursor("grabbing");
-        return;
-      }
-
-      // draw immediate on PC (click-drag)
-      state._drawStart = canvas.getPointer(evt);
-      state._drawLine = makePreviewLine(state._drawStart, state._drawStart, state.mode);
-      canvas.add(state._drawLine);
-    });
-
-    canvas.on("mouse:move", (o) => {
-      if (!state.pdfDoc) return;
-      if (state.isTouch) return;
-
-      const evt = o.e;
-
-      if (state.isDragging) {
-        const vpt = canvas.viewportTransform;
-        vpt[4] += evt.clientX - state.lastClientX;
-        vpt[5] += evt.clientY - state.lastClientY;
-        state.lastClientX = evt.clientX;
-        state.lastClientY = evt.clientY;
-        clampViewportToBackground();
-        canvas.requestRenderAll();
-        return;
-      }
-
-      if (state._drawLine && state._drawStart) {
-        const p = canvas.getPointer(evt);
-        state._drawLine.set({ x2: p.x, y2: p.y });
-        canvas.requestRenderAll();
-      }
-    });
-
-    canvas.on("mouse:up", (o) => {
-      if (!state.pdfDoc) return;
-      if (state.isTouch) return;
-
-      if (state.isDragging) {
-        state.isDragging = false;
-        canvas.setCursor("grab");
-        clampViewportToBackground();
-        canvas.requestRenderAll();
-        return;
-      }
-
-      if (!state._drawLine || !state._drawStart) return;
-
-      const p2 = canvas.getPointer(o.e);
-      const p1 = state._drawStart;
-      const distPx = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-
-      if (isTooSmall(distPx)) {
-        canvas.remove(state._drawLine);
-        state._drawLine = null;
-        state._drawStart = null;
-        return;
-      }
-
-      // SCALE: ask meters
-      if (state.mode === MODES.SCALE) {
-        setTimeout(() => {
-          const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
-          const meters = parseFloat((input || "").replace(",", "."));
-          canvas.remove(state._drawLine);
-          state._drawLine = null;
-          state._drawStart = null;
-
-          if (!(meters > 0)) return;
-
-          state.pixelsPerMeter = distPx / meters;
-          updateMeasureAvailability();
-          Status.show(`Échelle définie (page) : 1m = ${state.pixelsPerMeter.toFixed(2)} px`);
-          saveForPage(state.currentPage);
-          setMode(MODES.MEASURE);
-        }, 30);
-        return;
-      }
-
-      // MEASURE
-      if (state.mode === MODES.MEASURE) {
-        canvas.remove(state._drawLine);
-
-        if (!(state.pixelsPerMeter > 0)) {
-          Status.show("Pas d'échelle : passe par Étalonnage");
-          state._drawLine = null;
-          state._drawStart = null;
-          setMode(MODES.SCALE);
-          return;
-        }
-
-        const meters = distPx / state.pixelsPerMeter;
-        const txt = `${meters.toFixed(2)} m`;
-        const group = buildArrowedMeasure(p1, p2, txt, MODES.MEASURE);
-        canvas.add(group);
-        canvas.setActiveObject(group);
-        canvas.requestRenderAll();
-        saveForPage(state.currentPage);
-
-        state._drawLine = null;
-        state._drawStart = null;
-        return;
-      }
-
-      canvas.remove(state._drawLine);
-      state._drawLine = null;
-      state._drawStart = null;
-    });
-
-    /* ===== Touch interactions (tablet) ===== */
-    function enableTouchMode() {
-      state.isTouch = true;
-
-      ui.wrapper.addEventListener("touchstart", (e) => {
-        if (!state.pdfDoc) return;
-        if (e.touches.length >= 2) return; // pinch handled separately
-        const t = e.touches[0];
-        showCursorAt(t.clientX, t.clientY);
-        if (state.mode === MODES.SCALE || state.mode === MODES.MEASURE) {
-          ui.confirmPad.classList.add("show");
-          // if picking already started, update preview
-          updatePreviewToCursor();
-        }
-        e.preventDefault();
-      }, { passive:false });
-
-      ui.wrapper.addEventListener("touchmove", (e) => {
-        if (!state.pdfDoc) return;
-        if (e.touches.length >= 2) return;
-        const t = e.touches[0];
-        showCursorAt(t.clientX, t.clientY);
-        updatePreviewToCursor();
-        e.preventDefault();
-      }, { passive:false });
-
-      ui.wrapper.addEventListener("touchend", (e) => {
-        if (!state.pdfDoc) return;
-        // keep cursor visible after lift; user can tap again to reposition
-      }, { passive:true });
-    }
-
-    // pinch zoom (kept)
-    (function(){
-      let isPinching = false;
-      let startDist = 0;
-      let startZoom = 1;
-      let lastMid = null;
-
-      function dist(t1, t2){ return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY); }
-      function midpoint(t1, t2){ return { x:(t1.clientX+t2.clientX)/2, y:(t1.clientY+t2.clientY)/2 }; }
-
-      function onTouchStart(e){
-        if (!state.pdfDoc) return;
-        if (e.touches.length === 2) {
-          isPinching = true;
-          startDist = dist(e.touches[0], e.touches[1]);
-          startZoom = canvas.getZoom();
-          lastMid = midpoint(e.touches[0], e.touches[1]);
-          e.preventDefault();
-        }
-      }
-      function onTouchMove(e){
-        if (!state.pdfDoc) return;
-        if (!isPinching) return;
-        if (e.touches.length !== 2) return;
-
-        const d = dist(e.touches[0], e.touches[1]);
-        const ratio = d / (startDist || 1);
-        let newZoom = clampZoom(startZoom * ratio);
-
-        const mid = midpoint(e.touches[0], e.touches[1]);
-        const rect = ui.wrapper.getBoundingClientRect();
-        const canvasMid = { x: mid.x - rect.left, y: mid.y - rect.top };
-
-        canvas.zoomToPoint(canvasMid, newZoom);
-
-        if (lastMid) {
-          const dx = mid.x - lastMid.x;
-          const dy = mid.y - lastMid.y;
-          const vpt = canvas.viewportTransform;
-          vpt[4] += dx;
-          vpt[5] += dy;
-        }
-
-        clampViewportToBackground();
-        lastMid = mid;
-        canvas.requestRenderAll();
-        e.preventDefault();
-      }
-      function onTouchEnd(e){
-        if (e.touches.length < 2) {
-          isPinching = false;
-          startDist = 0;
-          lastMid = null;
-        }
-      }
-
-      ui.wrapper.addEventListener("touchstart", onTouchStart, { passive:false });
-      ui.wrapper.addEventListener("touchmove", onTouchMove, { passive:false });
-      ui.wrapper.addEventListener("touchend", onTouchEnd, { passive:true });
-      ui.wrapper.addEventListener("touchcancel", onTouchEnd, { passive:true });
-    })();
-
-    /* Confirm pad logic */
-    ui.btnConfirmStart.addEventListener("click", () => {
-      if (!state.pdfDoc) return;
-      // start point = cursor position (NOT finger)
-      const p = clientToCanvasPoint(state.cursorClientX, state.cursorClientY);
-      state.pickStartCanvas = p;
-      state.picking = true;
-      ui.btnConfirmEnd.disabled = false;
-      Status.show("Départ validé : vise l'arrivée");
-      updatePreviewToCursor();
-      saveForPage(state.currentPage);
-    });
-
-    ui.btnConfirmEnd.addEventListener("click", () => {
-      if (!state.pdfDoc) return;
-      if (!state.picking || !state.pickStartCanvas) return;
-
-      const p1 = state.pickStartCanvas;
-      const p2 = clientToCanvasPoint(state.cursorClientX, state.cursorClientY);
-      const distPx = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-
-      if (isTooSmall(distPx)) {
-        Status.show("Trop court");
-        return;
-      }
-
-      // remove preview
-      if (state.previewLine) { canvas.remove(state.previewLine); state.previewLine = null; }
-
-      if (state.mode === MODES.SCALE) {
-        const input = prompt("Distance réelle en MÈTRES ? (échelle page)", "1.0");
-        const meters = parseFloat((input || "").replace(",", "."));
-        if (!(meters > 0)) { Status.show("Annulé"); resetPicking(); return; }
-
-        state.pixelsPerMeter = distPx / meters;
-        updateMeasureAvailability();
-        Status.show(`Échelle définie : 1m = ${state.pixelsPerMeter.toFixed(2)} px`);
-        saveForPage(state.currentPage);
-        resetPicking();
-        setMode(MODES.MEASURE);
-        return;
-      }
-
-      // MEASURE
-      if (state.mode === MODES.MEASURE) {
-        if (!(state.pixelsPerMeter > 0)) {
-          Status.show("Pas d'échelle : étalonne d'abord");
-          resetPicking();
-          setMode(MODES.SCALE);
-          return;
-        }
-
-        const meters = distPx / state.pixelsPerMeter;
-        const txt = `${meters.toFixed(2)} m`;
-        const group = buildArrowedMeasure(p1, p2, txt, MODES.MEASURE);
-        canvas.add(group);
-        canvas.setActiveObject(group);
-        canvas.requestRenderAll();
-        saveForPage(state.currentPage);
-        resetPicking();
-        return;
-      }
-    });
-
-    ui.btnConfirmCancel.addEventListener("click", () => {
-      resetPicking();
-      Status.show("Annulé");
-    });
-
-    /* Delete / undo / clear / save */
-    ui.btn.del.addEventListener("click", () => {
-      const actives = canvas.getActiveObjects();
-      if (!actives.length) return;
-      actives.forEach(obj => canvas.remove(obj));
-      canvas.discardActiveObject();
-      canvas.requestRenderAll();
-      Status.show("Supprimé");
-      if (state.pdfDoc) saveForPage(state.currentPage);
-    });
-
-    ui.btn.undo.addEventListener("click", () => {
-      const objs = canvas.getObjects().filter(o => o !== canvas.backgroundImage);
-      if (!objs.length) return;
-      canvas.remove(objs[objs.length - 1]);
-      canvas.requestRenderAll();
-      Status.show("Annulé");
-      if (state.pdfDoc) saveForPage(state.currentPage);
-    });
-
-    ui.btn.clear.addEventListener("click", () => {
-      if (!confirm("Tout effacer (page courante) ?")) return;
-      canvas.getObjects().forEach(o => { if (o !== canvas.backgroundImage) canvas.remove(o); });
-      canvas.discardActiveObject();
-      canvas.requestRenderAll();
-      Status.show("Page nettoyée");
-      if (state.pdfDoc) saveForPage(state.currentPage);
-    });
-
-    ui.btn.save.addEventListener("click", () => {
-      canvas.discardActiveObject();
-      canvas.requestRenderAll();
-      const dataURL = canvas.toDataURL({ format: "png", quality: 1, multiplier: CONFIG.EXPORT_MULTIPLIER });
-      const a = document.createElement("a");
-      a.download = `plan_page_${state.currentPage}.png`;
-      a.href = dataURL;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    });
-
-    /* ===== PDF + OCR ===== */
-    async function loadPdfFile(file) {
-      Status.show("Chargement PDF...");
-      const buffer = await file.arrayBuffer();
-      const typed = new Uint8Array(buffer);
-      state.pdfDoc = await pdfjsLib.getDocument(typed).promise;
-
-      state.pageCount = state.pdfDoc.numPages;
-      state.currentPage = 1;
-      state.perPage.clear();
-
-      // reset scale state
-      state.pixelsPerMeter = 0;
-      state.detectedScale = null;
-      setScaleBadge(null);
-
-      updatePagerUI();
-      updateMeasureAvailability();
-      Status.show(`PDF chargé (${state.pageCount} pages)`);
-      await renderPage(1, { restore: true });
-    }
-
-    async function renderPage(pageNumber, { restore = true } = {}) {
-      if (!state.pdfDoc) return;
-
-      if (state.currentPage && state.currentPage !== pageNumber) saveForPage(state.currentPage);
-
-      state.currentPage = pageNumber;
-      updatePagerUI();
-      Status.show(`Rendu page ${pageNumber}...`);
-
-      const page = await state.pdfDoc.getPage(pageNumber);
-      const viewport = page.getViewport({ scale: CONFIG.PDF_RENDER_SCALE });
-
-      const tempCanvas = document.createElement("canvas");
-      const ctx = tempCanvas.getContext("2d", { willReadFrequently:true });
-      tempCanvas.width = viewport.width;
-      tempCanvas.height = viewport.height;
-
-      await page.render({ canvasContext: ctx, viewport }).promise;
-
-      const dataUrl = tempCanvas.toDataURL("image/png");
-
-      await new Promise((resolve) => {
-        fabric.Image.fromURL(dataUrl, (img) => {
-          setupBackground(img);
-          if (restore) restoreForPage(pageNumber);
-          resolve();
-        }, { crossOrigin:"anonymous" });
-      });
-
-      // OCR only first time on page if not already detected/attempted
-      const saved = state.perPage.get(pageNumber);
-      if (!saved || saved.ocrTried !== true) {
-        await performVisualOCR(tempCanvas).catch(()=>{});
-        // mark tried
-        const s = state.perPage.get(pageNumber) || {};
-        s.ocrTried = true;
-        state.perPage.set(pageNumber, s);
-      }
-
-      Status.show(`Page ${pageNumber} prête`);
-    }
-
-    function setupBackground(img) {
-      canvas.clear();
-      canvas.setViewportTransform([1,0,0,1,0,0]);
-
-      const ratio = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.98;
-      state.initialZoom = ratio;
-
-      canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
-        originX:"left",
-        originY:"top",
-        left:0,
-        top:0,
-        selectable:false,
-        evented:false
-      });
-
-      resetViewToCenter();
-      setDisabledAll(false);
-      updateMeasureAvailability();
-      setMode(MODES.PAN);
-    }
-
-    function saveForPage(pageNumber) {
-      const json = canvas.toDatalessJSON(["isMeasure","isScale","measureValue"]);
-      const prev = state.perPage.get(pageNumber) || {};
-      state.perPage.set(pageNumber, {
-        ...prev,
-        json,
-        pixelsPerMeter: state.pixelsPerMeter || 0,
-        detectedScale: state.detectedScale || null
-      });
-    }
-
-    function restoreForPage(pageNumber) {
-      const saved = state.perPage.get(pageNumber);
-      state.pixelsPerMeter = (saved?.pixelsPerMeter && saved.pixelsPerMeter > 0) ? saved.pixelsPerMeter : 0;
-      state.detectedScale = saved?.detectedScale || null;
-      setScaleBadge(state.detectedScale);
-      updateMeasureAvailability();
-
-      if (!saved?.json) return;
-
-      canvas.getObjects().forEach(o => { if (o !== canvas.backgroundImage) canvas.remove(o); });
-
-      canvas.loadFromJSON(saved.json, () => {
-        if (state.mode !== MODES.PAN) canvas.forEachObject(o => o.selectable = false);
-        canvas.requestRenderAll();
-      });
-    }
-
-    function updatePagerUI() {
-      const hasPdf = !!state.pdfDoc;
-      ui.pager.prev.disabled = !hasPdf || state.currentPage <= 1;
-      ui.pager.next.disabled = !hasPdf || state.currentPage >= state.pageCount;
-      ui.pager.jump.disabled = !hasPdf;
-      ui.pager.go.disabled = !hasPdf;
-
-      ui.pager.label.textContent = hasPdf ? `Page ${state.currentPage} / ${state.pageCount}` : "Page - / -";
-      ui.pager.jump.min = 1;
-      ui.pager.jump.max = state.pageCount || 1;
-      ui.pager.jump.value = hasPdf ? state.currentPage : "";
-    }
-
-    ui.pager.prev.addEventListener("click", () => {
-      if (state.currentPage > 1) renderPage(state.currentPage - 1, { restore:true });
-    });
-    ui.pager.next.addEventListener("click", () => {
-      if (state.currentPage < state.pageCount) renderPage(state.currentPage + 1, { restore:true });
-    });
-    ui.pager.go.addEventListener("click", () => {
-      const n = parseInt(ui.pager.jump.value, 10);
-      if (!Number.isFinite(n)) return;
-      const target = Math.max(1, Math.min(state.pageCount, n));
-      renderPage(target, { restore:true });
-    });
-    ui.pager.jump.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") ui.pager.go.click();
-    });
-
-    function preprocessForOCR(srcCanvas) {
-      // petit boost contraste / noir&blanc pour améliorer OCR sans "réduire" le PDF
-      const c = document.createElement("canvas");
-      c.width = srcCanvas.width;
-      c.height = srcCanvas.height;
-      const ctx = c.getContext("2d", { willReadFrequently:true });
-      ctx.drawImage(srcCanvas, 0, 0);
-
-      const img = ctx.getImageData(0, 0, c.width, c.height);
-      const d = img.data;
-
-      for (let i=0; i<d.length; i+=4) {
-        const r = d[i], g = d[i+1], b = d[i+2];
-        // grayscale
-        let v = (0.2126*r + 0.7152*g + 0.0722*b);
-        // contrast
-        v = (v - 128) * 1.25 + 128;
-        // threshold light
-        v = v > 160 ? 255 : (v > 120 ? 220 : 0);
-        d[i] = d[i+1] = d[i+2] = v;
-        d[i+3] = 255;
-      }
-      ctx.putImageData(img, 0, 0);
-      return c;
-    }
-
-    function parseScaleString(text) {
-      const clean = String(text || "")
-        .replace(/O/g, "0")
-        .replace(/o/g, "0")
-        .replace(/\s+/g, " ");
-
-      const m = clean.match(CONFIG.SCALE_REGEX);
-      if (!m || !m[1]) return null;
-
-      const val = parseInt(m[1], 10);
-      if (!Number.isFinite(val)) return null;
-      if (val < 10 || val > 5000) return null; // garde ton range
-      return val;
-    }
-
-    async function performVisualOCR(fullCanvas) {
-      Status.show("OCR échelle...");
-      // crop cartouche: gauche + haut
-      const w = Math.floor(fullCanvas.width * CONFIG.OCR.cropLeftW);
-      const h = Math.floor(fullCanvas.height * CONFIG.OCR.cropTopH);
-
-      const crop = document.createElement("canvas");
-      crop.width = w;
-      crop.height = h;
-      const ctx = crop.getContext("2d");
-      ctx.drawImage(fullCanvas, 0, 0, w, h, 0, 0, w, h);
-
-      const prep = preprocessForOCR(crop);
-
-      try{
-        const res = await Tesseract.recognize(prep, CONFIG.OCR.lang);
-        const scaleVal = parseScaleString(res?.data?.text);
-
-        if (scaleVal) {
-          state.detectedScale = scaleVal;
-          setScaleBadge(scaleVal);
-
-          // pixelsPerMeter from scale:
-          // 1m on paper = 1000mm. At scale 1:scaleVal, 1m real = (1000/scaleVal) mm on paper.
-          // 1 inch = 25.4 mm. PDF unit approximations vary; we keep the working heuristic you used:
-          state.pixelsPerMeter = (72 * CONFIG.PDF_RENDER_SCALE * 39.3701) / scaleVal;
-
-          updateMeasureAvailability();
-          Status.show(`Échelle détectée : 1:${scaleVal}`);
-          saveForPage(state.currentPage);
-
-          // ✅ auto go measure
-          setMode(MODES.MEASURE);
-        } else {
-          setScaleBadge(null);
-          Status.show("Échelle non trouvée (OCR).");
-          saveForPage(state.currentPage);
-        }
-      }catch(err){
-        console.error(err);
-        Status.show("Erreur OCR");
-      }
-    }
-
-    /* File input */
-    ui.fileInput.addEventListener("change", async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      try{
-        await loadPdfFile(file);
-      }catch(err){
-        console.error(err);
-        Status.show("Erreur chargement PDF");
-      }finally{
-        ui.fileInput.value = "";
-      }
-    });
-
-    /* Boot */
-    setDisabledAll(true);
-    setScaleBadge(null);
-    updatePagerUI();
-    Status.show("Bienvenue");
-    setMode(MODES.PAN);
-
-    // detect touch device (and enable)
-    const isTouchDevice = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
-    if (isTouchDevice) enableTouchMode();
-  </script>
+  
+  <!-- ===== CANVAS AREA ===== -->
+  <div class="canvas-frame" aria-hidden="true"></div>
+  <main id="canvasWrapper" class="canvas-wrapper">
+    <canvas id="mainCanvas"></canvas>
+  </main>
+  
+  <!-- ===== VERSION LABEL ===== -->
+  <div class="version-label" id="versionLabel">v3.0.0</div>
+  
+  <!-- ===== APP SCRIPTS ===== -->
+  <script src="js/config.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/canvas.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/ocr.js"></script>
+  <script src="js/measure.js"></script>
+  <script src="js/touch.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
-
