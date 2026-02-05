@@ -318,10 +318,10 @@ body {
 }
 
 .btn--icon-lg {
-  width: 54px;
-  height: 54px;
+  width: 56px;    /* Réduit de 64px à 56px pour barre plus compacte */
+  height: 56px;
   border-radius: var(--radius-full);
-  font-size: 1.15rem;
+  font-size: 1.2rem;  /* Réduit de 1.3rem à 1.2rem */
 }
 
 .btn--primary {
@@ -368,6 +368,10 @@ body {
   color: var(--warning);
 }
 
+.btn--info {
+  color: var(--accent);
+}
+
 .btn--active {
   background: var(--accent-subtle);
   border-color: rgba(0, 212, 255, 0.35);
@@ -382,7 +386,32 @@ body {
   width: 200px;
   padding: var(--space-md);
   z-index: 85;
-  pointer-events: none;
+  pointer-events: all;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+/* Mode compact après détection réussie */
+.scale-badge--compact {
+  width: auto;
+  min-width: 90px;  /* Réduit de 120px à 90px pour tablette */
+  padding: var(--space-xs) var(--space-sm);  /* Encore plus petit */
+}
+
+.scale-badge--compact .scale-badge__header {
+  display: none;
+}
+
+.scale-badge--compact .scale-badge__value {
+  padding: var(--space-xs);  /* Réduit de sm à xs */
+  background: rgba(0, 230, 118, 0.15);
+  border: 1px solid rgba(0, 230, 118, 0.3);
+  font-size: 0.85rem;  /* Texte légèrement plus petit */
+}
+
+.scale-badge--compact:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px var(--success-glow);
 }
 
 .scale-badge__header {
@@ -524,16 +553,25 @@ body {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
+  gap: var(--space-sm);  /* Réduit de md à sm */
+  padding: var(--space-md) var(--space-lg);  /* Réduit pour barre plus petite */
   border-radius: var(--radius-full);
   z-index: 80;
+  
+  /* Fond opaque et foncé pour meilleure visibilité */
+  background: rgba(10, 14, 23, 0.95) !important;  /* Presque opaque */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .dock-divider {
   width: 1px;
-  height: 28px;
-  background: rgba(255, 255, 255, 0.15);
+  height: 32px;  /* Ajusté pour les boutons 56px */
+  background: rgba(255, 255, 255, 0.2);  /* Légèrement plus visible */
   margin: 0 var(--space-xs);
 }
 

@@ -16,6 +16,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
   <!-- App Styles -->
@@ -79,6 +80,11 @@
       <button id="btnSave" class="btn glass-card--elevated" disabled aria-label="Exporter en PNG">
         <i class="fa-solid fa-download"></i>
         <span>PNG</span>
+      </button>
+      
+      <button id="btnSavePDF" class="btn glass-card--elevated" disabled aria-label="Exporter en PDF">
+        <i class="fa-solid fa-file-pdf"></i>
+        <span>PDF</span>
       </button>
       
       <button id="btnClear" class="btn btn--danger glass-card--elevated" aria-label="Tout effacer">
@@ -178,6 +184,14 @@
       <i class="fa-solid fa-pen-ruler"></i>
     </button>
     
+    <button id="btnAnnotation" class="btn btn--icon-lg btn--info" disabled title="Plan Minute (Cotation)">
+      <i class="fa-solid fa-pen-fancy"></i>
+    </button>
+    
+    <button id="btnText" class="btn btn--icon-lg btn--info" disabled title="Plan Minute (Texte)">
+      <i class="fa-solid fa-font"></i>
+    </button>
+    
     <div class="dock-divider" role="separator"></div>
     
     <button id="btnUndo" class="btn btn--icon-lg btn--warning" disabled title="Annuler dernier" aria-label="Annuler">
@@ -256,6 +270,8 @@
   <script src="js/pdf.js"></script>
   <script src="js/ocr.js"></script>
   <script src="js/measure.js"></script>
+  <script src="js/annotation.js"></script>
+  <script src="js/export.js"></script>
   <script src="js/touch.js"></script>
   <script src="js/modal.js"></script>
   <script src="js/app.js"></script>

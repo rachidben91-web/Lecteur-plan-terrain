@@ -47,12 +47,15 @@ const UI = {
     home: $('#btnHome'),
     scale: $('#btnScale'),
     measure: $('#btnMeasure'),
+    annotation: $('#btnAnnotation'),
+    text: $('#btnText'),
     zoomIn: $('#btnZoomIn'),
     zoomOut: $('#btnZoomOut'),
     undo: $('#btnUndo'),
     del: $('#btnDelete'),
     clear: $('#btnClear'),
     save: $('#btnSave'),
+    savePDF: $('#btnSavePDF'),
     fullscreen: $('#btnFullscreen')
   },
   
@@ -100,14 +103,24 @@ const Status = (() => {
 function updateScaleBadge(scaleVal) {
   if (!scaleVal) {
     UI.scaleBadge.classList.remove('scale-badge--ok');
+    UI.scaleBadge.classList.remove('scale-badge--compact');
     UI.scaleValue.textContent = 'Non détectée';
     UI.scaleMini.textContent = '—';
   } else {
     UI.scaleBadge.classList.add('scale-badge--ok');
+    UI.scaleBadge.classList.add('scale-badge--compact');
     UI.scaleValue.textContent = `1:${scaleVal}`;
     UI.scaleMini.textContent = `1:${scaleVal}`;
   }
 }
+
+// Clic sur le scale badge pour modifier l'échelle
+UI.scaleBadge.addEventListener('click', () => {
+  if (State.hasScale()) {
+    setMode(MODES.SCALE);
+    Status.show('Redéfinir l\'échelle', 'warning');
+  }
+});
 
 /* ===== BUTTON STATES ===== */
 function setAllButtonsDisabled(disabled) {
@@ -124,7 +137,10 @@ function updateButtonStates() {
   const hasScale = State.hasScale();
   
   UI.btn.measure.disabled = !hasScale;
+  UI.btn.annotation.disabled = !hasPdf;
+  UI.btn.text.disabled = !hasPdf;
   UI.btn.save.disabled = !hasPdf;
+  UI.btn.savePDF.disabled = !hasPdf;
   UI.btn.zoomIn.disabled = !hasPdf;
   UI.btn.zoomOut.disabled = !hasPdf;
   UI.btn.scale.disabled = !hasPdf;
@@ -141,7 +157,9 @@ function setActiveButton(mode) {
   const btnMap = {
     [MODES.PAN]: UI.btn.pan,
     [MODES.SCALE]: UI.btn.scale,
-    [MODES.MEASURE]: UI.btn.measure
+    [MODES.MEASURE]: UI.btn.measure,
+    [MODES.ANNOTATION]: UI.btn.annotation,
+    [MODES.TEXT]: UI.btn.text
   };
   
   if (btnMap[mode]) {

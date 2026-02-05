@@ -168,6 +168,9 @@ function initConfirmPad() {
     } else if (State.mode === MODES.MEASURE) {
       finalizeMeasure(p1, p2);
       resetPicking();
+    } else if (State.mode === MODES.ANNOTATION) {
+      await finalizeAnnotation(p1, p2);
+      resetPicking();
     }
   });
   

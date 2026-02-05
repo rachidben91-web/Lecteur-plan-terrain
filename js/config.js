@@ -4,7 +4,7 @@
 
 const CONFIG = Object.freeze({
   // App
-  VERSION: '3.0.0',
+  VERSION: '3.2.0',
   APP_NAME: 'Mesures Terrain',
   
   // PDF Rendering
@@ -58,7 +58,9 @@ const CONFIG = Object.freeze({
 const MODES = Object.freeze({
   PAN: 'pan',
   SCALE: 'scale',
-  MEASURE: 'measure'
+  MEASURE: 'measure',
+  ANNOTATION: 'annotation',  // Plan Minute - Cotation
+  TEXT: 'text'               // Plan Minute - Texte libre
 });
 
 // Export pour utilisation globale

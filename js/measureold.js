@@ -32,24 +32,12 @@ function createPreviewLine(p1, p2, mode) {
   });
 }
 
-function createOpenArrow(size, color, strokeWidth) {
-  // Créer une flèche ouverte en forme de V avec Polyline
-  // pour un positionnement EXACT de la pointe
-  const halfSize = size / 2;
-  const armLength = size * 0.9;
-  
-  // Les points du V : branche haute → pointe (0,0) → branche basse
-  return new fabric.Polyline([
-    {x: -armLength, y: -halfSize},  // Début branche haute
-    {x: 0, y: 0},                    // POINTE du V (point de référence)
-    {x: -armLength, y: halfSize}     // Fin branche basse
-  ], {
-    stroke: color,
-    strokeWidth: strokeWidth,
-    strokeLineCap: 'round',
-    strokeLineJoin: 'round',
-    fill: null,  // Pas de remplissage
-    originX: 'right',  // Origine à droite = la pointe à x=0
+function createArrowTriangle(size, fill) {
+  return new fabric.Triangle({
+    width: size,
+    height: size,
+    fill,
+    originX: 'center',
     originY: 'center',
     selectable: false,
     evented: false
@@ -97,20 +85,20 @@ function buildArrowedMeasure(p1, p2, labelText, mode) {
   // Taille flèches (adaptée au zoom)
   const arrowSize = Math.max(CONFIG.ARROW_SIZE_BASE / zoom, 6);
   
-  // Flèche départ (pointe vers l'EXTÉRIEUR = vers la gauche)
-  const arrowStart = createOpenArrow(arrowSize, color, strokeWidth);
+  // Flèche départ (pointe vers l'extérieur)
+  const arrowStart = createArrowTriangle(arrowSize, color);
   arrowStart.set({
     left: p1.x,
     top: p1.y,
-    angle: angle + 180  // Pointe vers l'extérieur (gauche)
+    angle: angle + 180
   });
   
-  // Flèche arrivée (pointe vers l'EXTÉRIEUR = vers la droite)
-  const arrowEnd = createOpenArrow(arrowSize, color, strokeWidth);
+  // Flèche arrivée (pointe vers l'extérieur)
+  const arrowEnd = createArrowTriangle(arrowSize, color);
   arrowEnd.set({
     left: p2.x,
     top: p2.y,
-    angle: angle  // Pointe vers l'extérieur (droite)
+    angle: angle
   });
   
   // Label au milieu

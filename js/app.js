@@ -13,10 +13,10 @@ function setMode(mode) {
   setActiveButton(mode);
   
   // Afficher/masquer la palette de couleurs
-  showColorPicker(mode === MODES.MEASURE);
+  showColorPicker(mode === MODES.MEASURE || mode === MODES.ANNOTATION || mode === MODES.TEXT);
   
-  // Afficher/masquer le pad de confirmation tactile
-  const showPick = (mode === MODES.SCALE || mode === MODES.MEASURE);
+  // Afficher/masquer le pad de confirmation tactile (pas pour TEXT = simple clic)
+  const showPick = (mode === MODES.SCALE || mode === MODES.MEASURE || mode === MODES.ANNOTATION);
   showConfirmPad(showPick);
   
   // Configurer le canvas
@@ -30,6 +30,10 @@ function setMode(mode) {
       Status.show('Étalonnage : visez → Départ OK → visez → Arrivée OK', 'warning');
     } else if (mode === MODES.MEASURE) {
       Status.show('Mesure : visez → Départ OK → visez → Arrivée OK', 'success');
+    } else if (mode === MODES.ANNOTATION) {
+      Status.show('Plan Minute : visez → Départ OK → visez → Arrivée OK → saisir cotation', 'normal');
+    } else if (mode === MODES.TEXT) {
+      Status.show('Mode Texte : cliquez pour placer du texte', 'normal');
     }
   }
   
@@ -54,7 +58,14 @@ function initMouseEvents() {
       return;
     }
     
-    // Mode SCALE/MEASURE : début tracé
+    // Mode TEXT : placement direct (pas de tracé)
+    if (State.mode === MODES.TEXT) {
+      const point = canvas.getPointer(evt);
+      placeText(point);
+      return;
+    }
+    
+    // Mode SCALE/MEASURE/ANNOTATION : début tracé
     State._drawStart = canvas.getPointer(evt);
     State._drawLine = createPreviewLine(State._drawStart, State._drawStart, State.mode);
     addObject(State._drawLine);
@@ -120,6 +131,8 @@ function initMouseEvents() {
       await finalizeScale(p1, p2);
     } else if (State.mode === MODES.MEASURE) {
       finalizeMeasure(p1, p2);
+    } else if (State.mode === MODES.ANNOTATION) {
+      await finalizeAnnotation(p1, p2);
     }
   });
 }
@@ -138,6 +151,14 @@ function initButtonEvents() {
       return;
     }
     setMode(MODES.MEASURE);
+  });
+  
+  UI.btn.annotation.addEventListener('click', () => {
+    setMode(MODES.ANNOTATION);
+  });
+  
+  UI.btn.text.addEventListener('click', () => {
+    setMode(MODES.TEXT);
   });
   
   // Zoom
@@ -168,14 +189,11 @@ function initButtonEvents() {
   });
   
   UI.btn.save.addEventListener('click', () => {
-    const dataURL = exportToPNG();
-    const a = document.createElement('a');
-    a.download = `plan_page_${State.currentPage}.png`;
-    a.href = dataURL;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    Status.show('Export PNG téléchargé', 'success');
+    exportToPNG();
+  });
+  
+  UI.btn.savePDF.addEventListener('click', () => {
+    exportToPDF();
   });
   
   // Fullscreen
