@@ -2,6 +2,70 @@
    EXPORT.JS - Gestion des exports (PNG & PDF)
    ============================================================ */
 
+/* ===== HELPER: Créer un canvas aux dimensions du PDF ===== */
+async function createFullPageCanvas() {
+  // Récupérer la page PDF actuelle
+  const page = await State.pdfDoc.getPage(State.currentPage);
+  
+  // Dimensions réelles du PDF (à haute résolution)
+  const viewport = page.getViewport({ scale: CONFIG.PDF_RENDER_SCALE });
+  
+  // Créer un canvas temporaire
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = viewport.width;
+  exportCanvas.height = viewport.height;
+  const ctx = exportCanvas.getContext('2d');
+  
+  // Rendre le PDF sur le canvas
+  await page.render({
+    canvasContext: ctx,
+    viewport: viewport
+  }).promise;
+  
+  // Créer un canvas Fabric temporaire
+  const fabricCanvas = new fabric.Canvas(exportCanvas, {
+    width: viewport.width,
+    height: viewport.height,
+    backgroundColor: null,
+    renderOnAddRemove: false,
+    enableRetinaScaling: false
+  });
+  
+  // Copier tous les objets du canvas principal
+  const objects = canvas.getObjects();
+  
+  // Calculer le ratio de mise à l'échelle
+  const bgImage = canvas.backgroundImage;
+  if (bgImage) {
+    const scaleX = viewport.width / bgImage.width;
+    const scaleY = viewport.height / bgImage.height;
+    
+    // Copier chaque objet avec la bonne échelle
+    for (const obj of objects) {
+      const clonedObj = await new Promise(resolve => {
+        obj.clone(resolve);
+      });
+      
+      // Ajuster position et échelle
+      clonedObj.left = clonedObj.left * scaleX;
+      clonedObj.top = clonedObj.top * scaleY;
+      clonedObj.scaleX = (clonedObj.scaleX || 1) * scaleX;
+      clonedObj.scaleY = (clonedObj.scaleY || 1) * scaleY;
+      
+      // Ajuster aussi les propriétés de trait
+      if (clonedObj.strokeWidth) {
+        clonedObj.strokeWidth = clonedObj.strokeWidth * Math.min(scaleX, scaleY);
+      }
+      
+      fabricCanvas.add(clonedObj);
+    }
+    
+    fabricCanvas.requestRenderAll();
+  }
+  
+  return fabricCanvas;
+}
+
 /* ===== EXPORT PNG ===== */
 async function exportToPNG() {
   if (!State.currentPage) {
@@ -16,12 +80,17 @@ async function exportToPNG() {
     canvas.discardActiveObject();
     canvas.requestRenderAll();
     
+    // Créer un canvas aux dimensions réelles du PDF
+    const exportCanvas = await createFullPageCanvas();
+    
     // Export avec haute résolution
-    const dataURL = canvas.toDataURL({
+    const dataURL = exportCanvas.toDataURL({
       format: 'png',
-      quality: 1,
-      multiplier: CONFIG.EXPORT_MULTIPLIER
+      quality: 1
     });
+    
+    // Nettoyer
+    exportCanvas.dispose();
     
     // Télécharger
     const link = document.createElement('a');
@@ -29,7 +98,7 @@ async function exportToPNG() {
     link.href = dataURL;
     link.click();
     
-    Status.show('Export PNG réussi', 'success');
+    Status.show('Export PNG réussi (format document)', 'success');
   } catch (err) {
     console.error('Erreur export PNG:', err);
     Status.show('Erreur lors de l\'export PNG', 'error');
@@ -50,62 +119,51 @@ async function exportToPDF() {
     canvas.discardActiveObject();
     canvas.requestRenderAll();
     
-    // Récupérer les dimensions du canvas
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
+    // Créer un canvas aux dimensions réelles du PDF
+    const exportCanvas = await createFullPageCanvas();
     
-    // Convertir le canvas en image haute résolution
-    const dataURL = canvas.toDataURL({
+    // Convertir en image
+    const dataURL = exportCanvas.toDataURL({
       format: 'png',
-      quality: 1,
-      multiplier: CONFIG.EXPORT_MULTIPLIER  // Qualité x3
+      quality: 1
     });
+    
+    // Nettoyer
+    exportCanvas.dispose();
+    
+    // Récupérer les dimensions en pixels
+    const imgWidth = exportCanvas.width;
+    const imgHeight = exportCanvas.height;
     
     // Initialiser jsPDF
     const { jsPDF } = window.jspdf;
     
-    // Déterminer l'orientation (portrait ou paysage)
-    const orientation = canvasWidth > canvasHeight ? 'landscape' : 'portrait';
+    // Convertir les dimensions en mm (à 72 DPI)
+    // 1 inch = 25.4 mm, 72 DPI = 72 pixels/inch
+    const dpi = 72;
+    const mmPerPixel = 25.4 / dpi;
     
-    // Créer le PDF avec les dimensions du canvas (en mm)
-    // A4 = 210x297mm, on calcule pour préserver le ratio
-    let pdfWidth, pdfHeight;
+    const pdfWidth = imgWidth * mmPerPixel;
+    const pdfHeight = imgHeight * mmPerPixel;
     
-    if (orientation === 'landscape') {
-      pdfWidth = 297;
-      pdfHeight = 210;
-    } else {
-      pdfWidth = 210;
-      pdfHeight = 297;
-    }
+    // Déterminer l'orientation
+    const orientation = pdfWidth > pdfHeight ? 'landscape' : 'portrait';
     
-    // Ajuster selon le ratio du canvas
-    const canvasRatio = canvasWidth / canvasHeight;
-    const pdfRatio = pdfWidth / pdfHeight;
-    
-    if (canvasRatio > pdfRatio) {
-      // Canvas plus large : ajuster la hauteur
-      pdfHeight = pdfWidth / canvasRatio;
-    } else {
-      // Canvas plus haut : ajuster la largeur
-      pdfWidth = pdfHeight * canvasRatio;
-    }
-    
-    // Créer le PDF
+    // Créer le PDF aux dimensions exactes
     const pdf = new jsPDF({
       orientation: orientation,
       unit: 'mm',
       format: [pdfWidth, pdfHeight],
-      compress: false  // Pas de compression pour garder la qualité
+      compress: false  // Haute qualité
     });
     
-    // Ajouter l'image au PDF (couvre toute la page)
+    // Ajouter l'image (couvre toute la page)
     pdf.addImage(dataURL, 'PNG', 0, 0, pdfWidth, pdfHeight, '', 'FAST');
     
-    // Télécharger le PDF
+    // Télécharger
     pdf.save(`mesures-terrain-page-${State.currentPage}.pdf`);
     
-    Status.show('Export PDF réussi (haute qualité)', 'success');
+    Status.show('Export PDF réussi (format document)', 'success');
   } catch (err) {
     console.error('Erreur export PDF:', err);
     Status.show('Erreur lors de l\'export PDF', 'error');
