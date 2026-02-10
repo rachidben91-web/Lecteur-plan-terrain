@@ -1,6 +1,6 @@
 /* ============================================================
    Mesures Terrain - GRDF Boucles de Seine Nord
-   Design System v3.2.0
+   Design System v3.0
    ============================================================ */
 
 /* ===== FONTS ===== */
@@ -636,17 +636,22 @@ body {
 }
 
 .touch-cursor__ring {
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   position: absolute;
   inset: 0;
   border-radius: 50%;
   border: 3px solid var(--accent);
-  background: transparent;
-  backdrop-filter: none;
-  .touch-cursor__ring {
-  background: transparent;
-  box-shadow: 0 0 6px rgba(0, 102, 179, 0.35); 
+  background: rgba(0, 212, 255, 0.08);
+  backdrop-filter: blur(4px);
+  box-shadow: 
+    0 0 25px var(--accent-glow),
+    inset 0 0 15px rgba(0, 212, 255, 0.1);
+  animation: cursor-pulse 1.5s ease-in-out infinite;
 }
-   
+
 .touch-cursor__cross-h,
 .touch-cursor__cross-v {
   position: absolute;
@@ -993,7 +998,7 @@ body {
 
 
 /* ============================================================
-   THEME CLAIR ÉQUILIBRÉ – LISIBLE SANS ÊTRE BLANC
+   THEME CLAIR ÉQUILIBRÉ – VERSION FINALE (VALIDÉ TERRAIN)
    ============================================================ */
 
 :root {
@@ -1002,7 +1007,7 @@ body {
   --bg-tertiary: #e3e7ec;
   --bg-elevated: #f8fafc;
 
-  --glass-bg: rgba(248, 250, 252, 0.9);
+  --glass-bg: rgba(248, 250, 252, 0.92);
   --glass-border: rgba(0, 0, 0, 0.15);
   --glass-highlight: rgba(255, 255, 255, 0.6);
 
