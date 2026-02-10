@@ -620,11 +620,11 @@ body {
   transform: scale(1.1);
 }
 
-/* ===== TOUCH CURSOR (NET & PRÉCIS) ===== */
+/* ===== TOUCH CURSOR ===== */
 .touch-cursor {
   position: fixed;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   z-index: 200;
   pointer-events: none;
   display: none;
@@ -635,48 +635,54 @@ body {
   display: block;
 }
 
-/* Cercle fin (repère visuel) */
 .touch-cursor__ring {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px solid var(--accent);
-  background: transparent;           /* 🔴 PLUS DE FOND FLOU */
-  box-shadow: none;                  /* 🔴 PLUS DE GLOW */
+  border: 3px solid var(--accent);
+  background: rgba(0, 212, 255, 0.08);
+  backdrop-filter: blur(4px);
+  box-shadow: 
+    0 0 25px var(--accent-glow),
+    inset 0 0 15px rgba(0, 212, 255, 0.1);
+  animation: cursor-pulse 1.5s ease-in-out infinite;
 }
 
-/* Croix horizontale */
-.touch-cursor__cross-h {
-  position: absolute;
-  width: 28px;
-  height: 2px;
-  background: var(--accent);
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* Croix verticale */
+.touch-cursor__cross-h,
 .touch-cursor__cross-v {
   position: absolute;
-  width: 2px;
-  height: 28px;
-  background: var(--accent);
+  background: var(--text-primary);
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+.touch-cursor__cross-h {
+  width: 24px;
+  height: 2px;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
 }
 
-/* Point central (hyper précis) */
-.touch-cursor__dot {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  background: var(--accent);
-  border-radius: 50%;
+.touch-cursor__cross-v {
+  width: 2px;
+  height: 24px;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+}
+
+@keyframes cursor-pulse {
+  0%, 100% { 
+    box-shadow: 
+      0 0 25px var(--accent-glow),
+      inset 0 0 15px rgba(0, 212, 255, 0.1);
+  }
+  50% { 
+    box-shadow: 
+      0 0 35px var(--accent-glow),
+      inset 0 0 20px rgba(0, 212, 255, 0.15);
+  }
 }
 
 /* ===== CONFIRM PAD ===== */
@@ -690,15 +696,12 @@ body {
   padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-xl);
   z-index: 199;
-  pointer-events: auto;
 }
 
 .confirm-pad--visible {
   display: flex;
 }
 
-
-/* ===== CONFIRM BUTTONS (Touch) ===== */
 .confirm-btn {
   display: flex;
   align-items: center;
@@ -712,7 +715,7 @@ body {
   font-size: 0.9rem;
   font-weight: 800;
   cursor: pointer;
-  transition:
+  transition: 
     transform var(--transition-fast),
     background var(--transition-fast),
     box-shadow var(--transition-fast);
@@ -761,7 +764,6 @@ body {
   background: rgba(255, 82, 82, 0.25);
   box-shadow: 0 0 20px var(--error-glow);
 }
-
 
 /* ===== MODAL ===== */
 .modal-overlay {
@@ -988,4 +990,40 @@ body {
 
 .hidden {
   display: none !important;
+}
+
+
+/* ============================================================
+   THEME CLAIR ÉQUILIBRÉ – LISIBLE SANS ÊTRE BLANC
+   ============================================================ */
+
+:root {
+  --bg-primary: #e9edf1;
+  --bg-secondary: #f2f4f7;
+  --bg-tertiary: #e3e7ec;
+  --bg-elevated: #f8fafc;
+
+  --glass-bg: rgba(248, 250, 252, 0.9);
+  --glass-border: rgba(0, 0, 0, 0.15);
+  --glass-highlight: rgba(255, 255, 255, 0.6);
+
+  --text-primary: #1f2937;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+
+  --accent: #005ea8;
+  --accent-glow: rgba(0, 94, 168, 0.25);
+  --accent-subtle: rgba(0, 94, 168, 0.12);
+
+  --success: #15803d;
+  --warning: #b45309;
+  --error: #b91c1c;
+}
+
+.bottom-dock {
+  background: rgba(245, 247, 250, 0.96) !important;
+}
+
+.canvas-wrapper {
+  background: #f8fafc;
 }
