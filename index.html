@@ -33,7 +33,7 @@
       </div>
       <div class="brand__text">
         <div class="brand__title">Mesures Terrain</div>
-        <div class="brand__version" id="brandVersion">v3.0.0</div>
+        <div class="brand__version" id="brandVersion">v3.3.0</div>
       </div>
     </div>
     
@@ -208,32 +208,33 @@
     <div class="touch-cursor__ring"></div>
     <div class="touch-cursor__cross-h"></div>
     <div class="touch-cursor__cross-v"></div>
+    <div class="touch-cursor__dot"></div>
   </div>
   
   <!-- ===== CONFIRM PAD (Touch) ===== -->
   <div id="confirmPad" class="confirm-pad glass-card">
-    <button id="btnConfirmStart" class="confirm-btn confirm-btn--start">
+    <button id="btnConfirmStart" class="btn btn--success confirm-btn">
       <i class="fa-solid fa-location-dot"></i>
       <span>Départ OK</span>
     </button>
     
-    <button id="btnConfirmEnd" class="confirm-btn confirm-btn--end" disabled>
+    <button id="btnConfirmEnd" class="btn btn--primary confirm-btn" disabled>
       <i class="fa-solid fa-flag-checkered"></i>
       <span>Arrivée OK</span>
     </button>
     
-    <button id="btnConfirmCancel" class="confirm-btn confirm-btn--cancel" aria-label="Annuler">
+    <button id="btnConfirmCancel" class="btn btn--danger confirm-btn" aria-label="Annuler">
       <i class="fa-solid fa-xmark"></i>
     </button>
   </div>
   
-  <!-- ===== MODAL (Saisie mètres) ===== -->
+  <!-- ===== MODAL (Saisie mètres / texte) ===== -->
   <div id="modalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal">
       <h2 class="modal__title" id="modalTitle">Distance en mètres</h2>
       
       <div class="modal__input-group">
-        <label for="modalInput" class="modal__label">Entrez la distance réelle</label>
+        <label for="modalInput" class="modal__label" id="modalLabel">Entrez la distance réelle</label>
         <input 
           type="number" 
           id="modalInput" 
@@ -260,7 +261,7 @@
   </main>
   
   <!-- ===== VERSION LABEL ===== -->
-  <div class="version-label" id="versionLabel">v3.0.0</div>
+  <div class="version-label" id="versionLabel">v3.3.0</div>
   
   <!-- ===== APP SCRIPTS ===== -->
   <script src="js/config.js"></script>
