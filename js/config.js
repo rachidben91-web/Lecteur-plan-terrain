@@ -4,7 +4,7 @@
 
 const CONFIG = Object.freeze({
   // App
-  VERSION: '3.2.0',
+  VERSION: '3.3.0',
   APP_NAME: 'Mesures Terrain',
   
   // PDF Rendering
@@ -51,7 +51,13 @@ const CONFIG = Object.freeze({
   },
   
   // Default color
-  DEFAULT_COLOR: '#ff5252'
+  DEFAULT_COLOR: '#ff5252',
+  
+  // Custom properties to serialize (centralisé)
+  CUSTOM_PROPS: [
+    'isMeasure', 'isScale', 'measureValue',
+    'isAnnotation', 'annotationValue'
+  ]
 });
 
 // Modes de l'application

@@ -77,8 +77,6 @@ async function performOCR(fullCanvas) {
     
     if (scaleVal) {
       // Calcul pixels/mètre
-      // 1m sur papier = 1000mm. À l'échelle 1:scaleVal, 1m réel = (1000/scaleVal) mm sur papier.
-      // 1 inch = 25.4mm. PDF = 72 DPI base.
       State.detectedScale = scaleVal;
       State.pixelsPerMeter = (72 * CONFIG.PDF_RENDER_SCALE * 39.3701) / scaleVal;
       

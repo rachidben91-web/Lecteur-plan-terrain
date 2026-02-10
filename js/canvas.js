@@ -150,7 +150,8 @@ function clientToCanvasPoint(clientX, clientY) {
 /* ===== SAVE / RESTORE ===== */
 function saveCanvasState() {
   if (!canvas) return null;
-  return canvas.toDatalessJSON(['isMeasure', 'isScale', 'measureValue']);
+  // FIX: utilise CONFIG.CUSTOM_PROPS pour sérialiser TOUTES les métadonnées
+  return canvas.toDatalessJSON(CONFIG.CUSTOM_PROPS);
 }
 
 function restoreCanvasState(json) {
@@ -231,20 +232,8 @@ function setSelectionMode(enabled) {
   canvas.requestRenderAll();
 }
 
-/* ===== EXPORT ===== */
-function exportToPNG() {
-  canvas.discardActiveObject();
-  canvas.requestRenderAll();
-  
-  return canvas.toDataURL({
-    format: 'png',
-    quality: 1,
-    multiplier: CONFIG.EXPORT_MULTIPLIER
-  });
-}
-
-// Export
-window.canvas = null; // Sera défini par initCanvas
+// Export (plus de exportToPNG ici — voir export.js)
+window.canvas = null;
 window.initCanvas = initCanvas;
 window.resizeCanvas = resizeCanvas;
 window.resetViewToCenter = resetViewToCenter;
@@ -261,5 +250,4 @@ window.addObject = addObject;
 window.removeObject = removeObject;
 window.setActiveObject = setActiveObject;
 window.setSelectionMode = setSelectionMode;
-window.exportToPNG = exportToPNG;
 window.clampViewportToBackground = clampViewportToBackground;

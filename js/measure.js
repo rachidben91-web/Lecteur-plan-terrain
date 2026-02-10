@@ -1,5 +1,6 @@
 /* ============================================================
    MEASURE.JS - Gestion des mesures et tracés
+   Contient les primitives partagées (flèches, labels, lignes)
    ============================================================ */
 
 /* ===== HELPERS ===== */
@@ -16,46 +17,36 @@ function getAngle(p1, p2) {
   return Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
 }
 
-/* ===== SHAPES ===== */
-function createPreviewLine(p1, p2, mode) {
-  const zoom = canvas.getZoom();
-  const strokeWidth = ((mode === MODES.SCALE) ? CONFIG.SCALE_STROKE : CONFIG.MEASURE_STROKE) / zoom;
-  const color = (mode === MODES.MEASURE) ? State.currentColor : '#64748b';
-  const dash = (mode === MODES.SCALE) ? CONFIG.SCALE_DASH : null;
-  
-  return new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
-    strokeWidth,
-    stroke: color,
-    strokeDashArray: dash,
-    selectable: false,
-    evented: false
-  });
-}
+/* ===== SHARED PRIMITIVES ===== */
 
+/**
+ * Crée une flèche ouverte en V (Polyline).
+ * Utilisé par mesure, étalonnage ET cotation.
+ */
 function createOpenArrow(size, color, strokeWidth) {
-  // Créer une flèche ouverte en forme de V avec Polyline
-  // pour un positionnement EXACT de la pointe
   const halfSize = size / 2;
   const armLength = size * 0.9;
   
-  // Les points du V : branche haute → pointe (0,0) → branche basse
   return new fabric.Polyline([
-    {x: -armLength, y: -halfSize},  // Début branche haute
-    {x: 0, y: 0},                    // POINTE du V (point de référence)
-    {x: -armLength, y: halfSize}     // Fin branche basse
+    { x: -armLength, y: -halfSize },
+    { x: 0, y: 0 },
+    { x: -armLength, y: halfSize }
   ], {
     stroke: color,
     strokeWidth: strokeWidth,
     strokeLineCap: 'round',
     strokeLineJoin: 'round',
-    fill: null,  // Pas de remplissage
-    originX: 'right',  // Origine à droite = la pointe à x=0
+    fill: null,
+    originX: 'right',
     originY: 'center',
     selectable: false,
     evented: false
   });
 }
 
+/**
+ * Crée un label texte positionné au milieu d'une ligne.
+ */
 function createLabel(text, x, y) {
   const zoom = canvas.getZoom();
   
@@ -75,12 +66,43 @@ function createLabel(text, x, y) {
   });
 }
 
-/* ===== BUILD MEASURE ===== */
-function buildArrowedMeasure(p1, p2, labelText, mode) {
+/* ===== PREVIEW LINE ===== */
+function createPreviewLine(p1, p2, mode) {
   const zoom = canvas.getZoom();
   const strokeWidth = ((mode === MODES.SCALE) ? CONFIG.SCALE_STROKE : CONFIG.MEASURE_STROKE) / zoom;
-  const color = (mode === MODES.MEASURE) ? State.currentColor : '#64748b';
+  const color = (mode === MODES.MEASURE || mode === MODES.ANNOTATION) ? State.currentColor : '#64748b';
   const dash = (mode === MODES.SCALE) ? CONFIG.SCALE_DASH : null;
+  
+  return new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
+    strokeWidth,
+    stroke: color,
+    strokeDashArray: dash,
+    selectable: false,
+    evented: false
+  });
+}
+
+/* ===== UNIFIED LINE BUILDER ===== */
+/**
+ * Construit une ligne fléchée avec label.
+ * Utilisé pour étalonnage, mesure ET cotation.
+ * 
+ * @param {Object} p1 - Point de départ {x, y}
+ * @param {Object} p2 - Point d'arrivée {x, y}
+ * @param {string} labelText - Texte affiché
+ * @param {Object} options - Configuration
+ * @param {string} options.color - Couleur du tracé
+ * @param {Array|null} options.dash - Pointillés (null = trait plein)
+ * @param {number} options.strokeFactor - Multiplicateur d'épaisseur (défaut 1)
+ * @param {Object} options.meta - Métadonnées à attacher au groupe
+ */
+function buildLineMeasure(p1, p2, labelText, options = {}) {
+  const zoom = canvas.getZoom();
+  const baseStroke = (options.dash ? CONFIG.SCALE_STROKE : CONFIG.MEASURE_STROKE);
+  const strokeFactor = options.strokeFactor || 1;
+  const strokeWidth = (baseStroke / zoom) * strokeFactor;
+  const color = options.color || State.currentColor;
+  const dash = options.dash || null;
   
   // Ligne principale
   const line = new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
@@ -97,20 +119,20 @@ function buildArrowedMeasure(p1, p2, labelText, mode) {
   // Taille flèches (adaptée au zoom)
   const arrowSize = Math.max(CONFIG.ARROW_SIZE_BASE / zoom, 6);
   
-  // Flèche départ (pointe vers l'EXTÉRIEUR = vers la gauche)
+  // Flèche départ (pointe vers l'extérieur)
   const arrowStart = createOpenArrow(arrowSize, color, strokeWidth);
   arrowStart.set({
     left: p1.x,
     top: p1.y,
-    angle: angle + 180  // Pointe vers l'extérieur (gauche)
+    angle: angle + 180
   });
   
-  // Flèche arrivée (pointe vers l'EXTÉRIEUR = vers la droite)
+  // Flèche arrivée (pointe vers l'extérieur)
   const arrowEnd = createOpenArrow(arrowSize, color, strokeWidth);
   arrowEnd.set({
     left: p2.x,
     top: p2.y,
-    angle: angle  // Pointe vers l'extérieur (droite)
+    angle: angle
   });
   
   // Label au milieu
@@ -123,15 +145,15 @@ function buildArrowedMeasure(p1, p2, labelText, mode) {
     selectable: true
   });
   
-  // Métadonnées
-  group.isMeasure = (mode === MODES.MEASURE);
-  group.isScale = (mode === MODES.SCALE);
-  group.measureValue = group.isMeasure ? labelText.replace(' m', '') : null;
+  // Attacher les métadonnées
+  if (options.meta) {
+    Object.assign(group, options.meta);
+  }
   
   return group;
 }
 
-/* ===== PREVIEW LINE ===== */
+/* ===== PREVIEW LINE MANAGEMENT ===== */
 function updatePreviewLine() {
   if (!State.picking || !State.pickStartCanvas) return;
   
@@ -181,7 +203,7 @@ async function finalizeScale(p1, p2) {
   
   // Calculer pixels/mètre
   State.pixelsPerMeter = distPx / meters;
-  State.detectedScale = null; // Manuel, pas de scale détectée
+  State.detectedScale = null;
   
   updateScaleBadge(`~${Math.round(1 / (meters / distPx * 0.0254 / 72 / CONFIG.PDF_RENDER_SCALE))}`);
   updateButtonStates();
@@ -214,8 +236,17 @@ function finalizeMeasure(p1, p2) {
   const meters = distPx / State.pixelsPerMeter;
   const labelText = `${meters.toFixed(2)} m`;
   
-  // Créer la mesure
-  const group = buildArrowedMeasure(p1, p2, labelText, MODES.MEASURE);
+  // Créer la mesure via le builder unifié
+  const group = buildLineMeasure(p1, p2, labelText, {
+    color: State.currentColor,
+    dash: null,
+    meta: {
+      isMeasure: true,
+      isScale: false,
+      measureValue: meters.toFixed(2)
+    }
+  });
+  
   addObject(group);
   setActiveObject(group);
   
@@ -228,8 +259,11 @@ function finalizeMeasure(p1, p2) {
 // Export
 window.isTooSmall = isTooSmall;
 window.getDistance = getDistance;
+window.getAngle = getAngle;
+window.createOpenArrow = createOpenArrow;
+window.createLabel = createLabel;
 window.createPreviewLine = createPreviewLine;
-window.buildArrowedMeasure = buildArrowedMeasure;
+window.buildLineMeasure = buildLineMeasure;
 window.updatePreviewLine = updatePreviewLine;
 window.clearPreviewLine = clearPreviewLine;
 window.resetPicking = resetPicking;

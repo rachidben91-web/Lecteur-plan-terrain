@@ -18,15 +18,10 @@ function _getBgInfo() {
 }
 
 function _objectsJSONOnly() {
-  const json = canvas.toDatalessJSON([
-    'isMeasure',
-    'isScale',
-    'measureValue',
-    'isAnnotation',
-    'annotationValue'
-  ]);
+  // Utilise CONFIG.CUSTOM_PROPS (centralisé)
+  const json = canvas.toDatalessJSON(CONFIG.CUSTOM_PROPS);
 
-  // On force : pas de background dans l’overlay
+  // Pas de background dans l'overlay
   delete json.backgroundImage;
   delete json.background;
   return json;
@@ -56,7 +51,6 @@ async function _buildCompositeDataURL(multiplier = CONFIG.EXPORT_MULTIPLIER) {
     renderOnAddRemove: false
   });
 
-  // Neutraliser vue (zoom/pan)
   off.setViewportTransform([1, 0, 0, 1, 0, 0]);
 
   const json = _objectsJSONOnly();
@@ -151,7 +145,7 @@ async function exportToPDF() {
       orientation,
       unit: 'mm',
       format: [pdfW, pdfH],
-      compress: false // ✅ qualité conservée
+      compress: false
     });
 
     pdf.addImage(dataURL, 'PNG', 0, 0, pdfW, pdfH, '', 'FAST');

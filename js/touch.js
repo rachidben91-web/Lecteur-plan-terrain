@@ -32,9 +32,23 @@ function handleTouchStart(e) {
   if (e.touches.length >= 2) return; // Pinch handled separately
   
   const t = e.touches[0];
+  
+  // Mode TEXT : placement direct au toucher
+  if (State.mode === MODES.TEXT) {
+    showCursorAt(t.clientX, t.clientY);
+    const point = clientToCanvasPoint(
+      t.clientX + CONFIG.CURSOR_OFFSET_X,
+      t.clientY + CONFIG.CURSOR_OFFSET_Y
+    );
+    placeText(point);
+    e.preventDefault();
+    return;
+  }
+  
   showCursorAt(t.clientX, t.clientY);
   
-  if (State.mode === MODES.SCALE || State.mode === MODES.MEASURE) {
+  // Modes avec picking (tracé 2 points)
+  if (State.mode === MODES.SCALE || State.mode === MODES.MEASURE || State.mode === MODES.ANNOTATION) {
     showConfirmPad(true);
     updatePreviewLine();
   }
@@ -45,6 +59,12 @@ function handleTouchStart(e) {
 function handleTouchMove(e) {
   if (!State.pdfDoc) return;
   if (e.touches.length >= 2) return;
+  
+  // Mode TEXT : pas de déplacement continu
+  if (State.mode === MODES.TEXT) {
+    e.preventDefault();
+    return;
+  }
   
   const t = e.touches[0];
   showCursorAt(t.clientX, t.clientY);

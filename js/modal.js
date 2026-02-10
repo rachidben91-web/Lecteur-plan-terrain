@@ -74,9 +74,13 @@ function showModal(title, label, defaultValue = '1.00') {
     
     // Configurer le modal
     UI.modal.title.textContent = title;
+    UI.modal.label.textContent = label;
     UI.modal.input.type = 'number';
+    UI.modal.input.step = '0.01';
+    UI.modal.input.min = '0.01';
+    UI.modal.input.inputMode = 'decimal';
     UI.modal.input.value = defaultValue;
-    UI.modal.input.placeholder = defaultValue;
+    UI.modal.input.placeholder = defaultValue || '1.00';
     
     // Afficher
     UI.modal.overlay.classList.add('modal-overlay--visible');
@@ -97,7 +101,11 @@ function showTextModal(title, placeholder = '') {
     
     // Configurer le modal
     UI.modal.title.textContent = title;
+    UI.modal.label.textContent = 'Entrez votre texte';
     UI.modal.input.type = 'text';
+    UI.modal.input.removeAttribute('step');
+    UI.modal.input.removeAttribute('min');
+    UI.modal.input.inputMode = 'text';
     UI.modal.input.value = '';
     UI.modal.input.placeholder = placeholder;
     

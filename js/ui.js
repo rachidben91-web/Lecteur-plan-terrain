@@ -65,7 +65,8 @@ const UI = {
     input: $('#modalInput'),
     confirm: $('#modalConfirm'),
     cancel: $('#modalCancel'),
-    title: $('#modalTitle')
+    title: $('#modalTitle'),
+    label: $('#modalLabel')
   },
   
   // Version labels
