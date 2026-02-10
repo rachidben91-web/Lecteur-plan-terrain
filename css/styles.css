@@ -1,6 +1,6 @@
 /* ============================================================
    Mesures Terrain - GRDF Boucles de Seine Nord
-   Design System v3.0
+   Design System v3.3
    ============================================================ */
 
 /* ===== FONTS ===== */
@@ -318,10 +318,10 @@ body {
 }
 
 .btn--icon-lg {
-  width: 56px;    /* Réduit de 64px à 56px pour barre plus compacte */
+  width: 56px;
   height: 56px;
   border-radius: var(--radius-full);
-  font-size: 1.2rem;  /* Réduit de 1.3rem à 1.2rem */
+  font-size: 1.2rem;
 }
 
 .btn--primary {
@@ -364,6 +364,11 @@ body {
   color: var(--success);
 }
 
+.btn--success:hover:not(:disabled) {
+  background: rgba(0, 230, 118, 0.3);
+  box-shadow: 0 0 20px var(--success-glow);
+}
+
 .btn--warning {
   color: var(--warning);
 }
@@ -394,8 +399,8 @@ body {
 /* Mode compact après détection réussie */
 .scale-badge--compact {
   width: auto;
-  min-width: 90px;  /* Réduit de 120px à 90px pour tablette */
-  padding: var(--space-xs) var(--space-sm);  /* Encore plus petit */
+  min-width: 90px;
+  padding: var(--space-xs) var(--space-sm);
 }
 
 .scale-badge--compact .scale-badge__header {
@@ -403,10 +408,10 @@ body {
 }
 
 .scale-badge--compact .scale-badge__value {
-  padding: var(--space-xs);  /* Réduit de sm à xs */
+  padding: var(--space-xs);
   background: rgba(0, 230, 118, 0.15);
   border: 1px solid rgba(0, 230, 118, 0.3);
-  font-size: 0.85rem;  /* Texte légèrement plus petit */
+  font-size: 0.85rem;
 }
 
 .scale-badge--compact:hover {
@@ -553,13 +558,12 @@ body {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: var(--space-sm);  /* Réduit de md à sm */
-  padding: var(--space-md) var(--space-lg);  /* Réduit pour barre plus petite */
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-full);
   z-index: 80;
   
-  /* Fond opaque et foncé pour meilleure visibilité */
-  background: rgba(10, 14, 23, 0.95) !important;  /* Presque opaque */
+  background: rgba(10, 14, 23, 0.95) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -570,8 +574,8 @@ body {
 
 .dock-divider {
   width: 1px;
-  height: 32px;  /* Ajusté pour les boutons 56px */
-  background: rgba(255, 255, 255, 0.2);  /* Légèrement plus visible */
+  height: 32px;
+  background: rgba(255, 255, 255, 0.2);
   margin: 0 var(--space-xs);
 }
 
@@ -641,11 +645,11 @@ body {
   inset: 0;
   border-radius: 50%;
   border: 3px solid var(--accent);
-  background: transparent;               /* pas d'effet laiteux */
-  backdrop-filter: none;                 /* pas de blur */
+  background: transparent;
+  backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow: none;                      /* pas de halo */
-  animation: none;                       /* pas de pulse (plus net) */
+  box-shadow: none;
+  animation: none;
 }
 
 /* Croix horizontale */
@@ -697,6 +701,18 @@ body {
 
 .confirm-pad--visible {
   display: flex;
+}
+
+/* Boutons du confirm pad (héritent de .btn) */
+.confirm-btn {
+  min-width: 130px;
+  height: 48px;
+  font-size: 0.9rem;
+  border-radius: var(--radius-lg);
+}
+
+.confirm-btn i {
+  font-size: 1rem;
 }
 
 /* ===== MODAL ===== */
@@ -879,6 +895,11 @@ body {
     width: calc(100% - 24px);
     justify-content: space-around;
     padding: var(--space-sm) var(--space-md);
+  }
+  
+  .confirm-btn {
+    min-width: 100px;
+    font-size: 0.8rem;
   }
 }
 
