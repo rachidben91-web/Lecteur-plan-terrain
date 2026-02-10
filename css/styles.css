@@ -620,11 +620,11 @@ body {
   transform: scale(1.1);
 }
 
-/* ===== TOUCH CURSOR ===== */
+/* ===== TOUCH CURSOR (NET & PRÉCIS) ===== */
 .touch-cursor {
   position: fixed;
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   z-index: 200;
   pointer-events: none;
   display: none;
@@ -635,134 +635,48 @@ body {
   display: block;
 }
 
+/* Cercle fin (repère visuel) */
 .touch-cursor__ring {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 3px solid var(--accent);
-  background: rgba(0, 212, 255, 0.08);
-  backdrop-filter: blur(4px);
-  box-shadow: 
-    0 0 25px var(--accent-glow),
-    inset 0 0 15px rgba(0, 212, 255, 0.1);
-  animation: cursor-pulse 1.5s ease-in-out infinite;
+  border: 2px solid var(--accent);
+  background: transparent;           /* 🔴 PLUS DE FOND FLOU */
+  box-shadow: none;                  /* 🔴 PLUS DE GLOW */
 }
 
-.touch-cursor__cross-h,
-.touch-cursor__cross-v {
-  position: absolute;
-  background: var(--text-primary);
-  border-radius: 2px;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
-}
-
+/* Croix horizontale */
 .touch-cursor__cross-h {
-  width: 24px;
-  height: 2px;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.touch-cursor__cross-v {
-  width: 2px;
-  height: 24px;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
-@keyframes cursor-pulse {
-  0%, 100% { 
-    box-shadow: 
-      0 0 25px var(--accent-glow),
-      inset 0 0 15px rgba(0, 212, 255, 0.1);
-  }
-  50% { 
-    box-shadow: 
-      0 0 35px var(--accent-glow),
-      inset 0 0 20px rgba(0, 212, 255, 0.15);
-  }
-}
-
-/* ===== CONFIRM PAD ===== */
-.confirm-pad {
   position: absolute;
-  bottom: 95px;
+  width: 28px;
+  height: 2px;
+  background: var(--accent);
   left: 50%;
-  transform: translateX(-50%);
-  display: none;
-  gap: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
-  border-radius: var(--radius-xl);
-  z-index: 199;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
-.confirm-pad--visible {
-  display: flex;
+/* Croix verticale */
+.touch-cursor__cross-v {
+  position: absolute;
+  width: 2px;
+  height: 28px;
+  background: var(--accent);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
-.confirm-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  height: 48px;
-  padding: 0 var(--space-lg);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  font-weight: 800;
-  cursor: pointer;
-  transition: 
-    transform var(--transition-fast),
-    background var(--transition-fast),
-    box-shadow var(--transition-fast);
-  white-space: nowrap;
-}
-
-.confirm-btn:hover:not(:disabled) {
-  transform: scale(1.02);
-}
-
-.confirm-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.confirm-btn--start {
-  background: rgba(0, 230, 118, 0.15);
-  border-color: rgba(0, 230, 118, 0.3);
-  color: var(--success);
-}
-
-.confirm-btn--start:hover:not(:disabled) {
-  background: rgba(0, 230, 118, 0.25);
-  box-shadow: 0 0 20px var(--success-glow);
-}
-
-.confirm-btn--end {
-  background: rgba(0, 212, 255, 0.15);
-  border-color: rgba(0, 212, 255, 0.3);
-  color: var(--accent);
-}
-
-.confirm-btn--end:hover:not(:disabled) {
-  background: rgba(0, 212, 255, 0.25);
-  box-shadow: 0 0 20px var(--accent-glow);
-}
-
-.confirm-btn--cancel {
-  background: rgba(255, 82, 82, 0.15);
-  border-color: rgba(255, 82, 82, 0.3);
-  color: var(--error);
-  padding: 0 var(--space-md);
-}
-
-.confirm-btn--cancel:hover:not(:disabled) {
-  background: rgba(255, 82, 82, 0.25);
-  box-shadow: 0 0 20px var(--error-glow);
+/* Point central (hyper précis) */
+.touch-cursor__dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
 /* ===== MODAL ===== */
