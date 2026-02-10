@@ -679,6 +679,23 @@ body {
   transform: translate(-50%, -50%);
 }
 
+/* ===== CONFIRM PAD ===== */
+.confirm-pad {
+  position: absolute;
+  bottom: 95px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-xl);
+  z-index: 199;
+}
+
+.confirm-pad--visible {
+  display: flex;
+}
+
 /* ===== MODAL ===== */
 .modal-overlay {
   position: fixed;
