@@ -1,8 +1,6 @@
 /* ============================================================
-   EXPORT.JS - Export PNG/PDF (FIX fond manquant)
-   - Base (plan) rendu en 2D
-   - Overlay (objets) rendu via Fabric offscreen (transparent)
-   - Fusion en haute résolution
+   EXPORT.JS - Export PNG/PDF V3.4
+   ✅ NOUVEAU : Vérification complète du background
    ============================================================ */
 
 function _getBgInfo() {
@@ -10,18 +8,26 @@ function _getBgInfo() {
   const el = bg?._element || null;
   if (!bg || !el) return null;
 
+  // ✅ NOUVEAU : Vérifier que l'image est complètement chargée
+  if (!el.complete || el.naturalWidth === 0) {
+    console.warn('⚠️ Background pas complètement chargé');
+    return null;
+  }
+
   const w = el.naturalWidth || bg.width || 0;
   const h = el.naturalHeight || bg.height || 0;
-  if (!w || !h) return null;
+  
+  if (!w || !h) {
+    console.warn('⚠️ Dimensions background invalides');
+    return null;
+  }
 
+  console.log(`✅ Background OK: ${w}x${h}px`);
   return { el, w, h };
 }
 
 function _objectsJSONOnly() {
-  // Utilise CONFIG.CUSTOM_PROPS (centralisé)
   const json = canvas.toDatalessJSON(CONFIG.CUSTOM_PROPS);
-
-  // Pas de background dans l'overlay
   delete json.backgroundImage;
   delete json.background;
   return json;
@@ -29,21 +35,22 @@ function _objectsJSONOnly() {
 
 async function _buildCompositeDataURL(multiplier = CONFIG.EXPORT_MULTIPLIER) {
   const info = _getBgInfo();
-  if (!info) throw new Error('BACKGROUND_MISSING');
+  
+  // ✅ NOUVEAU : Message d'erreur clair
+  if (!info) {
+    throw new Error('BACKGROUND_MISSING - Impossible d\'exporter sans fond');
+  }
 
   const { el, w, h } = info;
 
-  // --- 1) Base canvas 2D : plan en haute résolution
   const base = document.createElement('canvas');
   base.width = Math.round(w * multiplier);
   base.height = Math.round(h * multiplier);
   const bctx = base.getContext('2d');
   bctx.imageSmoothingEnabled = true;
 
-  // Dessiner le fond (plan PDF)
   bctx.drawImage(el, 0, 0, base.width, base.height);
 
-  // --- 2) Overlay Fabric offscreen : objets seulement (transparent)
   const off = new fabric.StaticCanvas(null, {
     width: w,
     height: h,
@@ -71,7 +78,6 @@ async function _buildCompositeDataURL(multiplier = CONFIG.EXPORT_MULTIPLIER) {
 
   off.dispose();
 
-  // --- 3) Fusion : draw overlay par-dessus la base
   const overlayImg = new Image();
   overlayImg.decoding = 'async';
   overlayImg.src = overlayURL;
@@ -86,7 +92,6 @@ async function _buildCompositeDataURL(multiplier = CONFIG.EXPORT_MULTIPLIER) {
   return { dataURL: base.toDataURL('image/png', 1.0), baseW: w, baseH: h };
 }
 
-/* ===== EXPORT PNG ===== */
 async function exportToPNG() {
   if (!State.pdfDoc || !State.currentPage) {
     Status.show('Aucune page chargée', 'error');
@@ -108,12 +113,11 @@ async function exportToPNG() {
 
     Status.show('PNG OK (plan + cotes)', 'success');
   } catch (e) {
-    console.error(e);
-    Status.show('Erreur export PNG', 'error');
+    console.error('❌ Erreur export PNG:', e);
+    Status.show('Erreur export PNG - ' + e.message, 'error');
   }
 }
 
-/* ===== EXPORT PDF ===== */
 async function exportToPDF() {
   if (!State.pdfDoc || !State.currentPage) {
     Status.show('Aucune page chargée', 'error');
@@ -153,11 +157,10 @@ async function exportToPDF() {
 
     Status.show('PDF OK (plan + cotes)', 'success');
   } catch (e) {
-    console.error(e);
-    Status.show('Erreur export PDF', 'error');
+    console.error('❌ Erreur export PDF:', e);
+    Status.show('Erreur export PDF - ' + e.message, 'error');
   }
 }
 
-// Export
 window.exportToPNG = exportToPNG;
 window.exportToPDF = exportToPDF;

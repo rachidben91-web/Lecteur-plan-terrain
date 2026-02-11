@@ -1,94 +1,123 @@
 /* ============================================================
-   STATE.JS - Gestion de l'état global de l'application
+   STATE.JS - Gestion de l'état V3.4
+   ✅ NOUVEAU : Autosave localStorage
    ============================================================ */
 
 const State = {
-  // Mode actuel
   mode: MODES.PAN,
-  
-  // Échelle de la page
   pixelsPerMeter: 0,
   detectedScale: null,
-  
-  // Zoom
   initialZoom: 0.05,
-  
-  // Couleur de mesure active
   currentColor: CONFIG.DEFAULT_COLOR,
   
-  // PDF
   pdfDoc: null,
   pageCount: 0,
   currentPage: 1,
-  perPage: new Map(),       // Stockage par page {json, pixelsPerMeter, detectedScale, ocrTried}
+  perPage: new Map(),
   
-  // Pan (déplacement)
   isDragging: false,
   lastClientX: 0,
   lastClientY: 0,
   
-  // Touch
   isTouch: false,
   cursorClientX: 0,
   cursorClientY: 0,
   
-  // Picking (sélection points)
   picking: false,
   pickStartCanvas: null,
-  
-  // Preview line
   previewLine: null,
   
-  // Desktop draw
   _drawStart: null,
   _drawLine: null,
   
-  // Reset state for new page
   resetForNewPage() {
     this.pixelsPerMeter = 0;
     this.detectedScale = null;
   },
   
-  // Save current page state
   savePageState(pageNumber, canvasJson) {
     const prev = this.perPage.get(pageNumber) || {};
-    this.perPage.set(pageNumber, {
+    const data = {
       ...prev,
       json: canvasJson,
       pixelsPerMeter: this.pixelsPerMeter || 0,
       detectedScale: this.detectedScale || null
-    });
+    };
+    
+    this.perPage.set(pageNumber, data);
+    
+    // ✅ NOUVEAU : Autosave localStorage
+    this._saveToLocalStorage(pageNumber, data);
   },
   
-  // Load page state
+  // ✅ NOUVEAU : Sauvegarde localStorage
+  _saveToLocalStorage(pageNumber, data) {
+    if (!this.pdfDoc) return;
+    
+    try {
+      const key = `mt_page_${pageNumber}`;
+      localStorage.setItem(key, JSON.stringify(data));
+      console.log(`✅ Page ${pageNumber} sauvegardée`);
+    } catch (e) {
+      console.warn('⚠️ LocalStorage plein:', e);
+    }
+  },
+  
   loadPageState(pageNumber) {
-    const saved = this.perPage.get(pageNumber);
+    let saved = this.perPage.get(pageNumber);
+    
+    // ✅ NOUVEAU : Charger depuis localStorage si pas en mémoire
+    if (!saved && this.pdfDoc) {
+      try {
+        const key = `mt_page_${pageNumber}`;
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          saved = JSON.parse(stored);
+          console.log(`✅ Page ${pageNumber} chargée depuis localStorage`);
+        }
+      } catch (e) {
+        console.warn('⚠️ Erreur lecture localStorage:', e);
+      }
+    }
+    
     if (saved) {
       this.pixelsPerMeter = saved.pixelsPerMeter || 0;
       this.detectedScale = saved.detectedScale || null;
+      this.perPage.set(pageNumber, saved);
       return saved;
     }
     return null;
   },
   
-  // Mark OCR as tried for page
+  // ✅ NOUVEAU : Nettoyer localStorage
+  clearLocalStorage() {
+    try {
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('mt_page_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      console.log('✅ LocalStorage nettoyé');
+    } catch (e) {
+      console.warn('⚠️ Erreur nettoyage:', e);
+    }
+  },
+  
   markOcrTried(pageNumber) {
     const saved = this.perPage.get(pageNumber) || {};
     saved.ocrTried = true;
     this.perPage.set(pageNumber, saved);
   },
   
-  // Check if OCR was tried
   wasOcrTried(pageNumber) {
     const saved = this.perPage.get(pageNumber);
     return saved?.ocrTried === true;
   },
   
-  // Has valid scale
   hasScale() {
     return this.pixelsPerMeter > 0;
   }
 };
 
-// Export
 window.State = State;

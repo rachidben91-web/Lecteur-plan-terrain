@@ -9,35 +9,29 @@
   
   <title>Mesures Terrain - GRDF BDSN</title>
   
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/favicon.png">
   
-  <!-- External Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <!-- App Styles -->
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=4.0.0">
 </head>
 
 <body>
-  <!-- ===== TOP BAR ===== -->
   <header class="top-bar">
-    <!-- Brand -->
     <div class="brand glass-card glass-card--elevated">
       <div class="brand__logo">
         <img src="assets/grdf-logo.png" alt="GRDF BDSN" onerror="this.parentElement.innerHTML='<i class=\'fa-solid fa-ruler-combined\' style=\'font-size:1.5rem;color:var(--accent)\'></i>'">
       </div>
       <div class="brand__text">
         <div class="brand__title">Mesures Terrain</div>
-        <div class="brand__version" id="brandVersion">v3.3.0</div>
+        <div class="brand__version" id="brandVersion">v3.4.0</div>
       </div>
     </div>
     
-    <!-- Pager -->
     <nav class="pager glass-card glass-card--elevated" aria-label="Navigation des pages">
       <button id="btnPrevPage" class="btn btn--icon" disabled aria-label="Page précédente">
         <i class="fa-solid fa-chevron-left"></i>
@@ -49,23 +43,13 @@
         <i class="fa-solid fa-chevron-right"></i>
       </button>
       
-      <input 
-        type="number" 
-        id="pageJump" 
-        class="pager__input" 
-        min="1" 
-        step="1" 
-        placeholder="N°" 
-        disabled
-        aria-label="Aller à la page"
-      >
+      <input type="number" id="pageJump" class="pager__input" min="1" step="1" placeholder="N°" disabled aria-label="Aller à la page">
       
       <button id="btnGoPage" class="btn btn--icon" disabled aria-label="Aller à la page">
         <i class="fa-solid fa-arrow-right"></i>
       </button>
     </nav>
     
-    <!-- Actions -->
     <div class="top-actions">
       <label for="fileInput" class="btn glass-card--elevated" tabindex="0">
         <i class="fa-solid fa-folder-open"></i>
@@ -93,12 +77,8 @@
     </div>
   </header>
   
-  <!-- ===== STATUS BUBBLE ===== -->
-  <div id="statusBubble" class="status-bubble" role="status" aria-live="polite">
-    Bienvenue
-  </div>
+  <div id="statusBubble" class="status-bubble" role="status" aria-live="polite">Bienvenue</div>
   
-  <!-- ===== SCALE BADGE ===== -->
   <aside id="scaleBadge" class="scale-badge glass-card">
     <div class="scale-badge__header">
       <span class="scale-badge__title">Échelle</span>
@@ -110,51 +90,14 @@
     </div>
   </aside>
   
-  <!-- ===== COLOR PALETTE ===== -->
   <div id="colorPicker" class="color-palette glass-card" role="radiogroup" aria-label="Couleur du tracé">
-    <button 
-      class="color-dot color-dot--selected" 
-      style="background: var(--color-elec);" 
-      data-color="#ff5252" 
-      title="Électricité (Rouge)"
-      role="radio"
-      aria-checked="true"
-    ></button>
-    <button 
-      class="color-dot" 
-      style="background: var(--color-gaz);" 
-      data-color="#ffab00" 
-      title="Gaz (Jaune)"
-      role="radio"
-      aria-checked="false"
-    ></button>
-    <button 
-      class="color-dot" 
-      style="background: var(--color-eau);" 
-      data-color="#00b0ff" 
-      title="Eau (Bleu)"
-      role="radio"
-      aria-checked="false"
-    ></button>
-    <button 
-      class="color-dot" 
-      style="background: var(--color-telecom);" 
-      data-color="#00e676" 
-      title="Télécom (Vert)"
-      role="radio"
-      aria-checked="false"
-    ></button>
-    <button 
-      class="color-dot" 
-      style="background: var(--color-fibre);" 
-      data-color="#e040fb" 
-      title="Fibre (Violet)"
-      role="radio"
-      aria-checked="false"
-    ></button>
+    <button class="color-dot color-dot--selected" style="background: var(--color-elec);" data-color="#ff5252" title="Électricité (Rouge)" role="radio" aria-checked="true"></button>
+    <button class="color-dot" style="background: var(--color-gaz);" data-color="#ffab00" title="Gaz (Jaune)" role="radio" aria-checked="false"></button>
+    <button class="color-dot" style="background: var(--color-eau);" data-color="#00b0ff" title="Eau (Bleu)" role="radio" aria-checked="false"></button>
+    <button class="color-dot" style="background: var(--color-telecom);" data-color="#00e676" title="Télécom (Vert)" role="radio" aria-checked="false"></button>
+    <button class="color-dot" style="background: var(--color-fibre);" data-color="#e040fb" title="Fibre (Violet)" role="radio" aria-checked="false"></button>
   </div>
   
-  <!-- ===== BOTTOM DOCK ===== -->
   <nav class="bottom-dock glass-card glass-card--elevated" aria-label="Outils">
     <button id="btnPan" class="btn btn--icon-lg btn--active" title="Déplacer" aria-pressed="true">
       <i class="fa-solid fa-hand"></i>
@@ -203,7 +146,6 @@
     </button>
   </nav>
   
-  <!-- ===== TOUCH CURSOR ===== -->
   <div id="touchCursor" class="touch-cursor" aria-hidden="true">
     <div class="touch-cursor__ring"></div>
     <div class="touch-cursor__cross-h"></div>
@@ -211,7 +153,6 @@
     <div class="touch-cursor__dot"></div>
   </div>
   
-  <!-- ===== CONFIRM PAD (Touch) ===== -->
   <div id="confirmPad" class="confirm-pad glass-card">
     <button id="btnConfirmStart" class="btn btn--success confirm-btn">
       <i class="fa-solid fa-location-dot"></i>
@@ -228,22 +169,13 @@
     </button>
   </div>
   
-  <!-- ===== MODAL (Saisie mètres / texte) ===== -->
   <div id="modalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal">
       <h2 class="modal__title" id="modalTitle">Distance en mètres</h2>
       
       <div class="modal__input-group">
         <label for="modalInput" class="modal__label" id="modalLabel">Entrez la distance réelle</label>
-        <input 
-          type="number" 
-          id="modalInput" 
-          class="modal__input" 
-          step="0.01" 
-          min="0.01" 
-          placeholder="1.00"
-          inputmode="decimal"
-        >
+        <input type="number" id="modalInput" class="modal__input" step="0.01" min="0.01" placeholder="1.00" inputmode="decimal">
         <p class="modal__hint">Exemple : 1.50 pour 1m50</p>
       </div>
       
@@ -254,16 +186,13 @@
     </div>
   </div>
   
-  <!-- ===== CANVAS AREA ===== -->
   <div class="canvas-frame" aria-hidden="true"></div>
   <main id="canvasWrapper" class="canvas-wrapper">
     <canvas id="mainCanvas"></canvas>
   </main>
   
-  <!-- ===== VERSION LABEL ===== -->
-  <div class="version-label" id="versionLabel">v3.3.0</div>
+  <div class="version-label" id="versionLabel">v3.4.0</div>
   
-  <!-- ===== APP SCRIPTS ===== -->
   <script src="js/config.js"></script>
   <script src="js/state.js"></script>
   <script src="js/ui.js"></script>
