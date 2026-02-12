@@ -1,9 +1,9 @@
 /* ============================================================
-   CONFIG.JS - Configuration globale V3.4
+   CONFIG.JS - Configuration globale V3.4.1
    ============================================================ */
 
 const CONFIG = Object.freeze({
-  VERSION: '3.4.0',
+  VERSION: '3.4.1',
   APP_NAME: 'Mesures Terrain',
   
   PDF_RENDER_SCALE: 3.0,
