@@ -18,7 +18,13 @@ async function loadPdfFile(file) {
     State.pageCount = State.pdfDoc.numPages;
     State.currentPage = 1;
     State.perPage.clear();
-    
+     
+    // ✅ FIX : on purge l'autosave (sinon page_1 d’un ancien PDF revient)
+    State.clearLocalStorage();
+
+   // ✅ (bonus) on reset le picking/preview pour éviter un état collant
+   resetPicking();
+     
     // Reset scale
     State.resetForNewPage();
     updateScaleBadge(null);
