@@ -1,40 +1,25 @@
 /* ============================================================
    UI.JS - Gestion des éléments d'interface
-   v3.4.2
-   ✅ NEW : la palette recolore aussi le texte sélectionné
+   Mesures Terrain v3.5.0 - GRDF Boucles de Seine Nord
    ============================================================ */
 
-// Sélecteurs rapides
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-// Références UI
 const UI = {
-  // Canvas
   wrapper: $('#canvasWrapper'),
-
-  // Inputs
   fileInput: $('#fileInput'),
-
-  // Status
   statusBubble: $('#statusBubble'),
-
-  // Scale badge
   scaleBadge: $('#scaleBadge'),
   scaleValue: $('#scaleValue'),
   scaleMini: $('#scaleMini'),
-
-  // Color picker
   colorPicker: $('#colorPicker'),
-
-  // Touch elements
   touchCursor: $('#touchCursor'),
   confirmPad: $('#confirmPad'),
   btnConfirmStart: $('#btnConfirmStart'),
   btnConfirmEnd: $('#btnConfirmEnd'),
   btnConfirmCancel: $('#btnConfirmCancel'),
 
-  // Pager
   pager: {
     prev: $('#btnPrevPage'),
     next: $('#btnNextPage'),
@@ -43,7 +28,6 @@ const UI = {
     go: $('#btnGoPage')
   },
 
-  // Buttons
   btn: {
     pan: $('#btnPan'),
     home: $('#btnHome'),
@@ -61,7 +45,6 @@ const UI = {
     fullscreen: $('#btnFullscreen')
   },
 
-  // Modal
   modal: {
     overlay: $('#modalOverlay'),
     input: $('#modalInput'),
@@ -71,7 +54,6 @@ const UI = {
     label: $('#modalLabel')
   },
 
-  // Version labels
   brandVersion: $('#brandVersion'),
   versionLabel: $('#versionLabel')
 };
@@ -86,7 +68,7 @@ const Status = (() => {
 
     if (type === 'success') UI.statusBubble.classList.add('status-bubble--success');
     if (type === 'warning') UI.statusBubble.classList.add('status-bubble--warning');
-    if (type === 'error') UI.statusBubble.classList.add('status-bubble--error');
+    if (type === 'error')   UI.statusBubble.classList.add('status-bubble--error');
 
     clearTimeout(timer);
     timer = setTimeout(() => {
@@ -105,19 +87,16 @@ const Status = (() => {
 /* ===== SCALE BADGE ===== */
 function updateScaleBadge(scaleVal) {
   if (!scaleVal) {
-    UI.scaleBadge.classList.remove('scale-badge--ok');
-    UI.scaleBadge.classList.remove('scale-badge--compact');
+    UI.scaleBadge.classList.remove('scale-badge--ok', 'scale-badge--compact');
     UI.scaleValue.textContent = 'Non détectée';
     UI.scaleMini.textContent = '—';
   } else {
-    UI.scaleBadge.classList.add('scale-badge--ok');
-    UI.scaleBadge.classList.add('scale-badge--compact');
+    UI.scaleBadge.classList.add('scale-badge--ok', 'scale-badge--compact');
     UI.scaleValue.textContent = `1:${scaleVal}`;
     UI.scaleMini.textContent = `1:${scaleVal}`;
   }
 }
 
-// Clic sur le scale badge pour modifier l'échelle
 UI.scaleBadge.addEventListener('click', () => {
   if (State.hasScale()) {
     setMode(MODES.SCALE);
@@ -130,7 +109,6 @@ function setAllButtonsDisabled(disabled) {
   Object.values(UI.btn).forEach(btn => {
     if (btn) btn.disabled = disabled;
   });
-  // Ces boutons restent toujours actifs
   UI.btn.clear.disabled = false;
   UI.btn.fullscreen.disabled = false;
 }
@@ -154,15 +132,18 @@ function updateButtonStates() {
 /* ===== MODE MANAGEMENT ===== */
 function setActiveButton(mode) {
   Object.values(UI.btn).forEach(btn => {
-    if (btn) btn.classList.remove('btn--active');
+    if (btn) {
+      btn.classList.remove('btn--active');
+      btn.removeAttribute('aria-pressed');
+    }
   });
 
   const btnMap = {
-    [MODES.PAN]: UI.btn.pan,
-    [MODES.SCALE]: UI.btn.scale,
-    [MODES.MEASURE]: UI.btn.measure,
+    [MODES.PAN]:        UI.btn.pan,
+    [MODES.SCALE]:      UI.btn.scale,
+    [MODES.MEASURE]:    UI.btn.measure,
     [MODES.ANNOTATION]: UI.btn.annotation,
-    [MODES.TEXT]: UI.btn.text
+    [MODES.TEXT]:       UI.btn.text
   };
 
   if (btnMap[mode]) {
@@ -225,9 +206,7 @@ function setVersion(version) {
 /* ===== COLOR PICKER ===== */
 function _isTextObject(obj) {
   if (!obj) return false;
-  // Fabric v5 : IText/Text/Textbox ont un champ "text"
-  if (typeof obj.text === 'string') return true;
-  return false;
+  return typeof obj.text === 'string';
 }
 
 function _applyColorToActiveText(color) {
@@ -239,7 +218,6 @@ function _applyColorToActiveText(color) {
 
     obj.set({
       fill: color,
-      // Pour garder le style "cadre couleur réseau" de la v3.4.1
       borderColor: color,
       cornerColor: color,
       editingBorderColor: color
@@ -247,14 +225,13 @@ function _applyColorToActiveText(color) {
 
     canvas.requestRenderAll?.();
 
-    // Sauvegarder si la fonction existe (PDF.js)
     if (typeof saveCurrentPage === 'function') {
       saveCurrentPage();
     }
 
     return true;
   } catch (e) {
-    console.warn('applyColorToActiveText failed', e);
+    console.warn('Erreur application couleur au texte :', e);
     return false;
   }
 }
@@ -273,7 +250,6 @@ function initColorPicker() {
       const newColor = dot.getAttribute('data-color');
       State.currentColor = newColor;
 
-      // ✅ NEW : si un texte est sélectionné, on le recolore immédiatement
       const changed = _applyColorToActiveText(newColor);
       if (changed) {
         Status.show('Couleur appliquée au texte', 'success');

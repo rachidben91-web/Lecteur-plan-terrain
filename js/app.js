@@ -1,11 +1,10 @@
 /* ============================================================
-   APP.JS - Point d'entrée principal de l'application
-   v3.4.2
+   APP.JS - Point d'entrée principal
+   Mesures Terrain v3.5.0 - GRDF Boucles de Seine Nord
    ============================================================ */
 
 /* ===== SET MODE ===== */
 function setMode(mode) {
-  // Reset picking si on change de mode
   if (State.mode !== mode) {
     resetPicking();
   }
@@ -13,29 +12,34 @@ function setMode(mode) {
   State.mode = mode;
   setActiveButton(mode);
 
-  // Afficher/masquer la palette de couleurs
+  // Palette couleurs visible uniquement pour les modes de tracé
   showColorPicker(mode === MODES.MEASURE || mode === MODES.ANNOTATION || mode === MODES.TEXT);
 
-  // Afficher/masquer le pad de confirmation tactile (pas pour TEXT = simple clic)
+  // Pad tactile visible uniquement pour les modes nécessitant 2 points
   const showPick = (mode === MODES.SCALE || mode === MODES.MEASURE || mode === MODES.ANNOTATION);
   showConfirmPad(showPick);
 
-  // Configurer le canvas
   if (mode === MODES.PAN) {
     setSelectionMode(true);
     if (State.pdfDoc) Status.show('Mode Déplacement', 'normal');
   } else {
     setSelectionMode(false);
 
-    if (mode === MODES.SCALE) {
-      Status.show('Étalonnage : visez → Départ OK → visez → Arrivée OK', 'warning');
-    } else if (mode === MODES.MEASURE) {
-      Status.show('Mesure : visez → Départ OK → visez → Arrivée OK', 'success');
-    } else if (mode === MODES.ANNOTATION) {
-      Status.show('Plan Minute : visez → Départ OK → visez → Arrivée OK → saisir cotation', 'normal');
-    } else if (mode === MODES.TEXT) {
-      Status.show('Mode Texte : cliquez pour placer du texte', 'normal');
-    }
+    const messages = {
+      [MODES.SCALE]:      'Étalonnage : visez → Départ OK → visez → Arrivée OK',
+      [MODES.MEASURE]:    'Mesure : visez → Départ OK → visez → Arrivée OK',
+      [MODES.ANNOTATION]: 'Plan Minute : visez → Départ OK → visez → Arrivée OK → saisir cotation',
+      [MODES.TEXT]:       'Mode Texte : cliquez pour placer du texte'
+    };
+
+    const types = {
+      [MODES.SCALE]:      'warning',
+      [MODES.MEASURE]:    'success',
+      [MODES.ANNOTATION]: 'normal',
+      [MODES.TEXT]:       'normal'
+    };
+
+    if (messages[mode]) Status.show(messages[mode], types[mode]);
   }
 
   updateButtonStates();
@@ -49,9 +53,8 @@ function initMouseEvents() {
 
     const evt = o.e;
 
-    // Mode PAN : drag
     if (State.mode === MODES.PAN) {
-      if (o.target) return; // Clic sur objet
+      if (o.target) return;
       State.isDragging = true;
       State.lastClientX = evt.clientX;
       State.lastClientY = evt.clientY;
@@ -59,14 +62,12 @@ function initMouseEvents() {
       return;
     }
 
-    // Mode TEXT : placement direct (pas de tracé)
     if (State.mode === MODES.TEXT) {
       const point = canvas.getPointer(evt);
       placeText(point);
       return;
     }
 
-    // Mode SCALE/MEASURE/ANNOTATION : début tracé
     State._drawStart = canvas.getPointer(evt);
     State._drawLine = createPreviewLine(State._drawStart, State._drawStart, State.mode);
     addObject(State._drawLine);
@@ -78,7 +79,6 @@ function initMouseEvents() {
 
     const evt = o.e;
 
-    // Drag pan
     if (State.isDragging) {
       const vpt = canvas.viewportTransform;
       vpt[4] += evt.clientX - State.lastClientX;
@@ -90,7 +90,6 @@ function initMouseEvents() {
       return;
     }
 
-    // Tracé en cours
     if (State._drawLine && State._drawStart) {
       const p = canvas.getPointer(evt);
       State._drawLine.set({ x2: p.x, y2: p.y });
@@ -102,7 +101,6 @@ function initMouseEvents() {
     if (!State.pdfDoc) return;
     if (State.isTouch) return;
 
-    // Fin drag pan
     if (State.isDragging) {
       State.isDragging = false;
       canvas.setCursor('grab');
@@ -111,23 +109,18 @@ function initMouseEvents() {
       return;
     }
 
-    // Fin tracé
     if (!State._drawLine || !State._drawStart) return;
 
     const p2 = canvas.getPointer(o.e);
     const p1 = State._drawStart;
     const distPx = getDistance(p1, p2);
 
-    // Supprimer la preview
     removeObject(State._drawLine);
     State._drawLine = null;
     State._drawStart = null;
 
-    if (isTooSmall(distPx)) {
-      return;
-    }
+    if (isTooSmall(distPx)) return;
 
-    // Finaliser selon le mode
     if (State.mode === MODES.SCALE) {
       await finalizeScale(p1, p2);
     } else if (State.mode === MODES.MEASURE) {
@@ -140,7 +133,6 @@ function initMouseEvents() {
 
 /* ===== BUTTON EVENTS ===== */
 function initButtonEvents() {
-  // Mode buttons
   UI.btn.pan.addEventListener('click', () => setMode(MODES.PAN));
 
   UI.btn.scale.addEventListener('click', () => setMode(MODES.SCALE));
@@ -154,20 +146,14 @@ function initButtonEvents() {
     setMode(MODES.MEASURE);
   });
 
-  UI.btn.annotation.addEventListener('click', () => {
-    setMode(MODES.ANNOTATION);
-  });
+  UI.btn.annotation.addEventListener('click', () => setMode(MODES.ANNOTATION));
 
-  UI.btn.text.addEventListener('click', () => {
-    setMode(MODES.TEXT);
-  });
+  UI.btn.text.addEventListener('click', () => setMode(MODES.TEXT));
 
-  // Zoom
   UI.btn.zoomIn.addEventListener('click', () => applyZoom(1.25));
   UI.btn.zoomOut.addEventListener('click', () => applyZoom(0.8));
   UI.btn.home.addEventListener('click', () => resetViewToCenter());
 
-  // Actions
   UI.btn.undo.addEventListener('click', () => {
     if (removeLastObject()) {
       Status.show('Annulé', 'normal');
@@ -189,15 +175,9 @@ function initButtonEvents() {
     saveCurrentPage();
   });
 
-  UI.btn.save.addEventListener('click', () => {
-    exportToPNG();
-  });
+  UI.btn.save.addEventListener('click', exportToPNG);
+  UI.btn.savePDF.addEventListener('click', exportToPDF);
 
-  UI.btn.savePDF.addEventListener('click', () => {
-    exportToPDF();
-  });
-
-  // Fullscreen
   UI.btn.fullscreen.addEventListener('click', async () => {
     try {
       if (!document.fullscreenElement) {
@@ -218,15 +198,11 @@ function initPagerEvents() {
 
   UI.pager.go.addEventListener('click', () => {
     const n = parseInt(UI.pager.jump.value, 10);
-    if (Number.isFinite(n)) {
-      goToPage(n);
-    }
+    if (Number.isFinite(n)) goToPage(n);
   });
 
   UI.pager.jump.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      UI.pager.go.click();
-    }
+    if (e.key === 'Enter') UI.pager.go.click();
   });
 }
 
@@ -239,7 +215,7 @@ function initFileInput() {
     try {
       await loadPdfFile(file);
     } catch (error) {
-      console.error(error);
+      console.error('Erreur chargement fichier :', error);
     } finally {
       UI.fileInput.value = '';
     }
@@ -248,15 +224,10 @@ function initFileInput() {
 
 /* ===== BOOT ===== */
 function boot() {
-  console.log(`🚀 Mesures Terrain v${CONFIG.VERSION}`);
-
-  // Version
   setVersion(CONFIG.VERSION);
 
-  // Canvas
   window.canvas = initCanvas();
 
-  // UI
   initColorPicker();
   initModal();
   initButtonEvents();
@@ -265,12 +236,10 @@ function boot() {
   initMouseEvents();
   initConfirmPad();
 
-  // Touch detection
   if (isTouchDevice()) {
     enableTouchMode();
   }
 
-  // État initial
   setAllButtonsDisabled(true);
   updateScaleBadge(null);
   updatePagerUI();
@@ -279,8 +248,6 @@ function boot() {
   Status.show('Bienvenue — Ouvrez un PDF', 'success');
 }
 
-// Lancer au chargement
 document.addEventListener('DOMContentLoaded', boot);
 
-// Export
 window.setMode = setMode;

@@ -1,6 +1,6 @@
 /* ============================================================
-   EXPORT.JS - Export PNG/PDF V3.4
-   ✅ NOUVEAU : Vérification complète du background
+   EXPORT.JS - Export PNG / PDF
+   Mesures Terrain v3.5.0 - GRDF Boucles de Seine Nord
    ============================================================ */
 
 function _getBgInfo() {
@@ -8,21 +8,19 @@ function _getBgInfo() {
   const el = bg?._element || null;
   if (!bg || !el) return null;
 
-  // ✅ NOUVEAU : Vérifier que l'image est complètement chargée
   if (!el.complete || el.naturalWidth === 0) {
-    console.warn('⚠️ Background pas complètement chargé');
+    console.warn('Background pas complètement chargé');
     return null;
   }
 
   const w = el.naturalWidth || bg.width || 0;
   const h = el.naturalHeight || bg.height || 0;
-  
+
   if (!w || !h) {
-    console.warn('⚠️ Dimensions background invalides');
+    console.warn('Dimensions background invalides');
     return null;
   }
 
-  console.log(`✅ Background OK: ${w}x${h}px`);
   return { el, w, h };
 }
 
@@ -35,10 +33,9 @@ function _objectsJSONOnly() {
 
 async function _buildCompositeDataURL(multiplier = CONFIG.EXPORT_MULTIPLIER) {
   const info = _getBgInfo();
-  
-  // ✅ NOUVEAU : Message d'erreur clair
+
   if (!info) {
-    throw new Error('BACKGROUND_MISSING - Impossible d\'exporter sans fond');
+    throw new Error('Impossible d\'exporter sans fond chargé');
   }
 
   const { el, w, h } = info;
@@ -48,7 +45,6 @@ async function _buildCompositeDataURL(multiplier = CONFIG.EXPORT_MULTIPLIER) {
   base.height = Math.round(h * multiplier);
   const bctx = base.getContext('2d');
   bctx.imageSmoothingEnabled = true;
-
   bctx.drawImage(el, 0, 0, base.width, base.height);
 
   const off = new fabric.StaticCanvas(null, {
@@ -111,10 +107,10 @@ async function exportToPNG() {
     a.href = dataURL;
     a.click();
 
-    Status.show('PNG OK (plan + cotes)', 'success');
+    Status.show('Export PNG réussi', 'success');
   } catch (e) {
-    console.error('❌ Erreur export PNG:', e);
-    Status.show('Erreur export PNG - ' + e.message, 'error');
+    console.error('Erreur export PNG :', e);
+    Status.show('Erreur export PNG — ' + e.message, 'error');
   }
 }
 
@@ -133,7 +129,6 @@ async function exportToPDF() {
     const { dataURL, baseW, baseH } = await _buildCompositeDataURL(CONFIG.EXPORT_MULTIPLIER);
 
     const { jsPDF } = window.jspdf;
-
     const orientation = baseW > baseH ? 'landscape' : 'portrait';
 
     let pdfW = orientation === 'landscape' ? 297 : 210;
@@ -155,10 +150,10 @@ async function exportToPDF() {
     pdf.addImage(dataURL, 'PNG', 0, 0, pdfW, pdfH, '', 'FAST');
     pdf.save(`mesures-terrain-page-${State.currentPage}.pdf`);
 
-    Status.show('PDF OK (plan + cotes)', 'success');
+    Status.show('Export PDF réussi', 'success');
   } catch (e) {
-    console.error('❌ Erreur export PDF:', e);
-    Status.show('Erreur export PDF - ' + e.message, 'error');
+    console.error('Erreur export PDF :', e);
+    Status.show('Erreur export PDF — ' + e.message, 'error');
   }
 }
 

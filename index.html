@@ -3,83 +3,86 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0a0e17">
+  <meta name="theme-color" content="#f5f7fa">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  
-  <title>Mesures Terrain - GRDF BDSN</title>
-  
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <title>Mesures Terrain - GRDF Boucles de Seine Nord</title>
+
+  <!-- Développé par RBD · GRDF Boucles de Seine Nord
+       Avec le concours de Claude AI (Anthropic) et ChatGPT (OpenAI) -->
+
   <link rel="icon" type="image/png" href="assets/favicon.png">
-  
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
-  <link rel="stylesheet" href="css/styles.css?v=3.4.2">
+
+  <link rel="stylesheet" href="css/styles.css?v=3.5.0">
 </head>
 
 <body>
   <header class="top-bar">
     <div class="brand glass-card glass-card--elevated">
       <div class="brand__logo">
-        <img src="assets/grdf-logo.png" alt="GRDF BDSN" onerror="this.parentElement.innerHTML='<i class=\'fa-solid fa-ruler-combined\' style=\'font-size:1.5rem;color:var(--accent)\'></i>'">
+        <img src="assets/grdflogo.png" alt="GRDF Boucles de Seine Nord" onerror="this.parentElement.innerHTML='<i class=\'fa-solid fa-ruler-combined\' style=\'font-size:1.5rem;color:var(--accent)\'></i>'">
       </div>
       <div class="brand__text">
         <div class="brand__title">Mesures Terrain</div>
-        <div class="brand__version" id="brandVersion">v3.4.2</div>
+        <div class="brand__version" id="brandVersion">v3.5.0</div>
       </div>
     </div>
-    
+
     <nav class="pager glass-card glass-card--elevated" aria-label="Navigation des pages">
       <button id="btnPrevPage" class="btn btn--icon" disabled aria-label="Page précédente">
         <i class="fa-solid fa-chevron-left"></i>
       </button>
-      
+
       <span class="pager__label" id="pageLabel">Page — / —</span>
-      
+
       <button id="btnNextPage" class="btn btn--icon" disabled aria-label="Page suivante">
         <i class="fa-solid fa-chevron-right"></i>
       </button>
-      
-      <input type="number" id="pageJump" class="pager__input" min="1" step="1" placeholder="N°" disabled aria-label="Aller à la page">
-      
+
+      <input type="number" id="pageJump" class="pager__input" min="1" step="1" placeholder="N°" disabled aria-label="Numéro de page">
+
       <button id="btnGoPage" class="btn btn--icon" disabled aria-label="Aller à la page">
         <i class="fa-solid fa-arrow-right"></i>
       </button>
     </nav>
-    
+
     <div class="top-actions">
       <label for="fileInput" class="btn glass-card--elevated" tabindex="0">
         <i class="fa-solid fa-folder-open"></i>
         <span>Ouvrir</span>
       </label>
       <input type="file" id="fileInput" accept=".pdf" class="sr-only">
-      
+
       <button id="btnFullscreen" class="btn btn--icon glass-card--elevated" aria-label="Plein écran">
         <i class="fa-solid fa-expand"></i>
       </button>
-      
+
       <button id="btnSave" class="btn glass-card--elevated" disabled aria-label="Exporter en PNG">
         <i class="fa-solid fa-download"></i>
         <span>PNG</span>
       </button>
-      
+
       <button id="btnSavePDF" class="btn glass-card--elevated" disabled aria-label="Exporter en PDF">
         <i class="fa-solid fa-file-pdf"></i>
         <span>PDF</span>
       </button>
-      
+
       <button id="btnClear" class="btn btn--danger glass-card--elevated" aria-label="Tout effacer">
         <i class="fa-solid fa-trash"></i>
       </button>
     </div>
   </header>
-  
+
   <div id="statusBubble" class="status-bubble" role="status" aria-live="polite">Bienvenue</div>
-  
-  <aside id="scaleBadge" class="scale-badge glass-card">
+
+  <aside id="scaleBadge" class="scale-badge glass-card" aria-label="Échelle détectée">
     <div class="scale-badge__header">
       <span class="scale-badge__title">Échelle</span>
       <span class="scale-badge__mini" id="scaleMini">—</span>
@@ -89,7 +92,7 @@
       <span class="scale-badge__text" id="scaleValue">Non détectée</span>
     </div>
   </aside>
-  
+
   <div id="colorPicker" class="color-palette glass-card" role="radiogroup" aria-label="Couleur du tracé">
     <button class="color-dot color-dot--selected" style="background: var(--color-elec);" data-color="#ff5252" title="Électricité (Rouge)" role="radio" aria-checked="true"></button>
     <button class="color-dot" style="background: var(--color-gaz);" data-color="#ffab00" title="Gaz (Jaune)" role="radio" aria-checked="false"></button>
@@ -97,102 +100,102 @@
     <button class="color-dot" style="background: var(--color-telecom);" data-color="#00e676" title="Télécom (Vert)" role="radio" aria-checked="false"></button>
     <button class="color-dot" style="background: var(--color-fibre);" data-color="#e040fb" title="Fibre (Violet)" role="radio" aria-checked="false"></button>
   </div>
-  
-  <nav class="bottom-dock glass-card glass-card--elevated" aria-label="Outils">
-    <button id="btnPan" class="btn btn--icon-lg btn--active" title="Déplacer" aria-pressed="true">
+
+  <nav class="bottom-dock glass-card glass-card--elevated" aria-label="Outils de mesure">
+    <button id="btnPan" class="btn btn--icon-lg btn--active" title="Déplacer / Sélectionner" aria-pressed="true">
       <i class="fa-solid fa-hand"></i>
     </button>
-    
-    <button id="btnHome" class="btn btn--icon-lg" title="Recentrer" aria-label="Recentrer la vue">
+
+    <button id="btnHome" class="btn btn--icon-lg" title="Recentrer la vue" aria-label="Recentrer la vue">
       <i class="fa-solid fa-crosshairs"></i>
     </button>
-    
+
     <div class="dock-divider" role="separator"></div>
-    
-    <button id="btnZoomOut" class="btn btn--icon-lg" disabled title="Zoom -" aria-label="Dézoomer">
+
+    <button id="btnZoomOut" class="btn btn--icon-lg" disabled title="Dézoomer" aria-label="Dézoomer">
       <i class="fa-solid fa-minus"></i>
     </button>
-    
-    <button id="btnZoomIn" class="btn btn--icon-lg" disabled title="Zoom +" aria-label="Zoomer">
+
+    <button id="btnZoomIn" class="btn btn--icon-lg" disabled title="Zoomer" aria-label="Zoomer">
       <i class="fa-solid fa-plus"></i>
     </button>
-    
+
     <div class="dock-divider" role="separator"></div>
-    
-    <button id="btnScale" class="btn btn--icon-lg btn--warning" disabled title="Étalonnage">
+
+    <button id="btnScale" class="btn btn--icon-lg btn--warning" disabled title="Étalonnage de l'échelle">
       <i class="fa-solid fa-ruler"></i>
     </button>
-    
-    <button id="btnMeasure" class="btn btn--icon-lg btn--success" disabled title="Mesurer">
+
+    <button id="btnMeasure" class="btn btn--icon-lg btn--success" disabled title="Mesurer une distance">
       <i class="fa-solid fa-pen-ruler"></i>
     </button>
-    
-    <button id="btnAnnotation" class="btn btn--icon-lg btn--info" disabled title="Plan Minute (Cotation)">
+
+    <button id="btnAnnotation" class="btn btn--icon-lg btn--info" disabled title="Plan Minute — Cotation">
       <i class="fa-solid fa-pen-fancy"></i>
     </button>
-    
-    <button id="btnText" class="btn btn--icon-lg btn--info" disabled title="Plan Minute (Texte)">
+
+    <button id="btnText" class="btn btn--icon-lg btn--info" disabled title="Plan Minute — Texte libre">
       <i class="fa-solid fa-font"></i>
     </button>
-    
+
     <div class="dock-divider" role="separator"></div>
-    
-    <button id="btnUndo" class="btn btn--icon-lg btn--warning" disabled title="Annuler dernier" aria-label="Annuler">
+
+    <button id="btnUndo" class="btn btn--icon-lg btn--warning" disabled title="Annuler le dernier tracé" aria-label="Annuler">
       <i class="fa-solid fa-rotate-left"></i>
     </button>
-    
-    <button id="btnDelete" class="btn btn--icon-lg btn--danger" disabled title="Supprimer sélection" aria-label="Supprimer">
+
+    <button id="btnDelete" class="btn btn--icon-lg btn--danger" disabled title="Supprimer la sélection" aria-label="Supprimer">
       <i class="fa-solid fa-eraser"></i>
     </button>
   </nav>
-  
+
   <div id="touchCursor" class="touch-cursor" aria-hidden="true">
     <div class="touch-cursor__ring"></div>
     <div class="touch-cursor__cross-h"></div>
     <div class="touch-cursor__cross-v"></div>
     <div class="touch-cursor__dot"></div>
   </div>
-  
-  <div id="confirmPad" class="confirm-pad glass-card">
+
+  <div id="confirmPad" class="confirm-pad glass-card" role="group" aria-label="Validation du tracé">
     <button id="btnConfirmStart" class="btn btn--success confirm-btn">
       <i class="fa-solid fa-location-dot"></i>
       <span>Départ OK</span>
     </button>
-    
+
     <button id="btnConfirmEnd" class="btn btn--primary confirm-btn" disabled>
       <i class="fa-solid fa-flag-checkered"></i>
       <span>Arrivée OK</span>
     </button>
-    
-    <button id="btnConfirmCancel" class="btn btn--danger confirm-btn" aria-label="Annuler">
+
+    <button id="btnConfirmCancel" class="btn btn--danger confirm-btn" aria-label="Annuler le tracé">
       <i class="fa-solid fa-xmark"></i>
     </button>
   </div>
-  
+
   <div id="modalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal">
       <h2 class="modal__title" id="modalTitle">Distance en mètres</h2>
-      
+
       <div class="modal__input-group">
         <label for="modalInput" class="modal__label" id="modalLabel">Entrez la distance réelle</label>
         <input type="number" id="modalInput" class="modal__input" step="0.01" min="0.01" placeholder="1.00" inputmode="decimal">
-        <p class="modal__hint">Exemple : 1.50 pour 1m50</p>
+        <p class="modal__hint">Exemple : 1.50 pour 1 m 50</p>
       </div>
-      
+
       <div class="modal__actions">
         <button id="modalCancel" class="btn btn--danger">Annuler</button>
         <button id="modalConfirm" class="btn btn--primary">Valider</button>
       </div>
     </div>
   </div>
-  
+
   <div class="canvas-frame" aria-hidden="true"></div>
   <main id="canvasWrapper" class="canvas-wrapper">
     <canvas id="mainCanvas"></canvas>
   </main>
-  
-  <div class="version-label" id="versionLabel">v3.4.0</div>
-  
+
+  <div class="version-label" id="versionLabel">v3.5.0</div>
+
   <script src="js/config.js"></script>
   <script src="js/state.js"></script>
   <script src="js/ui.js"></script>

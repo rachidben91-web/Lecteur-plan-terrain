@@ -1,44 +1,39 @@
 /* ============================================================
-   PDF.JS - Gestion du chargement et rendu PDF
+   PDF.JS - Chargement et rendu des pages PDF
+   Mesures Terrain v3.5.0 - GRDF Boucles de Seine Nord
    ============================================================ */
 
-// Configuration PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = 
+pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 /* ===== LOAD PDF ===== */
 async function loadPdfFile(file) {
   Status.show('Chargement du PDF...', 'normal');
-  
+
   try {
     const buffer = await file.arrayBuffer();
     const typed = new Uint8Array(buffer);
     State.pdfDoc = await pdfjsLib.getDocument(typed).promise;
-    
+
     State.pageCount = State.pdfDoc.numPages;
     State.currentPage = 1;
     State.perPage.clear();
-     
-    // ✅ FIX : on purge l'autosave (sinon page_1 d’un ancien PDF revient)
-    State.clearLocalStorage();
 
-   // ✅ (bonus) on reset le picking/preview pour éviter un état collant
-   resetPicking();
-     
-    // Reset scale
+    // Purge des données de l'ancien document
+    State.clearLocalStorage();
+    resetPicking();
+
     State.resetForNewPage();
     updateScaleBadge(null);
-    
     updatePagerUI();
     updateButtonStates();
-    
-    Status.show(`PDF chargé (${State.pageCount} pages)`, 'success');
-    
-    // Rendre la première page
+
+    Status.show(`PDF chargé (${State.pageCount} page${State.pageCount > 1 ? 's' : ''})`, 'success');
+
     await renderPage(1, true);
-    
+
   } catch (error) {
-    console.error('Erreur chargement PDF:', error);
+    console.error('Erreur chargement PDF :', error);
     Status.show('Erreur de chargement du PDF', 'error');
     throw error;
   }
@@ -47,59 +42,53 @@ async function loadPdfFile(file) {
 /* ===== RENDER PAGE ===== */
 async function renderPage(pageNumber, restore = true) {
   if (!State.pdfDoc) return;
-  
-  // Sauvegarder la page actuelle avant de changer
+
   if (State.currentPage && State.currentPage !== pageNumber) {
     saveCurrentPage();
   }
-  
+
   State.currentPage = pageNumber;
   updatePagerUI();
   Status.show(`Rendu page ${pageNumber}...`, 'normal');
-  
+
   try {
     const page = await State.pdfDoc.getPage(pageNumber);
     const viewport = page.getViewport({ scale: CONFIG.PDF_RENDER_SCALE });
-    
-    // Canvas temporaire pour le rendu
+
     const tempCanvas = document.createElement('canvas');
     const ctx = tempCanvas.getContext('2d', { willReadFrequently: true });
     tempCanvas.width = viewport.width;
     tempCanvas.height = viewport.height;
-    
-    // Rendu PDF
+
     await page.render({ canvasContext: ctx, viewport }).promise;
-    
-    // Convertir en image pour Fabric.js
+
     const dataUrl = tempCanvas.toDataURL('image/png');
-    
+
     await new Promise((resolve) => {
       fabric.Image.fromURL(dataUrl, (img) => {
         setCanvasBackground(img);
-        
+
         if (restore) {
           restoreCurrentPage();
         }
-        
+
         resolve();
       }, { crossOrigin: 'anonymous' });
     });
-    
-    // OCR si pas encore tenté
+
     if (!State.wasOcrTried(pageNumber)) {
       await performOCR(tempCanvas).catch(() => {});
       State.markOcrTried(pageNumber);
     }
-    
-    // Activer les boutons
+
     setAllButtonsDisabled(false);
     updateButtonStates();
     setMode(MODES.PAN);
-    
+
     Status.show(`Page ${pageNumber} prête`, 'success');
-    
+
   } catch (error) {
-    console.error('Erreur rendu page:', error);
+    console.error('Erreur rendu page :', error);
     Status.show('Erreur de rendu', 'error');
   }
 }
@@ -107,17 +96,17 @@ async function renderPage(pageNumber, restore = true) {
 /* ===== SAVE / RESTORE PAGE ===== */
 function saveCurrentPage() {
   if (!State.pdfDoc || !State.currentPage) return;
-  
+
   const json = saveCanvasState();
   State.savePageState(State.currentPage, json);
 }
 
 function restoreCurrentPage() {
   const saved = State.loadPageState(State.currentPage);
-  
+
   updateScaleBadge(State.detectedScale);
   updateButtonStates();
-  
+
   if (saved?.json) {
     restoreCanvasState(saved.json);
   }
