@@ -1,6 +1,6 @@
 /* ============================================================
    TOUCH.JS - Gestion des interactions tactiles (tablette)
-   Mesures Terrain v3.5.0 - GRDF Boucles de Seine Nord
+   Mesures Terrain v3.5.1 - GRDF Boucles de Seine Nord
    ============================================================ */
 
 /* ===== DETECTION TOUCH ===== */

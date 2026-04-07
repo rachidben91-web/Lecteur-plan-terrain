@@ -1,6 +1,6 @@
 /* ============================================================
    STATE.JS - Gestion de l'état applicatif
-   Mesures Terrain v3.5.0 - GRDF Boucles de Seine Nord
+   Mesures Terrain v3.5.1 - GRDF Boucles de Seine Nord
    ============================================================ */
 
 const State = {
@@ -51,11 +51,28 @@ const State = {
   _saveToLocalStorage(pageNumber, data) {
     if (!this.pdfDoc) return;
 
+    const key = `mt_page_${pageNumber}`;
     try {
-      const key = `mt_page_${pageNumber}`;
       localStorage.setItem(key, JSON.stringify(data));
     } catch (e) {
-      console.warn('LocalStorage plein :', e);
+      // Gestion QuotaExceededError : nettoyage auto + 2e tentative
+      if (e instanceof DOMException && (
+        e.name === 'QuotaExceededError' ||
+        e.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+      )) {
+        console.warn('LocalStorage plein — nettoyage automatique');
+        this.clearLocalStorage();
+        try {
+          localStorage.setItem(key, JSON.stringify(data));
+        } catch (e2) {
+          console.warn('LocalStorage toujours plein après nettoyage :', e2);
+          if (typeof Status !== 'undefined') {
+            Status.show('Espace insuffisant — sauvegarde impossible', 'error');
+          }
+        }
+      } else {
+        console.warn('LocalStorage erreur :', e);
+      }
     }
   },
 

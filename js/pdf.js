@@ -1,10 +1,15 @@
 /* ============================================================
    PDF.JS - Chargement et rendu des pages PDF
-   Mesures Terrain v3.5.0 - GRDF Boucles de Seine Nord
+   Mesures Terrain v3.5.1 - GRDF Boucles de Seine Nord
    ============================================================ */
 
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// Fallback local si CDN inaccessible (réseau terrain coupé)
+try {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+} catch (e) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
+}
 
 /* ===== LOAD PDF ===== */
 async function loadPdfFile(file) {
@@ -13,6 +18,13 @@ async function loadPdfFile(file) {
   try {
     const buffer = await file.arrayBuffer();
     const typed = new Uint8Array(buffer);
+
+    // Détruire l'ancien document avant d'en charger un nouveau (évite les fuites mémoire)
+    if (State.pdfDoc) {
+      try { await State.pdfDoc.destroy(); } catch (_) {}
+      State.pdfDoc = null;
+    }
+
     State.pdfDoc = await pdfjsLib.getDocument(typed).promise;
 
     State.pageCount = State.pdfDoc.numPages;
